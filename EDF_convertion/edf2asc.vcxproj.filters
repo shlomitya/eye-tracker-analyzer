@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{370d2749-6b0e-4acb-b93b-fd0aea6c7999}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{5a795607-3b67-4885-a878-3d71690b14b9}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{91d1bab2-deb9-454c-a57c-8d2746b117a3}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="AVIEDFTime.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="printevent.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="printrecordinginfo.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="printsample.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="scenecameraedf.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AVIEDFTime.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="edf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="edf_data.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="edftypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

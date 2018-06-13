@@ -1,0 +1,45 @@
+what we learned from a month of EDF conversion issues
+-----------------------------------------------------
+There are two ways of converting the edf data to matlab structs/files: 
+
+The easy way:
+------------
+1) Convert your file to a .asc file using the EL supplied sofware "visual edf2asc".
+2) once you have your .asc file you can use the function read_eyelink_asc supplied here in the folder
+------------------------------------------------------
+
+The hard way:         ( direct edf>mat convertion, takes about 1/11 of the time to convert) 
+------------
+use our readEDF function, written in c:
+If you're using win 64 MATLAB 64 you can most probably just use the ready mex (readEDF.mexw64) file (only go through stages d,h)
+If not (or this fails) you need to compile the .c file for yourself:
+if you  have an installed (and working) matlab compiler (type mex -setup to see) try going through stages d,g,h.
+ELSE: stages a-h.
+
+
+1) in order to convert edf's efficiently one needs to use a mex compiled file from readEDF.c, this compilation being OS and architecture (32 vs 64) specific.
+2) in order to make Shlomit's original readEDF.c file compile, a few things are needed:
+	a) Matlab with appropriate, OS compatible SDK, and visual C++ libraries.
+	b) once matlab and the SDK and C++ are installed, one needs to define the compiler for use with matlab, this is done by typing mex -setup in the command line. 
+		check out 	http://www.mathworks.com/support/compilers/R2013b/index.html?sec=win64 		and 	http://www.mathworks.com/matlabcentral/newsreader/view_thread/282955 for more info.
+	c) the compiler that worked for us is 
+		[1] Microsoft Software Development Kit (SDK) 7.1 in C:\Program Files (x86)\Microsoft Visual Studio 10.0
+		even though it shows the x86 path, its was still perfectly fine for  our settings (win64)
+//////////////////////////			d) the changes done to the original readEDF.c file were as following: 
+/////////ignore this		   	1) move all variables declarations to the very beginning of the script (to lines 60-100 approx.)
+///////////				2) make the  "int outDimsMessages" declaration a set value (1,20000) instead of relying on numMessages.
+///////////////////////////			3) perhaps other minor changes
+	d) download all the files in this folder to a local folder, along with your desired edf file, and make it your current folder 
+	e) after installing a working matlab compiler replace your mexopts.bat with the attached mexopts.bat (Not sure this is necessary, note that this mex is overrwritten when the compiler is selected with the 'mex -setup'
+	f) make sure all is well defined and all necessary "includes" are working, this  requires the files "mex.h" and "mgl.h" from the folder being accessible.
+	g) (cross your fingers and) compile (in the command type : mex readEDF.c) 
+	h) (pray and) use readEDF('youredffilename.edf')
+
+
+---------------------
+if all this doesn't work, return to conducting a thourough check of comparison between the original readEDF.c and the current one. 
+If STILL fails, contact 	roy.amit@mail.huji.ac.il 
+
+See comments in the readEDF.c beginning!  
+-------------------------------
+
