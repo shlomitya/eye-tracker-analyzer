@@ -5,14 +5,14 @@ function eyeTrackerAnalyzer()
 %=== GUI PARAMETERS AND CONSTANTS ===%
 %====================================%
 if ~exist('./.git','file')
-    !git init
+    !PortableGit/git-cmd.exe git init
 end
 
-[~, result] = system('git pull --rebase');
+[~, result] = system('PortableGit/git-cmd.exe git pull --rebase');
 if isempty(strfind(result, 'Current branch master is up to date'))
     user_response = questdlg('A new version is available. Would you like to update?', 'Update Available', 'Update', 'Skip', 'Cancel', 'Update');
     if strcmp(user_response, 'Update')
-        !git pull
+        !PortableGit/git-cmd.exe git pull
     elseif strcmp(user_response, 'Cancel')
         return;
     end
