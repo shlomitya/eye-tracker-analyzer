@@ -4,6 +4,20 @@ function eyeTrackerAnalyzer()
 %====================================%
 %=== GUI PARAMETERS AND CONSTANTS ===%
 %====================================%
+if ~exist('./.git','file')
+    !git init
+end
+
+[~, result] = system('git pull --rebase');
+if isempty(result, 'Current branch master is up to date')    
+    user_response = questdlg('A new version is available. Would you like to update?', 'Update Available', 'Update', 'Skip', 'Cancel', 'Update');
+    if strcmp(user_response, 'Update')
+        !git pull
+    elseif strcmp(user_response, 'Cancel')
+        return;
+    end
+end    
+
 GUI_BACKGROUND_COLOR= [0.8, 0.8, 0.8];
 SAND_BOX_RELATIVE_PATH= fullfile('EDF_convertion', 'sandbox');
 ETAS_FOLDER_NAME = 'Eye Tracking Analysis Files';
