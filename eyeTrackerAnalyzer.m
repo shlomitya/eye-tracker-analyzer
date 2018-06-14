@@ -4,6 +4,7 @@ function eyeTrackerAnalyzer()
 %====================================%
 %=== GUI PARAMETERS AND CONSTANTS ===%
 %====================================%
+%%%%%% updated %%%%%%%%%%%
 if ~exist('./.git','file')
     !PortableGit/git-cmd.exe git init
 end
