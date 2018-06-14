@@ -9,7 +9,7 @@ if ~exist('./.git','file')
 end
 
 [~, result] = system('git pull --rebase');
-if isempty(result, 'Current branch master is up to date')    
+if isempty(strfind(result, 'Current branch master is up to date'))
     user_response = questdlg('A new version is available. Would you like to update?', 'Update Available', 'Update', 'Skip', 'Cancel', 'Update');
     if strcmp(user_response, 'Update')
         !git pull
