@@ -9,7 +9,9 @@ if ~exist('./.git','file')
     !PortableGit/git-cmd.exe git init
 end
 
-[~, result] = system('PortableGit/git-cmd.exe git pull --rebase');
+cd('PortableGit');
+[~, result] = system('git-cmd.exe git pull --rebase');
+cd('..');
 if isempty(strfind(result, 'Current branch master is up to date'))
     user_response = questdlg('A new version is available. Would you like to update?', 'Update Available', 'Update', 'Skip', 'Cancel', 'Update');
     if strcmp(user_response, 'Update')
