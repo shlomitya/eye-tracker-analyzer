@@ -10,9 +10,15 @@ if ~exist('./.git','file')
 end
 
 cd('PortableGit');
-[~, result] = system('git-cmd.exe git pull --rebase');
+!git-cmd.exe git pull >> git_response.txt &
+!git-cmd.exe exit &
+!exit &
+fid = fopen('git_response.txt');        
+git_pull_res = fgets(fid);
+fclose(fid);
 cd('..');
-if isempty(strfind(result, 'Current branch master is up to date'))
+
+if isempty(strfind(git_pull_res, 'Already up to date.'))
     user_response = questdlg('A new version is available. Would you like to update?', 'Update Available', 'Update', 'Skip', 'Cancel', 'Update');
     if strcmp(user_response, 'Update')
         !PortableGit/git-cmd.exe git pull
