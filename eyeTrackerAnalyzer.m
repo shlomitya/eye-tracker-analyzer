@@ -9,7 +9,14 @@ cd('PortableGit');
 if ~exist('../.git','file')
     !git-cmd.exe git init
 end
+<<<<<<< HEAD
+%asdsdfsdfsdf
+=======
 
+<<<<<<< HEAD
+=======
+>>>>>>> added github functionality
+>>>>>>> d6028cb9e9070fb2edeb9236301f89418a2bb543
 !break > git_response.txt
 !git-cmd.exe git fetch --dry-run 2> git_response.txt &
 !git-cmd.exe exit &
