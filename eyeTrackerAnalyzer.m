@@ -5,26 +5,29 @@ function eyeTrackerAnalyzer()
 %=== GUI PARAMETERS AND CONSTANTS ===%
 %====================================%
 %%%%%% updated %%%%%%%%%%%
-if ~exist('./.git','file')
-    !PortableGit/git-cmd.exe git init
+cd('PortableGit');
+if ~exist('../.git','file')
+    !git-cmd.exe git init
 end
 
-cd('PortableGit');
-!git-cmd.exe git pull >> git_response.txt &
+!break > git_response.txt
+!git-cmd.exe git fetch --dry-run 2> git_response.txt &
 !git-cmd.exe exit &
-!exit &
 fid = fopen('git_response.txt');        
 git_pull_res = fgets(fid);
 fclose(fid);
 cd('..');
-
-if isempty(strfind(git_pull_res, 'Already up to date.'))
-    user_response = questdlg('A new version is available. Would you like to update?', 'Update Available', 'Update', 'Skip', 'Cancel', 'Update');
-    if strcmp(user_response, 'Update')
-        !PortableGit/git-cmd.exe git pull
-    elseif strcmp(user_response, 'Cancel')
-        return;
-    end
+if ischar(git_pull_res)
+%     user_response = questdlg('A new version is available. Would you like to update?', 'Update Available', 'Update', 'Skip', 'Cancel', 'Update');
+%     if strcmp(user_response, 'Update')        
+%         !git-cmd.exe git pull &
+%         !git-cmd.exe exit &
+%         !exit &     
+%     elseif strcmp(user_response, 'Cancel')
+%         return;
+%     end
+    warndlg('There is a new eyeTrackerAnalyzer version. please download from https://github.com/coriumgit/eye-tracker-analyzer', 'New Version Available');
+    return;
 end    
 
 GUI_BACKGROUND_COLOR= [0.8, 0.8, 0.8];
