@@ -1,5 +1,3 @@
-%TODO: check files existance
-
 function eyeTrackerAnalyzer()
 %====================================%
 %=== GUI PARAMETERS AND CONSTANTS ===%
