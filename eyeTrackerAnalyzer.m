@@ -4,6 +4,8 @@ function eyeTrackerAnalyzer()
 %====================================%
 %=== GUI PARAMETERS AND CONSTANTS ===%
 %====================================%
+%%%%%%%%%%%%%%%%5
+%%%%%%%%%%%%%
 GUI_BACKGROUND_COLOR= [0.8, 0.8, 0.8];
 SAND_BOX_RELATIVE_PATH= fullfile('EDF_convertion', 'sandbox');
 ETAS_FOLDER_NAME = 'Eye Tracking Analysis Files';
