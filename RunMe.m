@@ -1,8 +1,8 @@
 function RunMe()
     cd('PortableGit');
     if ~exist('../.git','file')
-        !git-cmd.exe git init 1> nul 2> nul
-        !git remote add origin https://github.com/coriumgit/eye-tracker-analyzer
+        !PortableGit\git-cmd.exe git init 1> nul 2> nul &
+        !git remote add origin https://github.com/coriumgit/eye-tracker-analyzer &
         !taskkill /F /im "cmd.exe" 1> nul 2> nul
     end
     
