@@ -4,7 +4,7 @@ classdef EyeTrackerAnalysisRecord < handle
     end
     
     properties (Access= private, Constant)
-        SAND_BOX_RELATIVE_PATH= fullfile('EDF_convertion', 'sandbox');        
+        READ_EDF_PATH= fullfile('readEDF');        
     end
     
     properties (Access= private)          
@@ -35,9 +35,9 @@ classdef EyeTrackerAnalysisRecord < handle
                 curr_eye_tracker_full_file_name= eye_tracker_files{eye_tracker_file_i};
                 [~, eye_tracker_file_name, eye_tracker_file_ext]= fileparts(curr_eye_tracker_full_file_name);                                    
                 if strcmp(eye_tracker_file_ext, '.edf')                    
-                    copyfile(curr_eye_tracker_full_file_name, EyeTrackerAnalysisRecord.SAND_BOX_RELATIVE_PATH);
+                    copyfile(curr_eye_tracker_full_file_name, EyeTrackerAnalysisRecord.READ_EDF_PATH);
                     progress_screen.displayMessage(['converting session #', num2str(eye_tracker_file_i), ' edf file']);
-                    cd(EyeTrackerAnalysisRecord.SAND_BOX_RELATIVE_PATH);
+                    cd(EyeTrackerAnalysisRecord.READ_EDF_PATH);
                     extracted_struct = readEDF([eye_tracker_file_name, '.edf']);
                     extracted_struct = rmfield(extracted_struct, 'fixations');
                     extracted_struct = rmfield(extracted_struct, 'saccades');

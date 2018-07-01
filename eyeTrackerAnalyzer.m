@@ -4,7 +4,7 @@ function eyeTrackerAnalyzer()
 %====================================%
 % updated !!!!!!!!
 GUI_BACKGROUND_COLOR= [0.8, 0.8, 0.8];
-SAND_BOX_RELATIVE_PATH= fullfile('EDF_convertion', 'sandbox');
+READ_EDF_PATH= fullfile('readEDF');
 ETAS_FOLDER_NAME = 'Eye Tracking Analysis Files';
 ANALYSIS_RESULTS_FOLDER_NAME= 'Analysis Figures';
 
@@ -1740,7 +1740,7 @@ set(gui, 'Visible', 'on');
     
     function convertEdfToMat(full_file_path, save_folder)        
         curr_path= pwd;
-        cd(SAND_BOX_RELATIVE_PATH);
+        cd(READ_EDF_PATH);
         copyfile(full_file_path, pwd);
         [~, edf_file_name]= fileparts(full_file_path);
         eye_tracking_data_mat= readEDF([edf_file_name, '.edf']); %#ok<NASGU>
