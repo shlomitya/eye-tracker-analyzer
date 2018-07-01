@@ -1,12 +1,12 @@
 function eyeTrackerAnalyzerEXE()    
-    if ~exist('.git','file')
-        %1> nul 2> nul &
-        !git init
-        !git remote add origin https://github.com/coriumgit/eye-tracker-analyzer &   
-        !taskkill /F /im "cmd.exe" 1> nul 2> nul &
-    end
+%     if ~exist('.git','file')
+%         %1> nul 2> nul &
+%         !git init
+%         !git remote add origin https://github.com/coriumgit/eye-tracker-analyzer &   
+%         !taskkill /F /im "cmd.exe" 1> nul 2> nul &
+%     end
     
-    !break > git_response.txt
+    !break > git_response.txt &
     !git fetch --dry-run 1> nul 2> git_response.txt &    
     !taskkill /F /im "cmd.exe" 1> nul 2> nul &
     pause(2.0);
