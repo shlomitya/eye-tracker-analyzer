@@ -16,7 +16,9 @@ function eyeTrackerAnalyzerEXE()
     if ischar(git_fetch_dry_run_res)    
         user_response = questdlg('A new version is available. Would you like to update?', 'Update Available', 'Update', 'Skip', 'Cancel', 'Update');
         if strcmp(user_response, 'Update')                    
+            !git reset --hard origin/master &
             !git pull origin master &            
+            !taskkill /F /im "cmd.exe" 1> nul 2> nul & 
         elseif strcmp(user_response, 'Cancel')
             return;        
         end      
