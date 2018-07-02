@@ -2,7 +2,6 @@ function eyeTrackerAnalyzer()
 %====================================%
 %=== GUI PARAMETERS AND CONSTANTS ===%
 %====================================%
-% updated !
 GUI_BACKGROUND_COLOR= [0.8, 0.8, 0.8];
 READ_EDF_PATH= fullfile('readEDF');
 ETAS_FOLDER_NAME = 'Eye Tracking Analysis Files';
@@ -1136,7 +1135,7 @@ set(gui, 'Visible', 'on');
                     curr_cond_segmentized_struct= segmentized_data_struct.(conds_names{cond_i});
                     for trial_i= 1:numel(curr_cond_segmentized_struct)
                         curr_trial_onset= curr_cond_segmentized_struct(trial_i).onset_from_session_start;
-                        curr_trial_offset= curr_trial_onset+curr_cond_segmentized_struct(trial_i).trial_dur-1;
+                        curr_trial_offset= curr_trial_onset+curr_cond_segmentized_struct(trial_i).samples_nr-1;
                         EEG.data(end, curr_trial_onset:curr_trial_offset)= curr_cond_segmentized_struct(trial_i).blinks;
                     end
                 end    

@@ -527,11 +527,13 @@ classdef EyeTrackerAnalysisRecord < handle
             updated_eeg_struct= eeg_struct;
             updated_eeg_struct.gazeLeft.x= double(eeg_struct.data(74,:));
             updated_eeg_struct.gazeLeft.y= double(eeg_struct.data(75,:));
+            updated_eeg_struct.gazeLeft.pupil= double(eeg_struct.data(76,:));
             updated_eeg_struct.gazeLeft.time= 1:numel(updated_eeg_struct.gazeLeft.x);
             updated_eeg_struct.gazeRight.x= double(eeg_struct.data(77,:));
             updated_eeg_struct.gazeRight.y= double(eeg_struct.data(78,:));
+            updated_eeg_struct.gazeRight.pupil= double(eeg_struct.data(79,:));
             updated_eeg_struct.gazeRight.time= 1:numel(updated_eeg_struct.gazeRight.x);
-
+                                    
             for trigger_i= 1:numel(eeg_struct.event)                                
                 updated_eeg_struct.messages(trigger_i).time= eeg_struct.event(trigger_i).latency;
                 updated_eeg_struct.messages(trigger_i).message= eeg_struct.event(trigger_i).type;
