@@ -4,7 +4,11 @@ classdef EyeTrackerAnalysisRecord < handle
     end
     
     properties (Access= private, Constant)
-        READ_EDF_PATH= fullfile('readEDF');        
+        READ_EDF_PATH= fullfile('readEDF'); 
+        PUPILS_BASED_BLINKS_DETECTION_STD = 2.5;
+        PUPILS_BASED_BLINKS_DETECTION_CONSECUTIVE_SAMPLES = 3;
+        PUPILS_BASED_BLINKS_DETECTION_TOLERANCE = 3;
+        PUPILS_BASED_BLINKS_DETECTION_MAX_SEG_TIME = 10;
     end
     
     properties (Access= private)          
@@ -147,7 +151,9 @@ classdef EyeTrackerAnalysisRecord < handle
             for session_i= 1:sessions_nr
                 curr_session_eye_tracker_data_struct= obj.eye_tracker_data_structs{session_i};                                                               
                 progress_screen.displayMessage(['session #', num2str(session_i), ': indexing blinks']);
-                obj.segmentization_vecs{segmentizations_nr+1}(session_i).blinks= EyeTrackerAnalysisRecord.blinks_vec_gen(curr_session_eye_tracker_data_struct, blinks_delta, progress_screen, 0.8*progress_contribution/sessions_nr);                                                                
+                eyelink_based_blinks_vec = EyeTrackerAnalysisRecord.eyelinkBased_blinkdetection(curr_session_eye_tracker_data_struct, blinks_delta, progress_screen, 0.8*progress_contribution/sessions_nr); %0.4*progress_contribution/sessions_nr);
+                pupils_based_blinks_vec = EyeTrackerAnalysisRecord.pupilBased_blinkdetection_twoEyes(curr_session_eye_tracker_data_struct.gazeRight.pupil, curr_session_eye_tracker_data_struct.gazeLeft.pupil, obj.sampling_rate, obj.PUPILS_BASED_BLINKS_DETECTION_STD, obj.PUPILS_BASED_BLINKS_DETECTION_CONSECUTIVE_SAMPLES, obj.PUPILS_BASED_BLINKS_DETECTION_TOLERANCE, blinks_delta, obj.PUPILS_BASED_BLINKS_DETECTION_MAX_SEG_TIME, progress_screen, 0); %0.4*progress_contribution/sessions_nr);
+                obj.segmentization_vecs{segmentizations_nr+1}(session_i).blinks= eyelink_based_blinks_vec | pupils_based_blinks_vec;                
                 triggers_nr= numel(trial_onset_triggers);                
                 for trigger_i= 1:triggers_nr                    
                     progress_screen.displayMessage(['session #', num2str(session_i), ': segmentizing data by condition ', trial_onset_triggers{trigger_i}]);
@@ -552,39 +558,17 @@ classdef EyeTrackerAnalysisRecord < handle
         end
             
         function eye_data_struct= filterEyeData(eye_data_struct, bandpass, rate)            
-            eye_data_struct.gazeRight.x=naninterp(eye_data_struct.gazeRight.x);
-            eye_data_struct.gazeRight.y=naninterp(eye_data_struct.gazeRight.y);
-            eye_data_struct.gazeRight.x=lowPassFilter(bandpass,eye_data_struct.gazeRight.x,rate); %<<<=== rate ???
-            eye_data_struct.gazeRight.y=lowPassFilter(bandpass,eye_data_struct.gazeRight.y,rate); %<<<=== rate ???
-            eye_data_struct.gazeLeft.x=naninterp(eye_data_struct.gazeLeft.x);
-            eye_data_struct.gazeLeft.y=naninterp(eye_data_struct.gazeLeft.y);
-            eye_data_struct.gazeLeft.x=lowPassFilter(bandpass,eye_data_struct.gazeLeft.x,rate); %<<<=== rate ???
-            eye_data_struct.gazeLeft.y=lowPassFilter(bandpass,eye_data_struct.gazeLeft.y,rate); %<<<=== rate ???
-            
-            function lowPassFilter=lowPassFilter(high,signal,rate)
-                lowpass =high;
-                if nargin < 3
-                    rate = 1024;
-                    warndlg(['assuming sampling rate of ' num2str(rate)])
-                end
-
-                % [nlow,Wnlow]=buttord((0.5*lowpass)/(0.5*rate), lowpass/(0.5*rate) , 0.01, 24);
-                [nlow,Wnlow]=buttord( lowpass/(0.5*rate), min(0.999999, 2*lowpass/(0.5*rate)) , 3, 24); % Alon 27.1.09: changed so that high is the cuttoff freq of -3dB 
-                %disp(['Wnlow = ' num2str(Wnlow)]);
-                % [nlow,Wnlow]=buttord((0.5*lowpass)/(0.5*rate), lowpass/(0.5*rate) , 10, 18)
-
-                [b,a] = butter(nlow,Wnlow,'low') ;
-                lowPassFilter = filtfilt(b,a,signal);
-                %figure; plot(signal); hold on;
-                %plot(bandPassFilter);
-            end
-            
-            function X = naninterp(X)                                         
-                X(isnan(X)) = interp1(find(~isnan(X)), X(~isnan(X)), find(isnan(X)), 'PCHIP');            
-            end            
+            eye_data_struct.gazeRight.x= EyeTrackerAnalysisRecord.naninterp(eye_data_struct.gazeRight.x);
+            eye_data_struct.gazeRight.y= EyeTrackerAnalysisRecord.naninterp(eye_data_struct.gazeRight.y);
+            eye_data_struct.gazeRight.x= EyeTrackerAnalysisRecord.lowPassFilter(bandpass,eye_data_struct.gazeRight.x,rate); %<<<=== rate ???
+            eye_data_struct.gazeRight.y= EyeTrackerAnalysisRecord.lowPassFilter(bandpass,eye_data_struct.gazeRight.y,rate); %<<<=== rate ???
+            eye_data_struct.gazeLeft.x= EyeTrackerAnalysisRecord.naninterp(eye_data_struct.gazeLeft.x);
+            eye_data_struct.gazeLeft.y= EyeTrackerAnalysisRecord.naninterp(eye_data_struct.gazeLeft.y);
+            eye_data_struct.gazeLeft.x= EyeTrackerAnalysisRecord.lowPassFilter(bandpass,eye_data_struct.gazeLeft.x,rate); %<<<=== rate ???
+            eye_data_struct.gazeLeft.y= EyeTrackerAnalysisRecord.lowPassFilter(bandpass,eye_data_struct.gazeLeft.y,rate); %<<<=== rate ???                                                        
         end
-        
-        function blinksbool= blinks_vec_gen(eyelink, delta, progress_screen, progress_contribution)
+                        
+        function blinksbool= eyelinkBased_blinkdetection(eyelink, delta, progress_screen, progress_contribution)
             if nargin==1
                 delta=130;
             end
@@ -621,7 +605,568 @@ classdef EyeTrackerAnalysisRecord < handle
             if mod(blinks_nr,interval_blinks_nr)~=0
                 progress_screen.addProgress(progress_contribution*mod(1,interval_blinks_nr/blinks_nr));
             end
-        end               
+        end 
+        
+        function new_blink_vec=pupilBased_blinkdetection_twoEyes(pupilr, pupill, Fs, std, consq_samples, tolerance, padding, maxsegtime, progress_screen, progress_contribution)
+            %% inputs
+            % pupilr - the  pupildata vector of the right eye as retried by eyelink
+            % (arbitrary units).
+            % pupill - the  pupildata vector of the left eye as retried by eyelink
+            % (arbitrary units).
+            % Fs - the eye tracking sampling rate (not using this at the moment
+            % 2.7.2018 (the hard coded numbers assumes a 1k refresh rate
+            % std - how many stds from the mean define an outlier
+            % consq_samples - how many consequtive outlier samples is the minimum to
+            % consider an offset/onset candidnate
+            % tolerance - how many non oulier samples will break the consequtive
+            % outlier sample counter
+            % old_blinkvec - a blink vector to plot and compare the new detection with.
+            % to_plot - boolean if the user wants the trial to be plotted.
+            % padding - how many samples to add before and after each detected blink.
+            % maxsegtime -(in seconds) define the maximum size of segments per detection - this is
+            % mainly important in non segmented data, as we use mean and std so
+            % splitting the data makes sense to not get heart much by breaks and other
+            % problems.
+            new_blink_vecr=[];
+            new_blink_vecl=[];
+            new_blink_vec=[];
+            segments_errors=[];
+            % if data is long (over 10k samples) split it and then analyze smaller parts
+            if (length(pupilr)/(maxsegtime*Fs))>1
+                lastseg_size=rem(length(pupilr),(maxsegtime*Fs));                
+                if lastseg_size>(maxsegtime*Fs/2)
+                    starttimes=1:(maxsegtime*Fs):length(pupilr);
+                else
+                    starttimes=1:(maxsegtime*Fs):length(pupilr);
+                    starttimes=starttimes(1:(end-1));
+                end
+                
+                for i=1:length(starttimes)                    
+                    if ~(i==length(starttimes));  %if it is not the last segment:
+                        cur_pupilr=pupilr(starttimes(i):starttimes(i+1)-1);
+                        cur_pupill=pupill(starttimes(i):starttimes(i+1)-1);                   
+                    else
+                        cur_pupilr=pupilr(starttimes(i):end);
+                        cur_pupill=pupill(starttimes(i):end);                        
+                    end
+                    [blink_vecr,problemflagr]=EyeTrackerAnalysisRecord.pupilBased_blinkdetection(cur_pupilr,Fs,std,consq_samples,tolerance, progress_screen, 0.5*progress_contribution/length(starttimes));
+                    [blink_vecl,problemflagl]=EyeTrackerAnalysisRecord.pupilBased_blinkdetection(cur_pupill,Fs,std,consq_samples,tolerance, progress_screen, 0.5*progress_contribution/length(starttimes));
+                    
+                    new_blink_vecr=[new_blink_vecr,blink_vecr];
+                    new_blink_vecl=[new_blink_vecl,blink_vecl];
+                    segments_errors=[segments_errors,problemflagr | problemflagl];                    
+                end                
+            else
+                [new_blink_vecr,problemflagr]=EyeTrackerAnalysisRecord.pupilBased_blinkdetection(pupilr,Fs,std,consq_samples,tolerance, progress_screen, 0.5*progress_contribution);
+                [new_blink_vecl,problemflagl]=EyeTrackerAnalysisRecord.pupilBased_blinkdetection(pupill,Fs,std,consq_samples,tolerance, progress_screen, 0.5*progress_contribution);
+                segments_errors=[problemflagr | problemflagl];
+            end
+            
+            %% count blinks only from both eyes:
+            new_blink_vec=new_blink_vecr & new_blink_vecl;
+            
+            %% add the requested blink padding:
+            onsets=find(diff(new_blink_vec)==1);
+            offsets=find(diff(new_blink_vec)==-1);            
+            temp_blink_vec=new_blink_vec;            
+            for curroffset=offsets
+                if (curroffset+padding)<=length(temp_blink_vec);
+                    temp_blink_vec(curroffset:(curroffset+padding))=1;
+                elseif curroffset<=length(temp_blink_vec);
+                    temp_blink_vec(curroffset:(curroffset+(length(temp_blink_vec)-curroffset)))=1;
+                end
+            end
+            
+            for curronset=onsets
+                if curronset-padding>0
+                    temp_blink_vec(curronset-padding:curronset)=1;
+                else
+                    temp_blink_vec(1:curronset)=1;
+                end
+            end
+            
+            new_blink_vec=temp_blink_vec;            
+        end
+        
+        function [blink_vec,problemflag]=pupilBased_blinkdetection(pupildata,Fs,std,consq_samples,tolerance, progress_screen, progress_contribution)
+            % this functions uses the derivetive of pupilsize to find unplausible size
+            % changes and mark them as blink onsets and offsets. %it then compares the
+            % found blink with a prior blink vector.
+            
+            % in our lab settings, room a: the values that works for me are:
+            % pupilBased_blinkdetection(pupildata,1000,2.5,4,5,old_blinkvec,1)
+            
+            %logic:
+            %1. find all outlier samples in pupilsize slops (negative for onsets
+            %and position for offsets)
+            %2. search for consequtive outlier samples to define an offset or offset
+            %3. correct end and start estimation by:
+            %3.1 for onsets, go backwards on a filtered version of the pupilsize from
+            %each onset untill the first non negative slope sample
+            %3.2 for offsets, go forward from each offset and find the first non
+            %positive slope sample
+            
+            %% inputs
+            % pupildata - the  pupildata vector of one eye as retried by eyelink
+            % (arbitrary units).
+            % Fs - the eye tracking sampling rate (not using this at the moment
+            % 2.7.2018 (the hard coded numbers assumes a 1k refresh rate
+            % std - how many stds from the mean define an outlier
+            % consq_samples - how many consequtive outlier samples is the minimum to
+            % consider an offset/onset candidnate
+            % tolerance - how many non oulier samples will break the consequtive
+            % outlier sample counter
+            % old_blinkvec - a blink vector to plot and compare the new detection with.
+            % to_plot - boolean if the user wants the trial to be plotted.
+            
+            %% code: onests:
+            %create a pupil size slope vector:
+            slopes=diff(pupildata);
+            slopes_zscores=(slopes-nanmean(slopes))./nanstd(slopes);
+            
+            
+            %filter the data so i can follow the slope without gigsaw patterns.
+            %first make sure it doenst end or starts with a nan or else
+            %extrapolation will not work.
+            if isnan(pupildata(end))
+                pupildata(end)=nanmean(pupildata);
+            end
+            
+            if isnan(pupildata(1))
+                pupildata(1)=nanmean(pupildata);
+            end
+            
+            %keep the original raw vector
+            original_pupildata=pupildata;
+            %create a boolean vector of nan values: to fix samples that are
+            %sournded by nans
+            temp_pupildata=zeros(1,length(pupildata));
+            temp_pupildata(isnan(pupildata))=1;
+                        
+            %this code runs over the nan values and marks as nan every segment that
+            %is too short (10 samples atm) and has a nan value before and after it.            
+            valid_cnt=0;
+            for i=2:length(temp_pupildata)-1;
+                if temp_pupildata(i)==0
+                    valid_cnt=valid_cnt+1;
+                else
+                    if valid_cnt<10
+                        pupildata(i-valid_cnt:i-1)=nan;
+                        valid_cnt=0;
+                    else
+                        valid_cnt=0;
+                    end
+                end
+            end
+                                    
+            %filter the slopes: optional - causes some problems
+            %     slopes=diff(pupildataclean);
+            %
+            %     %try filtering the slopes: (not sure);
+            %     filtered_slopes=lowPassFilter(10,slopes,Fs);
+            %     filtered_slopes_extrapolated=filtered_slopes;
+            %     filtered_slopes(isnan(pupildata))=nan;
+            %     slopes=filtered_slopes;
+            %     slopes_zscores=(slopes-nanmean(slopes))./nanstd(slopes);                        
+            if any(~isnan(slopes))                
+                pupildataclean= EyeTrackerAnalysisRecord.naninterp(pupildata);                
+                problemflag=0;  %will rise this flag to signal that non alternating onsets and offsets were found                                
+                %suspect onsets:
+                suspect_onsets_indexes=find(slopes_zscores<-1*std);
+                %refine samples:
+                real_onsets=[];                                
+                if ~isempty(suspect_onsets_indexes)
+                    cur_index=suspect_onsets_indexes(1);
+                    cnt=1;                    
+                    for i=2:length(suspect_onsets_indexes);                        
+                        if ismember(suspect_onsets_indexes(i),cur_index:cur_index+tolerance)
+                            cnt=cnt+1;
+                            cur_index=suspect_onsets_indexes(i);
+                        elseif cnt>=consq_samples;
+                            
+                            real_onsets=[real_onsets,suspect_onsets_indexes(i-1)-cnt];
+                            cnt=0;
+                            cur_index=suspect_onsets_indexes(i);
+                        else
+                            cnt=0;
+                            cur_index=suspect_onsets_indexes(i);
+                        end                                                                        
+                    end
+                    
+                    %add the last onset:
+                    if cnt>=consq_samples
+                        real_onsets=[real_onsets,suspect_onsets_indexes(i-1)-cnt];
+                        cnt=0;
+                    end                                        
+                end
+                                                
+                %% code:offsets:
+                %create a pupil size slope vector:
+                slopes=diff(pupildata);
+                slopes_zscores=-1*(slopes-nanmean(slopes))./nanstd(slopes);                                
+                %     slopes=diff(pupildataclean);
+                %
+                %     %try filtering the slopes: (not sure);
+                %     filtered_slopes=lowPassFilter(10,slopes,Fs);
+                %     filtered_slopes_extrapolated=filtered_slopes;
+                %     filtered_slopes(isnan(pupildata))=nan;
+                %     slopes=filtered_slopes;
+                %     slopes_zscores=-1*(slopes-nanmean(slopes))./nanstd(slopes);
+                
+                %suspect offsets:
+                suspect_offsets_indexes=find(slopes_zscores<-1*std);
+                %refine samples:
+                real_offsets=[];
+                if ~isempty(suspect_offsets_indexes)
+                    cur_index=suspect_offsets_indexes(1);
+                    cnt=1;
+                    
+                    for i=2:length(suspect_offsets_indexes);
+                        if ismember(suspect_offsets_indexes(i),cur_index:cur_index+5)
+                            cnt=cnt+1;
+                            cur_index=suspect_offsets_indexes(i);
+                        elseif cnt>=consq_samples;
+                            
+                            real_offsets=[real_offsets,suspect_offsets_indexes(i-1)];
+                            cnt=0;
+                            cur_index=suspect_offsets_indexes(i);
+                        else
+                            cur_index=suspect_offsets_indexes(i);
+                            cnt=0;
+                        end                                                                        
+                    end
+                    
+                    %add the last onset:
+                    if cnt>=consq_samples
+                        real_offsets=[real_offsets,suspect_offsets_indexes(i-1)-cnt];
+                    end                                        
+                end
+                
+                %% initial testing graph:
+                %     if to_plot
+                %
+                %     figure();
+                %     subplot(2,1,1);
+                %     plot(pupildata); hold on;
+                %     plot(suspect_onsets_indexes,pupildata(suspect_onsets_indexes),'*m');
+                %     hold on;
+                %     plot(suspect_offsets_indexes,pupildata(suspect_offsets_indexes),'*g');
+                %     legend({'pupil','onsets','offsets'});
+                %     end                                
+                %% fix the onset timings (use ronen's method, of going backwards untill we find a non-negative slope
+                final_onsets=[];
+                %filter the raw pupil to have smooth curves:
+                filtered_pupil=EyeTrackerAnalysisRecord.lowPassFilter(10,pupildataclean,Fs);
+                filtered_pupil_extrapolated=filtered_pupil;
+                filtered_pupil(isnan(pupildata))=nan;
+                
+                slopes=diff(filtered_pupil);
+                
+                cur_onset=[];
+                for i=1:length(real_onsets);
+                    stop=0;
+                    cur_onset=real_onsets(i);
+                    temp_onset=real_onsets(i);
+                    while ~stop && cur_onset>1
+                        cur_onset=cur_onset-1;
+                        if slopes(cur_onset)<=0
+                            temp_onset=cur_onset;
+                        else
+                            stop=1;
+                            final_onsets=[final_onsets,temp_onset];
+                        end
+                    end
+                    
+                    if cur_onset==1;
+                        final_onsets=[final_onsets,temp_onset];
+                    end
+                end
+                                
+                %% fix the offset timings:                
+                final_offsets=[];
+                slopes=diff(filtered_pupil);                
+                arraysize=length(slopes);                
+                cur_offset=[];
+                for i=1:length(real_offsets);
+                    stop=0;
+                    cur_offset=real_offsets(i);
+                    temp_offset=real_offsets(i);
+                    while ~stop && cur_offset<arraysize
+                        cur_offset=cur_offset+1;
+                        if slopes(cur_offset)>=0
+                            temp_offset=cur_offset;
+                        else
+                            stop=1;
+                            final_offsets=[final_offsets,temp_offset+1];
+                        end
+                    end
+                end
+                
+                if cur_offset==arraysize
+                    final_offsets=[final_offsets,temp_offset];
+                end
+                                
+                %% check for undetected onsets or offsets:                
+                types=[zeros(1,length(final_onsets)),ones(1,length(final_offsets))];
+                % 0 - is onset time
+                % 1 is offset time
+                alltimings=[final_onsets,final_offsets];
+                %sort by timing:
+                [sorted_timing,sorting_indexes]=sort(alltimings,'ascend');
+                %sort the types:
+                sorted_types=types(sorting_indexes);
+                
+                % incase double entrees were found, fix it by removing them from timing.                
+                bad_timings=find(diff(sorted_timing)==0);
+                sorted_types(bad_timings)=[];
+                sorted_timing(bad_timings)=[];
+                
+                %find for problems (differences of 0)
+                types_differences=diff(sorted_types);
+                suspect_indexes=find(types_differences==0);
+                blink_vec=zeros(1,length(pupildata));                
+                first_offset_flag=0;                
+                stop_fixing=0;
+                run_cnt=0;
+                                
+                %% fix non alternative detected events:
+                while ~stop_fixing
+                    run_cnt=run_cnt+1;
+                    current_bad_sample=find(diff(sorted_types)==0,1,'first');
+                    if isempty(current_bad_sample) %if none exists, exit the loop
+                        stop_fixing=1;
+                    else   %there are consequtive events of the same type (either 2 onsets in a row or 2 offsets in a row)
+                        curtype=sorted_types(current_bad_sample);                        
+                        if curtype==0; %if its an onset, find an offset                            
+                            curtime=sorted_timing(current_bad_sample);
+                            next_event_time=sorted_timing(current_bad_sample+1);                            
+                            cur_relevant_segment=filtered_pupil_extrapolated(curtime:next_event_time-1);
+                            %first_negative sample after onset:
+                            first_neg=find(diff(cur_relevant_segment)<0,1,'first');                            
+                            if isempty(first_neg)
+                                first_neg=1;
+                            end
+                            
+                            %find the first positive after the negative:
+                            first_pos=find(diff(cur_relevant_segment(first_neg:end))>=0,1,'first');                            
+                            if isempty(first_pos)
+                                first_pos=floor(length(cur_relevant_segment(first_neg:end))/2);
+                            end
+                            
+                            %find the first negative after that pos:
+                            offset_sample=find(diff(cur_relevant_segment((first_neg+first_pos+1):end))<0,1,'first');                            
+                            if isempty(offset_sample)
+                                offset_sample=length(cur_relevant_segment((first_neg+first_pos+1):end));
+                            end
+                                                        
+                            cur_offset=curtime+first_neg+first_pos+offset_sample-1;                            
+                            if isnan(filtered_pupil(cur_offset)); %if the found offset/onset is an extrapolated filtered sample it might be distroted by the filter
+                                %thus i will go further forward untill i find the first non nan sample:
+                                valid_offset_time=find(~isnan(filtered_pupil(cur_offset:next_event_time-1)),1,'first');
+                                if isempty(valid_offset_time) %if none was found, remove the onset from the array
+                                    sorted_timing(current_bad_sample)=[];
+                                    sorted_types(current_bad_sample)=[];
+                                else
+                                    valid_offset_time=cur_offset+valid_offset_time;
+                                    %add the new found offset:
+                                    index_in_array=find(valid_offset_time<sorted_timing,1,'first');
+                                    sorted_timing=[sorted_timing(1: index_in_array-1),valid_offset_time,(sorted_timing(index_in_array:end))];
+                                    sorted_types=[sorted_types(1: index_in_array-1),1,(sorted_types(index_in_array:end))];
+                                    final_offsets=[final_offsets,valid_offset_time];
+                                end
+                            else                                                                
+                                %add the new found offset:
+                                index_in_array=find(cur_offset<sorted_timing,1,'first');
+                                sorted_timing=[sorted_timing(1: index_in_array-1),cur_offset,(sorted_timing(index_in_array:end))];
+                                sorted_types=[sorted_types(1: index_in_array-1),1,(sorted_types(index_in_array:end))];
+                                final_offsets=[final_offsets,cur_offset];
+                            end                            
+                        elseif curtype==1 %if its an offset, find the preceding onset.                            
+                            curtime=sorted_timing(current_bad_sample+1);
+                            previous_event_time=sorted_timing(current_bad_sample);                            
+                            cur_relevant_segment=filtered_pupil_extrapolated(curtime-1:-1:previous_event_time+1);
+                            %first_negative sample after onset:
+                            first_neg=find(diff(cur_relevant_segment)<0,1,'first');                            
+                            if isempty(first_neg)
+                                first_neg=1;
+                            end
+                            
+                            %find the first positive after the negative:
+                            first_pos=find(diff(cur_relevant_segment(first_neg:end))>=0,1,'first');                            
+                            if isempty(first_pos)
+                                first_pos=floor(length(cur_relevant_segment(first_neg:end))/2);
+                            end
+                            
+                            %find the first negative after that pos:
+                            offset_sample=find(diff(cur_relevant_segment((first_neg+first_pos+1):end))<0,1,'first');                            
+                            if isempty(offset_sample)
+                                offset_sample=length(cur_relevant_segment((first_neg+first_pos+1):end));
+                            end
+                            
+                            cur_onset=curtime-1*(first_neg+first_pos+offset_sample);                                                        
+                            if isnan(filtered_pupil(cur_onset)); %if the found offset/onset is an extrapolated filtered sample it might be distroted by the filter
+                                %thus i will go further forward untill i find the first non nan sample:
+                                valid_onset_time=find(~isnan(filtered_pupil(cur_onset-1:-1:1)),1,'first');
+                                if isempty(valid_onset_time) %if none was found, remove the onset from the array
+                                    sorted_timing(current_bad_sample)=[];
+                                    sorted_types(current_bad_sample)=[];
+                                else
+                                    valid_onset_time=cur_onset-valid_onset_time;
+                                    %add the new found offset:
+                                    index_in_array=find(valid_onset_time<sorted_timing,1,'first');
+                                    sorted_timing=[sorted_timing(1: index_in_array-1),valid_onset_time,(sorted_timing(index_in_array:end))];
+                                    sorted_types=[sorted_types(1: index_in_array-1),0,(sorted_types(index_in_array:end))];
+                                    final_onsets=[final_onsets,valid_onset_time];
+                                end
+                            else                                                                
+                                %add the new found offset:
+                                index_in_array=find(cur_onset<sorted_timing,1,'first');
+                                sorted_timing=[sorted_timing(1: index_in_array-1),cur_onset,(sorted_timing(index_in_array:end))];
+                                sorted_types=[sorted_types(1: index_in_array-1),0,(sorted_types(index_in_array:end))];
+                                final_onsets=[final_onsets,cur_onset];
+                            end                            
+                        end
+                    end
+                end
+                                                
+                %% find an offset for cases in which only an onset was found at the end
+                %  of the trial.
+                if ~isempty(sorted_types)
+                    if sorted_types(end)==0   %the last event is an onset: try and find an offset:
+                        curtime=sorted_timing(end);
+                        next_event_time=length(filtered_pupil_extrapolated);                        
+                        cur_relevant_segment=filtered_pupil_extrapolated(curtime:next_event_time-1);
+                        %first_negative sample after onset:
+                        first_neg=find(diff(cur_relevant_segment)<0,1,'first');
+                        %find the first positive after the negative:
+                        first_pos=find(diff(cur_relevant_segment(first_neg:end))>=0,1,'first');
+                        %find the first negative after that pos:
+                        offset_sample=find(diff(cur_relevant_segment((first_neg+first_pos+1):end))<0,1,'first');
+                        cur_offset=curtime+first_neg+first_pos+offset_sample;                        
+                        if ~isempty(cur_offset)
+                            if isnan(filtered_pupil(cur_offset)); %if the found offset/onset is an extrapolated filtered sample it might be distroted by the filter
+                                %thus i will go further forward untill i find the first non nan sample:
+                                valid_offset_time=find(~isnan(filtered_pupil(cur_offset:next_event_time-1)),1,'first');
+                                if isempty(valid_offset_time) %if none was found, mark all the remaining segment as blinks:
+                                    blink_vec(valid_offset_time:end)=1;
+                                else
+                                    valid_offset_time=cur_offset+valid_offset_time;
+                                    %add the new found offset to the end of the array:
+                                    sorted_timing=[sorted_timing,valid_offset_time];
+                                    sorted_types=[sorted_types,1];
+                                    final_offsets=[final_offsets,valid_offset_time];
+                                end
+                            else                                                                
+                                %add the new found offset:
+                                sorted_timing=[sorted_timing,cur_offset];
+                                sorted_types=[sorted_types,1];
+                                final_offsets=[final_offsets,cur_offset];
+                            end
+                        else
+                            blink_vec(curtime:end)=1;
+                        end
+                        
+                    end
+                                        
+                    %deal with trials that started with an offset:
+                    if sorted_types(1)==1; %try to find an onset on the beggining of the trial:
+                        first_neg=[];
+                        first_pos=[];
+                        offset_sample=[];
+                        curtime=sorted_timing(1);
+                        previous_event_time=1;
+                        
+                        cur_relevant_segment=filtered_pupil_extrapolated(curtime-1:-1:previous_event_time+1);
+                        %first_negative sample after onset:
+                        first_neg=find(diff(cur_relevant_segment)<0,1,'first');                        
+                        if isempty(first_neg);
+                            first_neg=1;
+                        end
+                        
+                        %find the first positive after the negative:
+                        first_pos=find(diff(cur_relevant_segment(first_neg:end))>=0,1,'first');                        
+                        if isempty(first_pos)
+                            first_pos=floor(length(cur_relevant_segment(first_neg:end))/2);
+                        end
+                                                
+                        %find the first negative after that pos:
+                        offset_sample=find(diff(cur_relevant_segment((first_neg+first_pos+1):end))<0,1,'first');                        
+                        if isempty(offset_sample)
+                            offset_sample=length(cur_relevant_segment((first_neg+first_pos+1):end));
+                        end
+                                                
+                        cur_onset=curtime-1*(first_neg+first_pos+offset_sample);                        
+                        if ~isempty(cur_onset)
+                            if isnan(filtered_pupil(cur_onset)); %if the found offset/onset is an extrapolated filtered sample it might be distroted by the filter
+                                %thus i will go further forward untill i find the first non nan sample:
+                                valid_onset_time=find(~isnan(filtered_pupil(cur_onset-1:-1:1)),1,'first');
+                                if isempty(valid_onset_time) %if none was found, remove the onset from the array
+                                    blink_vec(1:curtime)=1;
+                                else
+                                    valid_onset_time=cur_onset-valid_onset_time;
+                                    %add the new found offset:
+                                    sorted_timing=[valid_onset_time,sorted_timing];
+                                    sorted_types=[0,sorted_types];
+                                    final_onsets=[valid_onset_time,final_onsets];
+                                end
+                            else                                                                
+                                %add the new found offset:
+                                sorted_timing=[cur_onset,sorted_timing];
+                                sorted_types=[0,sorted_types];
+                                final_onsets=[cur_onset,final_onsets];
+                            end
+                        else
+                            blink_vec(1:curtime)=1;
+                        end
+                    end
+                                        
+                    %             if ~isempty(final_offsets) && sorted_types(1)==1 && final_offsets(1)<1000 %if its an offset, fill the blink vector from the beggining of the epoch
+                    %                 blink_vec(1:final_offsets(1))=1;
+                    %                 first_offset_flag=1;
+                    %             end
+                    %
+                    %             if ~isempty(final_onsets) && sorted_types(end)==0 && (length(pupildata)-final_onsets(end))<1000 %if the trial ended with an onset fill the rest of the trial with blinks
+                    %                 blink_vec(final_onsets(end):length(pupildata))=1;
+                    %             end
+                    
+                    
+                    if sorted_types(1)==0                        
+                        for i=1:2:length(sorted_timing)-1;
+                            blink_vec(sorted_timing(i):sorted_timing(i+1))=1;
+                        end
+                    else
+                        for i=2:2:(length(sorted_timing)-1);
+                            blink_vec(sorted_timing(i):sorted_timing(i+1))=1;
+                        end
+                    end                                                                                                                                           
+                end                                
+            else
+                blink_vec= true(1, length(pupildata));
+                problemflag=2; %means that the entire segment was empty
+            end            
+        end
+        
+        function lowPassFilter= lowPassFilter(high,signal,rate)
+            lowpass =high;
+            if nargin < 3
+                rate = 1024;
+                warndlg(['assuming sampling rate of ' num2str(rate)])
+            end
+            
+            % [nlow,Wnlow]=buttord((0.5*lowpass)/(0.5*rate), lowpass/(0.5*rate) , 0.01, 24);
+            [nlow,Wnlow]=buttord( lowpass/(0.5*rate), min(0.999999, 2*lowpass/(0.5*rate)) , 3, 24); % Alon 27.1.09: changed so that high is the cuttoff freq of -3dB
+            %disp(['Wnlow = ' num2str(Wnlow)]);
+            % [nlow,Wnlow]=buttord((0.5*lowpass)/(0.5*rate), lowpass/(0.5*rate) , 10, 18)
+            
+            [b,a] = butter(nlow,Wnlow,'low') ;
+            lowPassFilter = filtfilt(b,a,signal);
+            %figure; plot(signal); hold on;
+            %plot(bandPassFilter);
+        end
+        
+        function X = naninterp(X)                                         
+            X(isnan(X)) = interp1(find(~isnan(X)), X(~isnan(X)), find(isnan(X)), 'PCHIP');
+        end
     end
     
     methods (Access= public, Static)
