@@ -96,7 +96,7 @@ classdef SaccadesExtractor < handle
                         end
                         for trial_i= 1:numel(curr_cond_struct)                                                               
                             blink= squeeze(curr_cond_struct(trial_i).blinks);                            
-                            if isempty(blink)
+                            if isempty(blink) || all(blink)
                                 if perform_eyeballing
                                     raw_eye_data_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).left_x= [];
                                     raw_eye_data_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).left_y= [];
@@ -199,10 +199,10 @@ classdef SaccadesExtractor < handle
                             try
                                 [sacl, ~] = SaccadesExtractor.engbertAlgorithm(obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).left_eye.eye_vels, ...
                                                                                curr_requested_vel_threshold, ...
-                                                                               curr_requested_saccade_dur_min*obj.sampling_rates(subject_i)/1000);
+                                                                               max(ceil(curr_requested_saccade_dur_min*obj.sampling_rates(subject_i)/1000),2));
                                 [sacr, ~] = SaccadesExtractor.engbertAlgorithm(obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).right_eye.eye_vels, ...
                                                                                curr_requested_vel_threshold, ...
-                                                                               curr_requested_saccade_dur_min*obj.sampling_rates(subject_i)/1000);
+                                                                               max(ceil(curr_requested_saccade_dur_min*obj.sampling_rates(subject_i)/1000), 2));
                             catch exception
                                 progress_screen.displayMessage(['<<Error>> on condition ', curr_cond_name, ' trial #', num2str(trial_i), ': ', exception.message]);
                                 exception_identifier= strsplit(exception.identifier,':');
