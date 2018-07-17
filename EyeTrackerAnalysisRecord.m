@@ -71,7 +71,7 @@ classdef EyeTrackerAnalysisRecord < handle
                 end                                
                 
                 if eye_tracker_file_i == 1
-                    obj.sampling_rate = 1000 / mean(diff(extracted_structs{1}.gazeRight.time));
+                    obj.sampling_rate = 1000 / median(diff(extracted_structs{1}.gazeRight.time));
                 else   
                     for session_i = 1:numel(extracted_structs)
                         curr_session_sampling_rate = 1000 / (extracted_structs{session_i}.gazeRight.time(2) - extracted_structs{session_i}.gazeRight.time(1));
