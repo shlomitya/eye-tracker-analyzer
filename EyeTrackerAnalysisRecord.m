@@ -345,10 +345,11 @@ classdef EyeTrackerAnalysisRecord < handle
                             indEnd= curr_session_segmentization_vecs_struct.trials_end_times.(curr_cond_name)(trial_i);
                             segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).samples_nr= indEnd - indStart + 1;
                             segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).blinks= curr_session_segmentization_vecs_struct.blinks(indStart:indEnd);                             
-                            
-                            %if only one eye was recorded save everything to both gazeRight and gazeLeft
-                            if obj.eye_tracker_data_structs{session_i}.gazeRight.x(1)<-30000 || obj.eye_tracker_data_structs{session_i}.gazeLeft.x(1)<-30000
-                                if curr_session_eye_tracker_data_struct.gazeLeft.x(1)>-30000
+                                               
+                            was_left_eye_recorded = isempty(find(abs(obj.eye_tracker_data_structs{session_i}.gazeLeft.x + 2^15) < 10^-5, 1));
+                            was_right_eye_recorded = isempty(find(abs(obj.eye_tracker_data_structs{session_i}.gazeRight.x + 2^15) < 10^-5, 1));                            
+                            if ~was_left_eye_recorded || ~was_right_eye_recorded
+                                if was_left_eye_recorded
                                     gaze= curr_session_eye_tracker_data_struct.gazeLeft;
                                 else
                                     gaze= curr_session_eye_tracker_data_struct.gazeRight;

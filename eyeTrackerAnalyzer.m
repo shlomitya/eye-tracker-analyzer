@@ -1559,13 +1559,14 @@ set(gui, 'Visible', 'on');
                         progress_screen.addProgress(0.8/(trials_nr*conds_nr*subjects_nr));
                         continue;
                     end
+                                       
                     d = [(1:eta.(cond)(trial_i).samples_nr)', ...
                         eta.(cond)(trial_i).gazeRight.x', ...
                         eta.(cond)(trial_i).gazeRight.y', ...
                         eta.(cond)(trial_i).gazeLeft.x', ...
                         eta.(cond)(trial_i).gazeLeft.y', ...
-                        eta.(cond)(trial_i).blinks'];      
-                    
+                        eta.(cond)(trial_i).blinks'];
+                        
                     fixations_struct = getFixationsFromSaccadesDetection(d, ...
                         saccades_structs{subject_i}.(cond)(trial_i).onsets', ...
                         saccades_structs{subject_i}.(cond)(trial_i).offsets', ...
@@ -1714,9 +1715,7 @@ set(gui, 'Visible', 'on');
             progress_screen.updateProgress(1);
         end
     end
-
-
-    % TODO: <<continue here: test eta.segmentizeData>>
+ 
     %TODO: check file existance    
     function etas= loadEtasSegmentized(progress_screen)     
         etas= cell(1,subjects_nr); 
