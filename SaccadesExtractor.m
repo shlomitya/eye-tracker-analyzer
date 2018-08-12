@@ -734,13 +734,13 @@ classdef SaccadesExtractor < handle
                     radiusy = vel_threshold*msdy;
                     % compute test criterion: ellipse equation
                     test = (eye_vels(mapped_times,1)/radiusx).^2 + (eye_vels(mapped_times,1)/radiusy).^2;
-                    onsets = find(test>1);
-                    if isempty(onsets)
+                    saccadic_time_points = find(test>1);
+                    if isempty(saccadic_time_points)
                         continue;
                     else
-                        onsets_dists_from_mid_time = onsets - floor(length(mapped_times)/2);
-                        onset = onsets(onsets_dists_from_mid_time == min(onsets_dists_from_mid_time));
-                        curr_tested_time= onset + 1;
+                        onsets_dists_from_mid_time = abs(saccadic_time_points - floor(length(mapped_times)/2));
+                        closest_saccadic_time_point_to_mid = saccadic_time_points(onsets_dists_from_mid_time == min(onsets_dists_from_mid_time));
+                        curr_tested_time= closest_saccadic_time_point_to_mid + 1;
                         while curr_tested_time<=length(mapped_times) && test(curr_tested_time)>1
                             curr_tested_time= curr_tested_time + 1;
                         end
@@ -748,8 +748,18 @@ classdef SaccadesExtractor < handle
                         if curr_tested_time>length(mapped_times)
                             continue;
                         else
-                            offset= curr_tested_time - 1;                                                    
-                            return;
+                            offset= curr_tested_time - 1;  
+                            curr_tested_time = closest_saccadic_time_point_to_mid;
+                            while curr_tested_time >= 1 && test(curr_tested_time)>1
+                                curr_tested_time= curr_tested_time - 1;
+                            end
+                            
+                            if curr_tested_time == 0
+                                continue;
+                            else
+                                onset = curr_tested_time;
+                                return;
+                            end
                         end
                     end
                 end

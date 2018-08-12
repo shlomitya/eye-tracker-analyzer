@@ -187,7 +187,7 @@ classdef Eyeballer < handle
             hold(obj.eyes_x_coords_axes);
             hold(obj.eyes_y_coords_axes);                        
              
-            obj.plotCurrTrialSaccades();
+            obj.plotCurrTrialSaccades(true);
             
             interface_panel= uipanel(obj.fig, 'tag', 'p1', 'units', 'normalized', ...
                 'Position',[0.81    0.05   0.17    0.86], ...
@@ -459,7 +459,7 @@ classdef Eyeballer < handle
     end
               
     methods (Access= private)                        
-        function plotCurrTrialSaccades(obj)  
+        function plotCurrTrialSaccades(obj, do_axes_lims_reset)  
             delete(obj.blink_curr_marker_h);
             obj.blink_curr_marker_h = [];
             delete(obj.blink_start_marker_h);
@@ -485,8 +485,10 @@ classdef Eyeballer < handle
                 return;
             end
 
-            set(obj.eyes_x_coords_axes, 'XLim', [0, min(obj.AXES_X_RANGE_SIZE, trial_dur)] - obj.timeline_left_offset);
-            set(obj.eyes_y_coords_axes, 'XLim', [0, min(obj.AXES_X_RANGE_SIZE, trial_dur)] - obj.timeline_left_offset);        
+            if do_axes_lims_reset
+                set(obj.eyes_x_coords_axes, 'XLim', [0, min(obj.AXES_X_RANGE_SIZE, trial_dur)] - obj.timeline_left_offset);
+                set(obj.eyes_y_coords_axes, 'XLim', [0, min(obj.AXES_X_RANGE_SIZE, trial_dur)] - obj.timeline_left_offset);        
+            end
             plot(obj.eyes_x_coords_axes, (0:min(obj.AXES_X_RANGE_SIZE, trial_dur)) - obj.timeline_left_offset, zeros(1,min(obj.AXES_X_RANGE_SIZE, trial_dur) + 1), '--', 'color', [0 0 0]);
             plot(obj.eyes_y_coords_axes, (0:min(obj.AXES_X_RANGE_SIZE, trial_dur)) - obj.timeline_left_offset, zeros(1,min(obj.AXES_X_RANGE_SIZE, trial_dur) + 1), '--', 'color', [0 0 0]);
             
@@ -527,8 +529,10 @@ classdef Eyeballer < handle
                 end
             end
                         
-            set(obj.eyes_x_coords_axes, 'YLim', obj.mean_range + 4*obj.std_range*[-1,1]);
-            set(obj.eyes_y_coords_axes, 'YLim', obj.mean_range + 4*obj.std_range*[-1,1]);        
+            if do_axes_lims_reset
+                set(obj.eyes_x_coords_axes, 'YLim', obj.mean_range + 4*obj.std_range*[-1,1]);
+                set(obj.eyes_y_coords_axes, 'YLim', obj.mean_range + 4*obj.std_range*[-1,1]);        
+            end
             set(obj.fig, 'name', obj.FIG_TITLE);
                                                 
             disp('Done.');
@@ -704,7 +708,7 @@ classdef Eyeballer < handle
                     obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes(blinked_out_start_t < curr_subject_trial_saccades_data.onsets & curr_subject_trial_saccades_data.offsets < blinked_out_end_t & curr_subject_trial_saccades_data.user_codes' == obj.ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE)= obj.ENUM_ALGORITHM_GENERATED_SACCADE_CODE;
                 end                
                 obj.is_blink_being_drawn_on_x_axes = false;
-                obj.plotCurrTrialSaccades();
+                obj.plotCurrTrialSaccades(false);
             else
                 if obj.is_blink_being_drawn_on_y_axes
                     delete(obj.blink_curr_marker_h);
@@ -763,7 +767,7 @@ classdef Eyeballer < handle
                     obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes(blinked_out_start_t < curr_subject_trial_saccades_data.onsets & curr_subject_trial_saccades_data.offsets < blinked_out_end_t & curr_subject_trial_saccades_data.user_codes' == obj.ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE)= obj.ENUM_ALGORITHM_GENERATED_SACCADE_CODE;
                 end
                 obj.is_blink_being_drawn_on_y_axes = false;
-                obj.plotCurrTrialSaccades();
+                obj.plotCurrTrialSaccades(false);
             else
                 if obj.is_blink_being_drawn_on_x_axes
                     delete(obj.blink_curr_marker_h);
@@ -859,7 +863,7 @@ classdef Eyeballer < handle
                     set(hObject,'string', num2str(obj.curr_subject));
                 else
                     obj.curr_subject= requested_subject;
-                    obj.plotCurrTrialSaccades();
+                    obj.plotCurrTrialSaccades(true);
                 end
             else
                 set(hObject,'string', num2str(obj.curr_subject));
@@ -868,12 +872,12 @@ classdef Eyeballer < handle
         
         function currSubjectReversePressedCallback(obj, ~, ~)
             obj.updateCurrSubject(obj.curr_subject-1);
-            obj.plotCurrTrialSaccades();            
+            obj.plotCurrTrialSaccades(true);            
         end
         
         function currSubjectAdvancePressedCallback(obj, ~, ~)
             obj.updateCurrSubject(obj.curr_subject+1);
-            obj.plotCurrTrialSaccades();            
+            obj.plotCurrTrialSaccades(true);            
         end
                 
         function updateCurrSubject(obj, new_subject_i)
@@ -891,7 +895,7 @@ classdef Eyeballer < handle
                     set(hObject,'string', num2str(obj.curr_trial));
                 else
                     obj.curr_trial= requested_trial;
-                    obj.plotCurrTrialSaccades();
+                    obj.plotCurrTrialSaccades(true);
                 end
             else
                 set(hObject,'string', num2str(obj.curr_trial));
@@ -900,12 +904,12 @@ classdef Eyeballer < handle
         
         function displayedTrialReversePressedCallback(obj, ~, ~)
             obj.updateCurrTrial(obj.curr_trial - 1);
-            obj.plotCurrTrialSaccades();            
+            obj.plotCurrTrialSaccades(true);            
         end
         
         function displayedTrialAdvancePressedCallback(obj, hObject, ~)
             obj.updateCurrTrial(obj.curr_trial + 1);
-            obj.plotCurrTrialSaccades();                
+            obj.plotCurrTrialSaccades(true);                
         end        
         
         function centerViewOnEarlyerSaccadePressedCallback(obj, ~, ~)    
@@ -1031,7 +1035,7 @@ classdef Eyeballer < handle
                                     
             %altering the graphics part
             if was_trial_changed
-                obj.plotCurrTrialSaccades();
+                obj.plotCurrTrialSaccades(true);
             elseif action_to_perform==obj.ENUM_ALGORITHM_GENERATED_SACCADE_CODE
                 Eyeballer.changeSaccadePlotsColors(obj.curr_trial_saccades_plots_hs{saccade_i}, obj.ALGORITHM_GENERATED_SACCADE_COLOR);                
             elseif action_to_perform==obj.ENUM_REJECTED_SACCADE_CODE
@@ -1096,7 +1100,7 @@ classdef Eyeballer < handle
                                    
             %altering the graphics part
             if was_trial_changed
-                obj.plotCurrTrialSaccades();
+                obj.plotCurrTrialSaccades(true);
             elseif action_to_perform==obj.ENUM_ALGORITHM_GENERATED_SACCADE_CODE
                 Eyeballer.changeSaccadePlotsColors(obj.curr_trial_saccades_plots_hs{saccade_i}, obj.ALGORITHM_GENERATED_SACCADE_COLOR);                
             elseif action_to_perform==obj.ENUM_REJECTED_SACCADE_CODE
