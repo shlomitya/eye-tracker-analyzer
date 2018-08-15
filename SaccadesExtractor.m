@@ -41,7 +41,7 @@ classdef SaccadesExtractor < handle
             obj.eyeballer_main_gui_pos= round([0.2*screen_size(3), -0.2*screen_size(4), 0.6*screen_size(3), 0.8*screen_size(4)]);
         end
         
-        function [eye_data_struct, saccades_struct, eyeballing_stats]= extractSaccadesByEngbert(obj, vel_calc_type, vel_threshold, amp_lim, amp_low_lim, saccade_dur_min, frequency_max, filter_bandpass, perform_eyeballing, eyeballer_timeline_left_offset, etas_full_paths, progress_contribution, progress_screen)                           
+        function [eye_data_struct, saccades_struct, eyeballing_stats]= extractSaccadesByEngbert(obj, vel_calc_type, vel_threshold, amp_lim, amp_low_lim, saccade_dur_min, frequency_max, filter_bandpass, perform_eyeballing, eyeballer_display_range_multiplier, eyeballer_timeline_left_offset, etas_full_paths, progress_contribution, progress_screen)                           
             is_extraction_go= true;            
             if perform_eyeballing
                 raw_eye_data_for_eyeballer= cell(1, obj.subjects_nr);
@@ -351,7 +351,7 @@ classdef SaccadesExtractor < handle
                     manual_saccade_search_params.saccades_detecetion_algorithm_params.frequency_max = curr_requested_frequency_max;
                     manual_saccade_search_params.saccades_detecetion_algorithm_params.low_pass_filter = curr_requested_low_pass_filter;
                     eyeballer= Eyeballer(@eyeballer_save_func, raw_eye_data_for_eyeballer, eyeballer_timeline_left_offset, obj.sampling_rates, ...
-                                         manual_saccade_search_params, saccades_struct, ...
+                                         manual_saccade_search_params, saccades_struct, eyeballer_display_range_multiplier, ...
                                          obj.eyeballer_main_gui_pos, obj.EYEBALLER_MAIN_GUI_BACKGROUND_COLOR);
                     [was_new_extraction_requested_by_eyeballer, new_extraction_params]= eyeballer.run();                    
                     if ~was_new_extraction_requested_by_eyeballer
@@ -381,6 +381,7 @@ classdef SaccadesExtractor < handle
                         curr_requested_frequency_max = new_extraction_params.min_dur_between_saccades;
                         curr_requested_low_pass_filter = new_extraction_params.low_pass_filter;                                                
                         saccades_struct= cell(1, obj.subjects_nr);
+                        eyeballer_display_range_multiplier = new_extraction_params.eyeballer_display_range_multiplier;
                     end
                 else
                     is_extraction_go= false;
