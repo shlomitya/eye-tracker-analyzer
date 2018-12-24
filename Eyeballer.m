@@ -380,7 +380,7 @@ classdef Eyeballer < handle
         
         function [was_new_extraction_requested, new_extraction_params]= run(obj)              
             set(obj.fig, 'Visible', 'on');   
-            a=b;
+            %a=b;
             waitfor(obj.fig);                      
             was_new_extraction_requested= obj.was_new_extraction_requested;                        
             if was_new_extraction_requested                
@@ -561,10 +561,10 @@ classdef Eyeballer < handle
             end
             
             function [plot_x_ax_left_eye_plot, plot_x_ax_right_eye_plot, plot_y_ax_left_eye_plot, plot_y_ax_right_eye_plot] = plotEyeDataSeg(times, left_eye_plot_color, right_eye_plot_color, line_desc, btn_down_fcn)        
-                plot_x_ax_left_eye_plot = plot(obj.eyes_x_coords_axes, times - obj.timeline_left_offset, curr_subject_trial_eye_data_struct.left_x(times), line_desc, 'color', left_eye_plot_color,  'ButtonDownFcn', btn_down_fcn);
-                plot_x_ax_right_eye_plot = plot(obj.eyes_x_coords_axes, times - obj.timeline_left_offset, curr_subject_trial_eye_data_struct.right_x(times), line_desc, 'color', right_eye_plot_color, 'ButtonDownFcn', btn_down_fcn);            
-                plot_y_ax_left_eye_plot = plot(obj.eyes_y_coords_axes, times - obj.timeline_left_offset, curr_subject_trial_eye_data_struct.left_y(times), line_desc, 'color', left_eye_plot_color, 'ButtonDownFcn', btn_down_fcn);                            
-                plot_y_ax_right_eye_plot = plot(obj.eyes_y_coords_axes, times - obj.timeline_left_offset, curr_subject_trial_eye_data_struct.right_y(times), line_desc, 'color', right_eye_plot_color, 'ButtonDownFcn', btn_down_fcn);                           
+                plot_x_ax_left_eye_plot = plot(obj.eyes_x_coords_axes, (times - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), curr_subject_trial_eye_data_struct.left_x(times), line_desc, 'color', left_eye_plot_color,  'ButtonDownFcn', btn_down_fcn);
+                plot_x_ax_right_eye_plot = plot(obj.eyes_x_coords_axes, (times - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), curr_subject_trial_eye_data_struct.right_x(times), line_desc, 'color', right_eye_plot_color, 'ButtonDownFcn', btn_down_fcn);            
+                plot_y_ax_left_eye_plot = plot(obj.eyes_y_coords_axes, (times - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), curr_subject_trial_eye_data_struct.left_y(times), line_desc, 'color', left_eye_plot_color, 'ButtonDownFcn', btn_down_fcn);                            
+                plot_y_ax_right_eye_plot = plot(obj.eyes_y_coords_axes, (times - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), curr_subject_trial_eye_data_struct.right_y(times), line_desc, 'color', right_eye_plot_color, 'ButtonDownFcn', btn_down_fcn);                           
             end
             
             function [blinks_on_x_plot, blinks_on_y_plot] = plotBlinkSeg(times)
@@ -601,10 +601,10 @@ classdef Eyeballer < handle
                     return;
                 end
                               
-                blinks_on_x_plot = plot(obj.eyes_x_coords_axes, [times(1), times(end)] - obj.timeline_left_offset, [xAxisLeftEyeStartY, xAxisLeftEyeEndY], 'k:', 'markersize', 5);
-                plot(obj.eyes_x_coords_axes, [times(1), times(end)] - obj.timeline_left_offset, [xAxisRightEyeStartY, xAxisRightEyeEndY], 'k:', 'markersize', 5);
-                blinks_on_y_plot = plot(obj.eyes_y_coords_axes, [times(1), times(end)] - obj.timeline_left_offset, [yAxisLeftEyeStartY, yAxisLeftEyeEndY], 'k:', 'markersize', 5);                
-                plot(obj.eyes_y_coords_axes, [times(1), times(end)] - obj.timeline_left_offset, [yAxisRightEyeStartY, yAxisRightEyeEndY], 'k:', 'markersize', 5);                
+                blinks_on_x_plot = plot(obj.eyes_x_coords_axes, ([times(1), times(end)] - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), [xAxisLeftEyeStartY, xAxisLeftEyeEndY], 'k:', 'markersize', 5);
+                plot(obj.eyes_x_coords_axes, ([times(1), times(end)] - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), [xAxisRightEyeStartY, xAxisRightEyeEndY], 'k:', 'markersize', 5);
+                blinks_on_y_plot = plot(obj.eyes_y_coords_axes, ([times(1), times(end)] - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), [yAxisLeftEyeStartY, yAxisLeftEyeEndY], 'k:', 'markersize', 5);                
+                plot(obj.eyes_y_coords_axes, ([times(1), times(end)] - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), [yAxisRightEyeStartY, yAxisRightEyeEndY], 'k:', 'markersize', 5);                
             end                        
         end                                
         
