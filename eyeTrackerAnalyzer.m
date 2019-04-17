@@ -3,9 +3,17 @@ function eyeTrackerAnalyzer()
 %=== GUI PARAMETERS AND CONSTANTS ===%
 %====================================%
 GUI_BACKGROUND_COLOR= [0.8, 0.8, 0.8];
-READ_EDF_PATH= fullfile('readEDF');
+READ_EDF_PATH= 'readEDF';
 ETAS_FOLDER_NAME = 'Eye Tracking Analysis Files';
 ANALYSIS_RESULTS_FOLDER_NAME= 'Analysis Figures';
+TRIALS_ONSET_TRIGGERS_XML_NODE_NAME = 'TRIALS_ONSETS_TRIGGERS';
+TRIALS_OFFSETS_TRIGGERS_XML_NODE_NAME = 'TRIALS_OFFSETS_TRIGGERS';
+TRIALS_REJECTION_TRIGGERS_XML_NODE_NAME = 'TRIALS_REJECTION_TRIGGERS';
+PRE_ONSET_TRIGGER_SEGMENT_XML_NODE_NAME = 'PRE_ONSET_TRIGGER_SEGMENT';
+POST_OFFSET_TRIGGER_SEGMENT_XML_NODE_NAME = 'POST_OFFSET_TRIGGER_SEGMENT';
+ANALYSIS_SEGMENT_DUR_XML_NODE_NAME = 'ANALYSIS_SEGMENT_DUR';
+BLINKS_DELTA_XML_NODE_NAME = 'BLINKS_DELTA';
+SEGMENTATION_PARAMS_XML_NAME = 'segmentation_params.xml';
 
 DPP= 1/60;
 
@@ -122,14 +130,25 @@ load_etas_for_analysis_display_pane= uicontrol(analyze_microsaccades_panel, 'Sty
     'max', 2, 'string', {}, 'FontSize', 12.0, ...
     'Position', [0.1235    0.5773    0.7792    0.2626]);
 
+% uicontrol(analyze_microsaccades_panel, 'Style', 'text', 'tag', 'c70', 'units', 'normalized', ...
+%     'String', 'Data Segmentation Parameters', ...
+%     'Position', [0.3468    0.4430    0.3000    0.0425], ...
+%     'FontSize', 16.0, ...    
+%     'BackgroundColor', GUI_BACKGROUND_COLOR);
+% 
+% segmentation_panel= uipanel(analyze_microsaccades_panel, 'tag', 'p4', 'units', 'normalized', ...
+%     'Position', [0.0273    0.2570    0.9416    0.1714], ...
+%     'visible', 'on', ...
+%     'BackgroundColor', GUI_BACKGROUND_COLOR);
+
 uicontrol(analyze_microsaccades_panel, 'Style', 'text', 'tag', 'c70', 'units', 'normalized', ...
     'String', 'Data Segmentation Parameters', ...
-    'Position', [0.3468    0.4430    0.3000    0.0425], ...
+    'Position', [0.3468    0.3830    0.3000    0.0425], ...
     'FontSize', 16.0, ...    
     'BackgroundColor', GUI_BACKGROUND_COLOR);
 
 segmentation_panel= uipanel(analyze_microsaccades_panel, 'tag', 'p4', 'units', 'normalized', ...
-    'Position', [0.0273    0.2570    0.9416    0.1714], ...
+    'Position', [0.0273    0.1870    0.9416    0.1714], ...
     'visible', 'on', ...
     'BackgroundColor', GUI_BACKGROUND_COLOR);
 
@@ -217,7 +236,7 @@ uicontrol(segmentation_panel, 'Style', 'text', 'tag', 'c12', 'units', 'normalize
     'FontSize', 10.0, ...
     'BackgroundColor', GUI_BACKGROUND_COLOR);
 
-uicontrol(segmentation_panel, 'Style', 'edit', 'tag', 'c13', 'units', 'normalized', ...
+pre_onset_trigger_segment_edit_uicontrol = uicontrol(segmentation_panel, 'Style', 'edit', 'tag', 'c13', 'units', 'normalized', ...
     'Position', [0.8081     0.57667    0.0304      0.2556], ...
     'callback', {@baseLineEditedCallback});
 
@@ -239,7 +258,7 @@ analysis_segment_dur_txt_uicontrol = uicontrol(segmentation_panel, 'Style', 'tex
     'FontSize', 10.0, ...
     'BackgroundColor', GUI_BACKGROUND_COLOR);
 
-uicontrol(segmentation_panel, 'Style', 'edit', 'tag', 'c11', 'units', 'normalized', ...
+analysis_segment_dur_edit_uicontrol = uicontrol(segmentation_panel, 'Style', 'edit', 'tag', 'c11', 'units', 'normalized', ...
     'Position', [0.95691      0.57667    0.0304      0.2556], ...
     'callback', {@trialDurationEditedCallback});
 
@@ -249,25 +268,25 @@ uicontrol(segmentation_panel, 'Style', 'text', 'tag', 'c80', 'units', 'normalize
     'FontSize', 10.0, ...
     'BackgroundColor', GUI_BACKGROUND_COLOR);
 
-uicontrol(segmentation_panel, 'Style', 'edit', 'tag', 'c811', 'units', 'normalized', ...
+blinks_delta_edit_uicontrol = uicontrol(segmentation_panel, 'Style', 'edit', 'tag', 'c811', 'units', 'normalized', ...
     'Position', [0.95691      0.1882    0.0304      0.2556], ...
     'callback', {@blinksDeltaEditedCallback});
 
 %ANALYSIS SAVE FOLDER UICONTROLS
 uicontrol(analyze_microsaccades_panel, 'Style', 'text', 'tag', 'c95', 'units', 'normalized', ...
-    'String', 'Save Folder', ...
-    'Position', [0.1499    0.1495    0.1486    0.0271], ...
+    'String', 'Analysis Folder', ...
+    'Position', [0.1500    0.4860    0.1186    0.0300], ...
     'FontSize', 12.0, ...
     'BackgroundColor', GUI_BACKGROUND_COLOR);
 
 uicontrol(analyze_microsaccades_panel, 'Style', 'pushbutton', 'tag', 'c16', 'units', 'normalized', ...
     'String', 'Browse', ...
-    'Position', [0.72702      0.1467      0.0908       0.031], ...
+    'Position', [0.77702      0.4867      0.0908       0.031], ...
     'FontSize', 12.0, ...
     'callback', {@saveFolderBtnCallback});
 
 save_file_folder_etext= uicontrol(analyze_microsaccades_panel, 'Style', 'edit', 'tag', 'c17', 'units', 'normalized', ...
-    'enable', 'inactive', 'Position', [0.27532      0.1465      0.4149      0.0316]);
+    'enable', 'inactive', 'Position', [0.26532      0.4865      0.4900     0.0316]);
 
 %RUN ANALYSES UICONTROLS
 uicontrol(analyze_microsaccades_panel, 'Style', 'checkbox', 'tag', 'c14', 'units', 'normalized', ...
@@ -810,12 +829,51 @@ set(gui, 'Visible', 'on');
 
 
     function saveFolderBtnCallback(~,~)
-        FILES_SAVE_DESTINATION = uigetdir(FILES_SAVE_DESTINATION, 'Choose Analysis Save Location');
+        FILES_SAVE_DESTINATION = uigetdir(FILES_SAVE_DESTINATION, 'Choose Analysis Workspace Location');
         if FILES_SAVE_DESTINATION==0
             FILES_SAVE_DESTINATION= [];
         end
+        
         set(save_file_folder_etext,'string',FILES_SAVE_DESTINATION);
         ANALYSIS_RESULTS_FILE_DESTINATION= fullfile(FILES_SAVE_DESTINATION, ANALYSIS_RESULTS_FOLDER_NAME);
+        segmentation_params_xml = fullfile(FILES_SAVE_DESTINATION, 'segmentation_params.xml');    
+        if exist(segmentation_params_xml, 'file') == 2                    
+            xml_dom= xmlread(segmentation_params_xml);
+            set(trials_onset_triggers_display, 'string', getXmlNodeValuesVector(xml_dom, TRIALS_ONSET_TRIGGERS_XML_NODE_NAME));
+            set(trials_offset_triggers_display, 'string', getXmlNodeValuesVector(xml_dom, TRIALS_OFFSETS_TRIGGERS_XML_NODE_NAME));
+            trials_offset_triggers = get(trials_offset_triggers_display, 'string');
+            if ~isempty(trials_offset_triggers)
+                set(analysis_segment_dur_txt_uicontrol, 'string', 'analysis segment duration max (ms)');        
+                set(post_offset_trigger_segment_txt_uicontrol, 'Enable', 'on');
+                set(post_offset_trigger_segment_edit_uicontrol, 'Enable', 'on');                
+            else
+                set(analysis_segment_dur_txt_uicontrol, 'string', 'analysis segment duration (ms)');
+                set(post_offset_trigger_segment_txt_uicontrol, 'Enable', 'off');
+                set(post_offset_trigger_segment_edit_uicontrol, 'Enable', 'off');
+            end
+            set(trials_rejection_triggers_display, 'string', getXmlNodeValuesVector(xml_dom, TRIALS_REJECTION_TRIGGERS_XML_NODE_NAME));            
+            set(pre_onset_trigger_segment_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, PRE_ONSET_TRIGGER_SEGMENT_XML_NODE_NAME));            
+            BASELINE= str2double(get(pre_onset_trigger_segment_edit_uicontrol, 'string'));           
+            set(post_offset_trigger_segment_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, POST_OFFSET_TRIGGER_SEGMENT_XML_NODE_NAME));
+            POST_OFFSET_TRIGGERS_SEGMENT= str2double(get(post_offset_trigger_segment_edit_uicontrol, 'string'));                        
+            set(analysis_segment_dur_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, ANALYSIS_SEGMENT_DUR_XML_NODE_NAME));
+            TRIAL_DURATION= str2double(get(analysis_segment_dur_edit_uicontrol, 'string'));
+            set(blinks_delta_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, BLINKS_DELTA_XML_NODE_NAME));
+            BLINKS_DELTA= str2double(get(blinks_delta_edit_uicontrol, 'string'));
+        end
+        
+        function val = getXmlNodeValuesVector(xml_dom, xml_node_name)
+            val = char(xml_dom.getElementsByTagName(xml_node_name).item(0).getTextContent);
+            if ~isempty(val)
+                val = strsplit(val);
+            else
+                val = {};
+            end
+        end
+        
+        function val = getXmlNodeValue(xml_dom, xml_node_name)
+            val = char(xml_dom.getElementsByTagName(xml_node_name).item(0).getTextContent);            
+        end
     end
      
     function plotCurvesToggledCallback(hObject, ~)
@@ -873,6 +931,36 @@ set(gui, 'Visible', 'on');
         end
         
         %profile on
+        segmentation_params_xml_full_path = fullfile(FILES_SAVE_DESTINATION, SEGMENTATION_PARAMS_XML_NAME);
+        if exist(segmentation_params_xml_full_path, 'file') ~= 2                  
+            xml_dom= com.mathworks.xml.XMLUtils.createDocument('SEGMENTATION_PARAMS');
+            trials_onset_triggers_xml_node= xml_dom.createElement(TRIALS_ONSET_TRIGGERS_XML_NODE_NAME);
+            xml_dom.getDocumentElement.appendChild(trials_onset_triggers_xml_node);
+            trials_offsets_triggers_xml_node= xml_dom.createElement(TRIALS_OFFSETS_TRIGGERS_XML_NODE_NAME);
+            xml_dom.getDocumentElement.appendChild(trials_offsets_triggers_xml_node);  
+            trials_rejection_triggers_xml_node= xml_dom.createElement(TRIALS_REJECTION_TRIGGERS_XML_NODE_NAME);
+            xml_dom.getDocumentElement.appendChild(trials_rejection_triggers_xml_node); 
+            pre_onset_trigger_segment_xml_node= xml_dom.createElement(PRE_ONSET_TRIGGER_SEGMENT_XML_NODE_NAME);
+            xml_dom.getDocumentElement.appendChild(pre_onset_trigger_segment_xml_node);             
+            post_offset_trigger_segment_xml_node= xml_dom.createElement(POST_OFFSET_TRIGGER_SEGMENT_XML_NODE_NAME);
+            xml_dom.getDocumentElement.appendChild(post_offset_trigger_segment_xml_node);             
+            analysis_segment_dur_xml_node= xml_dom.createElement(ANALYSIS_SEGMENT_DUR_XML_NODE_NAME);
+            xml_dom.getDocumentElement.appendChild(analysis_segment_dur_xml_node);             
+            blinks_delta_node_xml_node= xml_dom.createElement(BLINKS_DELTA_XML_NODE_NAME);
+            xml_dom.getDocumentElement.appendChild(blinks_delta_node_xml_node);             
+        else
+            xml_dom= xmlread(segmentation_params_xml_full_path);
+        end
+                            
+        setXmlNodeValue(xml_dom, TRIALS_ONSET_TRIGGERS_XML_NODE_NAME, get(trials_onset_triggers_display, 'string'));
+        setXmlNodeValue(xml_dom, TRIALS_OFFSETS_TRIGGERS_XML_NODE_NAME, get(trials_offset_triggers_display, 'string'));
+        setXmlNodeValue(xml_dom, TRIALS_REJECTION_TRIGGERS_XML_NODE_NAME, get(trials_rejection_triggers_display, 'string'));        
+        setXmlNodeValue(xml_dom, PRE_ONSET_TRIGGER_SEGMENT_XML_NODE_NAME, get(pre_onset_trigger_segment_edit_uicontrol, 'string'));
+        setXmlNodeValue(xml_dom, POST_OFFSET_TRIGGER_SEGMENT_XML_NODE_NAME, get(post_offset_trigger_segment_edit_uicontrol, 'string'));
+        setXmlNodeValue(xml_dom, ANALYSIS_SEGMENT_DUR_XML_NODE_NAME, get(analysis_segment_dur_edit_uicontrol, 'string'));
+        setXmlNodeValue(xml_dom, BLINKS_DELTA_XML_NODE_NAME, get(blinks_delta_edit_uicontrol, 'string'));                        
+        myXMLwrite(fullfile(FILES_SAVE_DESTINATION, SEGMENTATION_PARAMS_XML_NAME), xml_dom);
+        
         progress_amounts_of_stages= [0.8362, 0.0660, 0.0978];
         stages_names= {'loading data structures', progress_screen_message_during_analysis, 'saving figures'};
         progress_screen= DualBarProgressScreen('Analysis Progress', [0.8, 0.8, 0.8], 0.4, 0.4, progress_amounts_of_stages, stages_names);                         
@@ -944,6 +1032,21 @@ set(gui, 'Visible', 'on');
 %                 end
 %             end
 %         end
+
+        function setXmlNodeValue(xml_dom, xml_node_name, values)
+            if ~iscell(values)
+                values = {values};
+            end
+            
+            values_str = [];       
+            for value_idx = 1:numel(values)
+                values_str = [values_str, values{value_idx}];
+                if value_idx < numel(values)
+                    values_str = [values_str, ' '];
+                end
+            end
+            xml_dom.getElementsByTagName(xml_node_name).item(0).setTextContent(values_str);                                
+        end
     end             
 
     function loadEDFConversionFileBtnCallback(~, ~)                
@@ -1543,16 +1646,16 @@ set(gui, 'Visible', 'on');
             'FontSize', 10.0, ...
             'callback', {@cancelBlinksAnalysisBtnCallback});
         
-        analysis_go= false;                                
-        waitfor(BLINKS_PARAMETERS_FIG);        
-        function doneEnteringBlinksAnalysisParametersBtnCallback(~, ~)                   
+        analysis_go= false;
+        waitfor(BLINKS_PARAMETERS_FIG);
+        function doneEnteringBlinksAnalysisParametersBtnCallback(~, ~)
             analysis_go= true;
             close(BLINKS_PARAMETERS_FIG);
-            BLINKS_PARAMETERS_FIG= [];            
+            BLINKS_PARAMETERS_FIG= [];
         end
 
         function cancelBlinksAnalysisBtnCallback(~, ~)             
-            close(BLINKS_PARAMETERS_FIG);           
+            close(BLINKS_PARAMETERS_FIG);
             BLINKS_PARAMETERS_FIG= [];
         end
         
@@ -1568,7 +1671,7 @@ set(gui, 'Visible', 'on');
         
         saccades_extractor= SaccadesExtractor(subjects_etas);        
         progress_screen.displayMessage('extracting saccades');
-        [~, saccades_structs]= saccades_extractor.extractSaccadesByEngbert( ...
+        [eye_data_struct, saccades_structs, ~]= saccades_extractor.extractSaccadesByEngbert( ...
             ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type, ...
             ENGBERT_ALGORITHM_DEFAULTS.vel_threshold, ...
             1000, 1.0, ...
@@ -1620,13 +1723,27 @@ set(gui, 'Visible', 'on');
                     analysis_struct{subject_i}.(cond).fixations(trial_i).fixations_onsets = fixations_struct.onsets;
                     analysis_struct{subject_i}.(cond).fixations(trial_i).fixations_coordinates_left = [fixations_struct.Hpos(:,1), fixations_struct.Vpos(:,1)];
                     analysis_struct{subject_i}.(cond).fixations(trial_i).fixations_coordinates_right = [fixations_struct.Hpos(:,2), fixations_struct.Vpos(:,2)];
-                    analysis_struct{subject_i}.(cond).fixations(trial_i).fixations_durations = fixations_struct.durations;                        
+                    analysis_struct{subject_i}.(cond).fixations(trial_i).fixations_durations = fixations_struct.durations;    
+                    if ~isempty(eye_data_struct{subject_i}.(cond)(trial_i).non_nan_times_logical_vec)
+                        analysis_struct{subject_i}.(cond).raw_data(trial_i).right_eye = eye_data_struct{subject_i}.(cond)(trial_i).raw_eye_data.right_eye;
+                        analysis_struct{subject_i}.(cond).raw_data(trial_i).left_eye = eye_data_struct{subject_i}.(cond)(trial_i).raw_eye_data.left_eye;
+                        analysis_struct{subject_i}.(cond).raw_data(trial_i).non_nan_times_logical_vec = eye_data_struct{subject_i}.(cond)(trial_i).non_nan_times_logical_vec;
+                    else
+                        analysis_struct{subject_i}.(cond).raw_data(trial_i).right_eye = [];
+                        analysis_struct{subject_i}.(cond).raw_data(trial_i).left_eye = [];
+                        analysis_struct{subject_i}.(cond).raw_data(trial_i).non_nan_times_logical_vec = [];
+                    end
                     progress_screen.addProgress(0.8/(trials_nr*conds_nr*subjects_nr));
                 end
-                
+                if trials_nr == 0
+                    progress_screen.addProgress(0.8/(conds_nr*subjects_nr));
+                end
 %                 savefig(f, fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, ['sub',num2str(subject_i),cond]));    
 %                 set(f,'visible','off');                                
-            end                        
+            end    
+            if conds_nr == 0
+                progress_screen.addProgress(0.8/subjects_nr);
+            end
         end
         
         function full_files_names = extractFilesNamesFromFolder(path, files_ext)
