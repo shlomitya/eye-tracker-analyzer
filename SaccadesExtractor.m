@@ -108,8 +108,7 @@ classdef SaccadesExtractor < handle
                                     manual_saccades_search_func_params_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).left_eye.baseline_corrected_eye_data= [];
                                     manual_saccades_search_func_params_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).right_eye.baseline_corrected_eye_data= [];
                                     manual_saccades_search_func_params_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).non_nan_times_logical_vec= [];                                    
-                                end
-                                
+                                end                                
                                 
                                 fillSaccadesStructWithVal([]);
                                 eye_data_struct{subject_i}.(curr_cond_name)(trial_i).non_nan_times_logical_vec = [];
@@ -148,6 +147,8 @@ classdef SaccadesExtractor < handle
                                 obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).left_eye.baseline_corrected_eye_data= xl;
                                 eye_data_struct{subject_i}.(curr_cond_name)(trial_i).vergence =  NaN(curr_cond_struct(trial_i).samples_nr,2);                           
                                 eye_data_struct{subject_i}.(curr_cond_name)(trial_i).vergence(non_nan_times_logical_vec, :) = [xr(:,1) - xl(:,1), xr(:,2) - xl(:,2)];
+                                eye_data_struct{subject_i}.(curr_cond_name)(trial_i).raw_eye_data.right_eye = [curr_cond_struct(trial_i).gazeRight.x; curr_cond_struct(trial_i).gazeRight.y]';                                
+                                eye_data_struct{subject_i}.(curr_cond_name)(trial_i).raw_eye_data.left_eye = [curr_cond_struct(trial_i).gazeLeft.x; curr_cond_struct(trial_i).gazeLeft.y]';
                             
                             %end                                                        
                             
