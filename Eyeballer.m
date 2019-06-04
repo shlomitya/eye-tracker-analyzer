@@ -1196,11 +1196,10 @@ classdef Eyeballer < handle
                 user_response = questdlg('Current work was not saved. Save now ?', 'Confirm finish', 'Yes', 'No', 'Cancel', 'Cancel');
                 if strcmp(user_response, 'Yes')
                     obj.savePressedCallback();
-                elseif strcmp(user_response, 'Cancel')
-                    return;
+                elseif strcmp(user_response, 'No')
+                    close(obj.fig);
                 end 
-            end
-            close(obj.fig);
+            end            
         end
         
         function cancelPressedCallback(obj, ~, ~)
