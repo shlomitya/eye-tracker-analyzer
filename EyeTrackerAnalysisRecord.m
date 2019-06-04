@@ -156,26 +156,19 @@ classdef EyeTrackerAnalysisRecord < handle
                 obj.segmentization_vecs{segmentizations_nr+1}(session_i).blinks= eyelink_based_blinks_vec | pupils_based_blinks_vec;                
                 triggers_nr= numel(trial_onset_triggers);                
                 for trigger_i= 1:triggers_nr                    
-                    progress_screen.displayMessage(['session #', num2str(session_i), ': segmentizing data by condition ', trial_onset_triggers{trigger_i}]);
-                    if all(isstrprop(trial_onset_triggers{trigger_i},'digit'))                                                
-                        curr_cond_field_name = [obj.CONDS_NAMES_PREFIX, trial_onset_triggers{trigger_i}];
-                        [start_times, end_times] = extractSegmentsTimesFromInputs(curr_session_eye_tracker_data_struct, str2double(trial_onset_triggers{trigger_i}));
-                        if numel(start_times)==0
-                            [start_times, end_times] = extractSegmentsTimesFromMessages(curr_session_eye_tracker_data_struct, trial_onset_triggers{trigger_i});
-                        end
-                    else                                                
-                        curr_cond_field_name = convertMsgToValidFieldName(trial_onset_triggers{trigger_i});                                                
-                        [start_times, end_times] = extractSegmentsTimesFromMessages(curr_session_eye_tracker_data_struct, trial_onset_triggers{trigger_i});                                                
-                    end
-
-                    if numel(start_times)==0
-                        obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_start_times.(curr_cond_field_name)= [];
-                        obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_end_times.(curr_cond_field_name)= [];
-                        progress_screen.displayMessage(['session #', num2str(session_i), ':Didn''t find trigger ', '''', trial_onset_triggers{trigger_i}, '''']);
-                        progress_screen.addProgress(0.2*progress_contribution/(sessions_nr*triggers_nr));
-                        continue;
-                    end                                                           
-                    
+                    progress_screen.displayMessage(['session #', num2str(session_i), ': segmentizing data by condition ', trial_onset_triggers{trigger_i}]);                    
+                    [start_times, end_times, curr_cond_field_name] = extractSegmentsTimesFromMessages(curr_session_eye_tracker_data_struct, trial_onset_triggers{trigger_i});
+                    if isempty(start_times)
+                        [start_times, end_times, curr_cond_field_name] = extractSegmentsTimesFromInputs(curr_session_eye_tracker_data_struct, str2double(trial_onset_triggers{trigger_i}));
+                        if isempty(start_times)
+                            obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_start_times.(curr_cond_field_name)= [];
+                            obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_end_times.(curr_cond_field_name)= [];
+                            progress_screen.displayMessage(['session #', num2str(session_i), ':Didn''t find trigger ', '''', trial_onset_triggers{trigger_i}, '''']);
+                            progress_screen.addProgress(0.2*progress_contribution/(sessions_nr*triggers_nr));
+                            continue;
+                        end                 
+                    end                    
+                                                                                  
                     %assign trials timings 
                     trials_nr= numel(start_times);
                     obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_start_times.(curr_cond_field_name)= NaN(trials_nr, 1);
@@ -215,19 +208,20 @@ classdef EyeTrackerAnalysisRecord < handle
             obj.chosen_segmentization_i= numel(obj.segmentization_vecs);
             
             function msg = convertMsgToValidFieldName(msg)
-                msg(ismember(msg,' -')) = '_';                
+                msg(ismember(msg,' `!@#$%^&*()-+=[]{}''";:,.<>/?\|')) = '_';                
                 if isstrprop(msg(1),'digit')
                     msg = [obj.CONDS_NAMES_PREFIX, msg];
                 end                
             end
             
-            function [start_times, end_times] = extractSegmentsTimesFromMessages(eye, trial_onset_trigger)
+            function [start_times, end_times, curr_cond_field_name] = extractSegmentsTimesFromMessages(eye, trial_onset_trigger)
                 % search phases:
                 % 1 - trial onset
                 % 2 - trial offset
                 are_offset_triggers_included = ~isempty(trial_offset_triggers);
                 start_times= []; 
                 end_times = [];
+                curr_cond_field_name = '';
                 field_i = 1;                
                 search_phase = 1;
                 while field_i <= numel(eye.messages)                    
@@ -239,20 +233,24 @@ classdef EyeTrackerAnalysisRecord < handle
                     
                     msg_time = eye.messages(field_i).time;
                     if search_phase == 1
-                        if strcmp(msg, trial_onset_trigger)                            
+                        if ~isempty(regexp(msg, trial_onset_trigger, 'ONCE'))
                             potential_trial_start_time = msg_time;
+                            potential_trial_start_msg = msg;
                             search_phase = 2;
                         end                        
-                    elseif (are_offset_triggers_included && (any(cellfun(@(str) strcmp(str, msg), trial_offset_triggers)) || msg_time - potential_trial_start_time > trial_dur - baseline)) || ...
-                           (~are_offset_triggers_included && (any(cellfun(@(str) strcmp(str, msg), trial_onset_triggers)) || msg_time - potential_trial_start_time > trial_dur - baseline))
+                    elseif (are_offset_triggers_included && (any(cellfun(@(str) ~isempty(regexp(msg, str, 'ONCE')), trial_offset_triggers)) || msg_time - potential_trial_start_time > trial_dur - baseline)) || ...
+                           (~are_offset_triggers_included && (any(cellfun(@(str) ~isempty(regexp(msg, str, 'ONCE')), trial_onset_triggers)) || msg_time - potential_trial_start_time > trial_dur - baseline))
                         search_phase = 1;
                         start_times= [start_times, potential_trial_start_time - baseline]; %#ok<AGROW>
+                        if isempty(regexp(curr_cond_field_name, ['(^|_)', potential_trial_start_msg, '_'], 'ONCE'))
+                            curr_cond_field_name = [curr_cond_field_name, potential_trial_start_msg, '_'];  %#ok<AGROW>
+                        end
                         if are_offset_triggers_included
                             end_times = [end_times, msg_time + post_offset_triggers_segment]; %#ok<AGROW>                                                                        
                         else
                              continue;
                         end
-                    elseif any(cellfun(@(str) strcmp(str, msg), trial_rejection_triggers))
+                    elseif any(cellfun(@(str) ~isempty(regexp(msg, str, 'ONCE')), trial_rejection_triggers))
                         search_phase = 1;
                     end
                     
@@ -265,19 +263,23 @@ classdef EyeTrackerAnalysisRecord < handle
                         end_times = [end_times, potential_trial_start_time + trial_dur + post_offset_triggers_segment];
                     end
                 end
+                
+                curr_cond_field_name(end) = '';
+                curr_cond_field_name = [EyeTrackerAnalysisRecord.CONDS_NAMES_PREFIX, curr_cond_field_name];
             end                                      
             
-            function [start_times, end_times] = extractSegmentsTimesFromInputs(eye, trial_onset_trigger)
+            function [start_times, end_times, curr_cond_field_name] = extractSegmentsTimesFromInputs(eye, trial_onset_trigger)
                 % search phases:
                 % 1 - trial onset
                 % 2 - trial offset
                 are_offset_triggers_included = ~isempty(trial_offset_triggers);
                 start_times= []; 
                 end_times = [];
+                curr_cond_field_name = '';
                 field_i = 1;                
                 search_phase = 1;
                 while field_i <= numel(eye.inputs)                    
-                    input = eye.inputs(field_i).input;
+                    input = num2str(eye.inputs(field_i).input);
                     if isempty(input)
                         field_i = field_i + 1;
                         continue;
@@ -285,20 +287,24 @@ classdef EyeTrackerAnalysisRecord < handle
                     
                     input_time = eye.inputs(field_i).time;
                     if search_phase == 1
-                        if input == trial_onset_trigger                            
+                        if ~isempty(regexp(input, trial_onset_trigger, 'ONCE'))                            
                             potential_trial_start_time = input_time;
+                            potential_trial_start_input = input;                            
                             search_phase = 2;
                         end
-                    elseif (are_offset_triggers_included && (any(cellfun(@(trigger) input == str2num(trigger), trial_offset_triggers)) || input_time - potential_trial_start_time > trial_dur - baseline)) || ...
-                           (~are_offset_triggers_included && (any(cellfun(@(trigger) input == str2num(trigger), trial_onset_triggers)) || input_time - potential_trial_start_time > trial_dur - baseline))                       
+                    elseif (are_offset_triggers_included && (any(cellfun(@(trigger) ~isempty(regexp(input, trigger, 'ONCE')) , trial_offset_triggers)) || input_time - potential_trial_start_time > trial_dur - baseline)) || ...
+                           (~are_offset_triggers_included && (any(cellfun(@(trigger) ~isempty(regexp(input, trigger, 'ONCE')) , trial_onset_triggers)) || input_time - potential_trial_start_time > trial_dur - baseline))                       
                         search_phase = 1;
                         start_times= [start_times, potential_trial_start_time - baseline]; %#ok<AGROW>
+                        if isempty(regexp(curr_cond_field_name, ['(^|_)', potential_trial_start_input, '_'], 'ONCE'))
+                            curr_cond_field_name = [curr_cond_field_name, potential_trial_start_input, '_'];  %#ok<AGROW>
+                        end
                         if are_offset_triggers_included
                             end_times = [end_times, input_time + post_offset_triggers_segment]; %#ok<AGROW>                                                                        
                         else
                              continue;
                         end
-                    elseif any(cellfun(@(input) str2double(input) == eye.inputs(field_i).input, trial_rejection_triggers))
+                    elseif any(cellfun(@(str) ~isempty(regexp(input, str, 'ONCE')), trial_rejection_triggers))
                         search_phase = 1;
                     end
                     
@@ -311,6 +317,9 @@ classdef EyeTrackerAnalysisRecord < handle
                         end_times = [end_times, potential_trial_start_time + trial_dur + post_offset_triggers_segment];
                     end
                 end
+                
+                curr_cond_field_name(end) = '';
+                curr_cond_field_name = [EyeTrackerAnalysisRecord.CONDS_NAMES_PREFIX, curr_cond_field_name];
             end                                
         end
         
@@ -576,7 +585,7 @@ classdef EyeTrackerAnalysisRecord < handle
 
             exp_time= length(eyelink.gazeRight.time);
             blinksbool= zeros(1, exp_time);%initialize array matching the time points
-            blinksbool=boolean(blinksbool);
+            blinksbool=logical(blinksbool);
             blinks_nr= length(eyelink.blinks.startTime);
             
             interval_blinks_nr= min(200,blinks_nr);
@@ -724,8 +733,7 @@ classdef EyeTrackerAnalysisRecord < handle
             %create a pupil size slope vector:
             slopes=diff(pupildata);
             slopes_zscores=(slopes-nanmean(slopes))./nanstd(slopes);
-            
-            
+                        
             %filter the data so i can follow the slope without gigsaw patterns.
             %first make sure it doenst end or starts with a nan or else
             %extrapolation will not work.

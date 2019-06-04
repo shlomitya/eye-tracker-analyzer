@@ -75,7 +75,7 @@ classdef Eyeballer < handle
         blink_curr_marker_h = [];
         blink_start_marker_h = [];
         display_range_multiplier = [];
-        is_session_saved = false;
+        is_session_saved = true;
     end
     
     methods (Access= public)
@@ -1193,8 +1193,8 @@ classdef Eyeballer < handle
                             
         function finishPressedCallback(obj, ~, ~)
             if ~obj.is_session_saved
-                user_response = questdlg('Current work was not saved. Save now ?', 'Confirm finish', 'O.K.', 'Cancel', 'Continue', 'Save');
-                if strcmp(user_response, 'O.K.')
+                user_response = questdlg('Current work was not saved. Save now ?', 'Confirm finish', 'Yes', 'No', 'Cancel', 'Cancel');
+                if strcmp(user_response, 'Yes')
                     obj.savePressedCallback();
                 elseif strcmp(user_response, 'Cancel')
                     return;

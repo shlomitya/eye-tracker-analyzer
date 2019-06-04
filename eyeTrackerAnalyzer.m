@@ -1291,7 +1291,7 @@ set(gui, 'Visible', 'on');
                     for trial_i= 1:curr_cond_trials_nr
                         curr_trial_saccades_struct= analysis_structs{subject_i}.(curr_subject_conds_names{cond_i})(trial_i);       
                         curr_trial_eye_data_struct = eye_data_struct{subject_i}.(curr_subject_conds_names{cond_i})(trial_i); 
-                        if curr_trial_saccades_struct.is_trial_accepted
+                        if ~isfield(curr_trial_saccades_struct, 'is_trial_accepted') || curr_trial_saccades_struct.is_trial_accepted
                             if ~isempty(curr_trial_eye_data_struct) && ~isempty(curr_trial_eye_data_struct.non_nan_times_logical_vec)
                                 curr_trial_dur = numel(curr_trial_eye_data_struct.non_nan_times_logical_vec);
                                 reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).vergence.x(trial_i, 1:curr_trial_dur)  = ...
