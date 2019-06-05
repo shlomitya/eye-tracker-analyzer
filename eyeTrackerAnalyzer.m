@@ -13,7 +13,6 @@ PRE_ONSET_TRIGGER_SEGMENT_XML_NODE_NAME = 'PRE_ONSET_TRIGGER_SEGMENT';
 POST_OFFSET_TRIGGER_SEGMENT_XML_NODE_NAME = 'POST_OFFSET_TRIGGER_SEGMENT';
 ANALYSIS_SEGMENT_DUR_XML_NODE_NAME = 'ANALYSIS_SEGMENT_DUR';
 BLINKS_DELTA_XML_NODE_NAME = 'BLINKS_DELTA';
-ANALYSIS_PARAMS_XML_NAME = 'analysis_params.xml';
 MICROSACCADES_ANALYSIS_PARAMS_NODE_NAME = 'SACCADES_ANALYSIS_PARAMS';
 MICROSACCADES_ANALYSIS_PLOT_RATE_XML_NODE_NAME = 'PLOT_RATE';
 MICROSACCADES_ANALYSIS_PLOT_AMPS_XML_NODE_NAME = 'PLOT_AMPS';
@@ -43,6 +42,8 @@ POST_OFFSET_TRIGGERS_SEGMENT = [];
 FILES_SAVE_DESTINATION= [];
 FILES_FORMATS_CONVERSION_SAVE_DESTINATION= [];
 ANALYSIS_RESULTS_FILE_DESTINATION= [];
+ANALYSIS_PARAMS_FILES_FOLDER= [];
+ANALYSIS_PARAMS_FILE_NAME = [];
 BLINKS_DELTA= [];
 PERFORM_EYEBALLING= 1;
 EYEBALLER_DISPLAY_RANGE = 2.2;
@@ -284,6 +285,22 @@ uicontrol(segmentation_panel, 'Style', 'text', 'tag', 'c80', 'units', 'normalize
 blinks_delta_edit_uicontrol = uicontrol(segmentation_panel, 'Style', 'edit', 'tag', 'c811', 'units', 'normalized', ...
     'Position', [0.95691      0.1882    0.0304      0.2556], ...
     'callback', {@blinksDeltaEditedCallback});
+
+
+% ==============================
+uicontrol('Style', 'pushbutton', 'tag', 'sp', 'units', 'normalized', ...
+    'String', 'Save Parameters', ...
+    'Position', [0.0305    0.1618    0.0907    0.0287], ...
+    'FontSize', 12.0, ...
+    'callback', @saveParamsBtnCallback);
+
+uicontrol('Style', 'pushbutton', 'tag', 'lp', 'units', 'normalized', ...
+    'String', 'Load Parameters', ...
+    'Position', [0.1260    0.1618    0.0907    0.0287], ...
+    'FontSize', 12.0, ...
+    'callback', @loadParamsBtnCallback);
+% ==============================
+
 
 %ANALYSIS SAVE FOLDER UICONTROLS
 uicontrol(analyze_microsaccades_panel, 'Style', 'text', 'tag', 'c95', 'units', 'normalized', ...
@@ -842,38 +859,14 @@ set(gui, 'Visible', 'on');
 
 
     function saveFolderBtnCallback(~,~)
-        FILES_SAVE_DESTINATION = uigetdir(FILES_SAVE_DESTINATION, 'Choose Analysis Workspace Location');
-        if FILES_SAVE_DESTINATION==0
-            FILES_SAVE_DESTINATION= [];
+        files_save_destination = uigetdir(FILES_SAVE_DESTINATION, 'Choose Analysis Workspace Location');
+        if files_save_destination == 0                       
+            return;
         end
-        
-        set(save_file_folder_etext,'string',FILES_SAVE_DESTINATION);
-        ANALYSIS_RESULTS_FILE_DESTINATION= fullfile(FILES_SAVE_DESTINATION, ANALYSIS_RESULTS_FOLDER_NAME);
-        analysis_params_xml = fullfile(FILES_SAVE_DESTINATION, ANALYSIS_PARAMS_XML_NAME);    
-        if exist(analysis_params_xml, 'file') == 2                    
-            xml_dom= xmlread(analysis_params_xml);
-            set(trials_onset_triggers_display, 'string', getXmlNodeValuesVector(xml_dom, TRIALS_ONSET_TRIGGERS_XML_NODE_NAME));
-            set(trials_offset_triggers_display, 'string', getXmlNodeValuesVector(xml_dom, TRIALS_OFFSETS_TRIGGERS_XML_NODE_NAME));
-            trials_offset_triggers = get(trials_offset_triggers_display, 'string');
-            if ~isempty(trials_offset_triggers)
-                set(analysis_segment_dur_txt_uicontrol, 'string', 'analysis segment duration max (ms)');        
-                set(post_offset_trigger_segment_txt_uicontrol, 'Enable', 'on');
-                set(post_offset_trigger_segment_edit_uicontrol, 'Enable', 'on');                
-            else
-                set(analysis_segment_dur_txt_uicontrol, 'string', 'analysis segment duration (ms)');
-                set(post_offset_trigger_segment_txt_uicontrol, 'Enable', 'off');
-                set(post_offset_trigger_segment_edit_uicontrol, 'Enable', 'off');
-            end
-            set(trials_rejection_triggers_display, 'string', getXmlNodeValuesVector(xml_dom, TRIALS_REJECTION_TRIGGERS_XML_NODE_NAME));            
-            set(pre_onset_trigger_segment_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, PRE_ONSET_TRIGGER_SEGMENT_XML_NODE_NAME));            
-            BASELINE= str2double(get(pre_onset_trigger_segment_edit_uicontrol, 'string'));           
-            set(post_offset_trigger_segment_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, POST_OFFSET_TRIGGER_SEGMENT_XML_NODE_NAME));
-            POST_OFFSET_TRIGGERS_SEGMENT= str2double(get(post_offset_trigger_segment_edit_uicontrol, 'string'));                        
-            set(analysis_segment_dur_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, ANALYSIS_SEGMENT_DUR_XML_NODE_NAME));
-            TRIAL_DURATION= str2double(get(analysis_segment_dur_edit_uicontrol, 'string'));
-            set(blinks_delta_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, BLINKS_DELTA_XML_NODE_NAME));
-            BLINKS_DELTA= str2double(get(blinks_delta_edit_uicontrol, 'string'));            
-        end                
+                
+        FILES_SAVE_DESTINATION = files_save_destination;                                
+        set(save_file_folder_etext,'string',files_save_destination);
+        ANALYSIS_RESULTS_FILE_DESTINATION = fullfile(FILES_SAVE_DESTINATION, ANALYSIS_RESULTS_FOLDER_NAME);
     end
      
     function plotCurvesToggledCallback(hObject, ~)
@@ -888,6 +881,118 @@ set(gui, 'Visible', 'on');
             set(hObject,'string', BLINKS_DELTA);
         end
     end   
+    
+    function saveParamsBtnCallback(~, ~)
+        [file_name, file_path, ~] = uiputfile({'*.ap','Eye Tracker Analyzer Analyses Parameters'}, 'Choose the save location and a name for the analysis parameters file', fullfile(ANALYSIS_PARAMS_FILES_FOLDER, ANALYSIS_PARAMS_FILE_NAME));        
+        if ~iscell(file_name) && ~ischar(file_name)
+            return;
+        else
+            ANALYSIS_PARAMS_FILES_FOLDER = file_path;
+            ANALYSIS_PARAMS_FILE_NAME = file_name;
+        end
+                         
+        analysis_params_pathed_file_name = fullfile(file_path, file_name);        
+        if exist(analysis_params_pathed_file_name, 'file') ~= 2                  
+            xml_dom= com.mathworks.xml.XMLUtils.createDocument('SEGMENTATION_PARAMS');
+            createXmlNode(xml_dom, xml_dom.getDocumentElement, TRIALS_ONSET_TRIGGERS_XML_NODE_NAME);
+            createXmlNode(xml_dom, xml_dom.getDocumentElement, TRIALS_OFFSETS_TRIGGERS_XML_NODE_NAME);
+            createXmlNode(xml_dom, xml_dom.getDocumentElement, TRIALS_REJECTION_TRIGGERS_XML_NODE_NAME);
+            createXmlNode(xml_dom, xml_dom.getDocumentElement, PRE_ONSET_TRIGGER_SEGMENT_XML_NODE_NAME);
+            createXmlNode(xml_dom, xml_dom.getDocumentElement, POST_OFFSET_TRIGGER_SEGMENT_XML_NODE_NAME);
+            createXmlNode(xml_dom, xml_dom.getDocumentElement, ANALYSIS_SEGMENT_DUR_XML_NODE_NAME);
+            createXmlNode(xml_dom, xml_dom.getDocumentElement, BLINKS_DELTA_XML_NODE_NAME);                                    
+        else
+            xml_dom= xmlread(analysis_params_pathed_file_name);
+        end
+        
+        setXmlNodeValue(xml_dom, TRIALS_ONSET_TRIGGERS_XML_NODE_NAME, get(trials_onset_triggers_display, 'string'));
+        setXmlNodeValue(xml_dom, TRIALS_OFFSETS_TRIGGERS_XML_NODE_NAME, get(trials_offset_triggers_display, 'string'));
+        setXmlNodeValue(xml_dom, TRIALS_REJECTION_TRIGGERS_XML_NODE_NAME, get(trials_rejection_triggers_display, 'string'));        
+        setXmlNodeValue(xml_dom, PRE_ONSET_TRIGGER_SEGMENT_XML_NODE_NAME, get(pre_onset_trigger_segment_edit_uicontrol, 'string'));
+        setXmlNodeValue(xml_dom, POST_OFFSET_TRIGGER_SEGMENT_XML_NODE_NAME, get(post_offset_trigger_segment_edit_uicontrol, 'string'));
+        setXmlNodeValue(xml_dom, ANALYSIS_SEGMENT_DUR_XML_NODE_NAME, get(analysis_segment_dur_edit_uicontrol, 'string'));
+        setXmlNodeValue(xml_dom, BLINKS_DELTA_XML_NODE_NAME, get(blinks_delta_edit_uicontrol, 'string'));                                        
+                 
+        if isempty(xml_dom.getElementsByTagName(MICROSACCADES_ANALYSIS_PARAMS_NODE_NAME).item(0))
+            saccades_analysis_params_xml_node = xml_dom.createElement(MICROSACCADES_ANALYSIS_PARAMS_NODE_NAME);
+            xml_dom.getDocumentElement.appendChild(saccades_analysis_params_xml_node);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_PLOT_RATE_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_PLOT_AMPS_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_PLOT_DIRECTIONS_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_PLOT_MAIN_SEQ_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_SMOOTHING_WINDOW_LEN_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_AMP_LIM_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_AMP_LOW_LIM_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_VEL_VEC_TYPE_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_VEL_THRESHOLD_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_SACCADE_DUR_MIN_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_FREQ_MAX_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_FILTER_BANDPASS_XML_NODE_NAME);
+        end
+        
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_RATE_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.rate));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_AMPS_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_DIRECTIONS_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.directions));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_MAIN_SEQ_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SMOOTHING_WINDOW_LEN_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LIM_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.amp_lim));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LOW_LIM_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.amp_low_lim));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_VEC_TYPE_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_THRESHOLD_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.vel_threshold));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SACCADE_DUR_MIN_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.saccade_dur_min));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FREQ_MAX_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.frequency_max));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FILTER_BANDPASS_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass));
+        
+        myXMLwrite(analysis_params_pathed_file_name, xml_dom);
+    end
+
+    function loadParamsBtnCallback(~, ~)
+        [file_name, file_path, ~] = uigetfile({'*.ap','Eye Tracker Analyzer Analyses Parameters'}, 'Choose the analysis parameters file', ANALYSIS_PARAMS_FILES_FOLDER, 'MultiSelect', 'off');
+        if ~iscell(file_name) && ~ischar(file_name)
+            return;
+        else
+            ANALYSIS_PARAMS_FILES_FOLDER = file_path;
+            ANALYSIS_PARAMS_FILE_NAME = file_name;
+        end
+                        
+        xml_dom= xmlread(fullfile(file_path, file_name));
+        set(trials_onset_triggers_display, 'string', getXmlNodeValuesVector(xml_dom, TRIALS_ONSET_TRIGGERS_XML_NODE_NAME));
+        set(trials_offset_triggers_display, 'string', getXmlNodeValuesVector(xml_dom, TRIALS_OFFSETS_TRIGGERS_XML_NODE_NAME));
+        trials_offset_triggers = get(trials_offset_triggers_display, 'string');
+        if ~isempty(trials_offset_triggers)
+            set(analysis_segment_dur_txt_uicontrol, 'string', 'analysis segment duration max (ms)');        
+            set(post_offset_trigger_segment_txt_uicontrol, 'Enable', 'on');
+            set(post_offset_trigger_segment_edit_uicontrol, 'Enable', 'on');                
+        else
+            set(analysis_segment_dur_txt_uicontrol, 'string', 'analysis segment duration (ms)');
+            set(post_offset_trigger_segment_txt_uicontrol, 'Enable', 'off');
+            set(post_offset_trigger_segment_edit_uicontrol, 'Enable', 'off');
+        end
+        set(trials_rejection_triggers_display, 'string', getXmlNodeValuesVector(xml_dom, TRIALS_REJECTION_TRIGGERS_XML_NODE_NAME));            
+        set(pre_onset_trigger_segment_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, PRE_ONSET_TRIGGER_SEGMENT_XML_NODE_NAME));            
+        BASELINE= str2double(get(pre_onset_trigger_segment_edit_uicontrol, 'string'));           
+        set(post_offset_trigger_segment_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, POST_OFFSET_TRIGGER_SEGMENT_XML_NODE_NAME));
+        POST_OFFSET_TRIGGERS_SEGMENT= str2double(get(post_offset_trigger_segment_edit_uicontrol, 'string'));                        
+        set(analysis_segment_dur_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, ANALYSIS_SEGMENT_DUR_XML_NODE_NAME));
+        TRIAL_DURATION= str2double(get(analysis_segment_dur_edit_uicontrol, 'string'));
+        set(blinks_delta_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, BLINKS_DELTA_XML_NODE_NAME));
+        BLINKS_DELTA= str2double(get(blinks_delta_edit_uicontrol, 'string'));                       
+                
+        if ~isempty(xml_dom.getElementsByTagName(MICROSACCADES_ANALYSIS_PARAMS_NODE_NAME).item(0))                            
+            MICROSACCADES_ANALYSIS_PARAMETERS.rate = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_RATE_XML_NODE_NAME));            
+            MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_AMPS_XML_NODE_NAME));
+            MICROSACCADES_ANALYSIS_PARAMETERS.directions = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_DIRECTIONS_XML_NODE_NAME));
+            MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_MAIN_SEQ_XML_NODE_NAME));
+            MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SMOOTHING_WINDOW_LEN_XML_NODE_NAME));                                                                        
+            ENGBERT_ALGORITHM_DEFAULTS.amp_lim= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LIM_XML_NODE_NAME));
+            ENGBERT_ALGORITHM_DEFAULTS.amp_low_lim = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LOW_LIM_XML_NODE_NAME));
+            ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_VEC_TYPE_XML_NODE_NAME));
+            ENGBERT_ALGORITHM_DEFAULTS.vel_threshold= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_THRESHOLD_XML_NODE_NAME));
+            ENGBERT_ALGORITHM_DEFAULTS.saccade_dur_min= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SACCADE_DUR_MIN_XML_NODE_NAME));
+            ENGBERT_ALGORITHM_DEFAULTS.frequency_max= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FREQ_MAX_XML_NODE_NAME));
+            ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FILTER_BANDPASS_XML_NODE_NAME));                                    
+        end
+    end
 
     function runAnalysisBtnCallback(~, ~, analysis_func, analysisParametersFigCreator, progress_screen_message_during_analysis)
         if subjects_nr==0
@@ -922,29 +1027,6 @@ set(gui, 'Visible', 'on');
         if ~createOutputFolders()
             return;
         end                                                                     
-                        
-        analysis_params_xml_full_path = fullfile(FILES_SAVE_DESTINATION, ANALYSIS_PARAMS_XML_NAME);
-        if exist(analysis_params_xml_full_path, 'file') ~= 2                  
-            xml_dom= com.mathworks.xml.XMLUtils.createDocument('SEGMENTATION_PARAMS');
-            createXmlNode(xml_dom, xml_dom.getDocumentElement, TRIALS_ONSET_TRIGGERS_XML_NODE_NAME);
-            createXmlNode(xml_dom, xml_dom.getDocumentElement, TRIALS_OFFSETS_TRIGGERS_XML_NODE_NAME);
-            createXmlNode(xml_dom, xml_dom.getDocumentElement, TRIALS_REJECTION_TRIGGERS_XML_NODE_NAME);
-            createXmlNode(xml_dom, xml_dom.getDocumentElement, PRE_ONSET_TRIGGER_SEGMENT_XML_NODE_NAME);
-            createXmlNode(xml_dom, xml_dom.getDocumentElement, POST_OFFSET_TRIGGER_SEGMENT_XML_NODE_NAME);
-            createXmlNode(xml_dom, xml_dom.getDocumentElement, ANALYSIS_SEGMENT_DUR_XML_NODE_NAME);
-            createXmlNode(xml_dom, xml_dom.getDocumentElement, BLINKS_DELTA_XML_NODE_NAME);                                    
-        else
-            xml_dom= xmlread(analysis_params_xml_full_path);
-        end
-        
-        setXmlNodeValue(xml_dom, TRIALS_ONSET_TRIGGERS_XML_NODE_NAME, get(trials_onset_triggers_display, 'string'));
-        setXmlNodeValue(xml_dom, TRIALS_OFFSETS_TRIGGERS_XML_NODE_NAME, get(trials_offset_triggers_display, 'string'));
-        setXmlNodeValue(xml_dom, TRIALS_REJECTION_TRIGGERS_XML_NODE_NAME, get(trials_rejection_triggers_display, 'string'));        
-        setXmlNodeValue(xml_dom, PRE_ONSET_TRIGGER_SEGMENT_XML_NODE_NAME, get(pre_onset_trigger_segment_edit_uicontrol, 'string'));
-        setXmlNodeValue(xml_dom, POST_OFFSET_TRIGGER_SEGMENT_XML_NODE_NAME, get(post_offset_trigger_segment_edit_uicontrol, 'string'));
-        setXmlNodeValue(xml_dom, ANALYSIS_SEGMENT_DUR_XML_NODE_NAME, get(analysis_segment_dur_edit_uicontrol, 'string'));
-        setXmlNodeValue(xml_dom, BLINKS_DELTA_XML_NODE_NAME, get(blinks_delta_edit_uicontrol, 'string'));                                        
-        myXMLwrite(analysis_params_xml_full_path, xml_dom);
         
         analysis_go= analysisParametersFigCreator();        
         if ~analysis_go    
@@ -1338,24 +1420,7 @@ set(gui, 'Visible', 'on');
         if ~isempty(MICROSACCADES_PARAMETERS_FIG)
             close(MICROSACCADES_PARAMETERS_FIG);
         end
-        
-        analysis_params_xml_full_path = fullfile(FILES_SAVE_DESTINATION, ANALYSIS_PARAMS_XML_NAME);
-        xml_dom= xmlread(analysis_params_xml_full_path);                
-        if ~isempty(xml_dom.getElementsByTagName(MICROSACCADES_ANALYSIS_PARAMS_NODE_NAME).item(0))                            
-            MICROSACCADES_ANALYSIS_PARAMETERS.rate = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_RATE_XML_NODE_NAME));            
-            MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_AMPS_XML_NODE_NAME));
-            MICROSACCADES_ANALYSIS_PARAMETERS.directions = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_DIRECTIONS_XML_NODE_NAME));
-            MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_MAIN_SEQ_XML_NODE_NAME));
-            MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SMOOTHING_WINDOW_LEN_XML_NODE_NAME));                                                                        
-            ENGBERT_ALGORITHM_DEFAULTS.amp_lim= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LIM_XML_NODE_NAME));
-            ENGBERT_ALGORITHM_DEFAULTS.amp_low_lim = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LOW_LIM_XML_NODE_NAME));
-            ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_VEC_TYPE_XML_NODE_NAME));
-            ENGBERT_ALGORITHM_DEFAULTS.vel_threshold= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_THRESHOLD_XML_NODE_NAME));
-            ENGBERT_ALGORITHM_DEFAULTS.saccade_dur_min= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SACCADE_DUR_MIN_XML_NODE_NAME));
-            ENGBERT_ALGORITHM_DEFAULTS.frequency_max= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FREQ_MAX_XML_NODE_NAME));
-            ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FILTER_BANDPASS_XML_NODE_NAME));                                    
-        end
-        
+                        
         MICROSACCADES_PARAMETERS_FIG= figure('Visible', 'on', 'name', 'Microsaccades Analysis Parameters', 'NumberTitle', 'off', 'units', 'pixels', ...
             'Position', [main_figure_positions(1:2)+0.25*main_figure_positions(3:4), 0.9*main_figure_positions(3), 0.75*main_figure_positions(4)], ...
             'MenuBar', 'none', ... 
@@ -1489,7 +1554,19 @@ set(gui, 'Visible', 'on');
             'Position', [0.8057    0.7762    0.1182    0.0888], ...
             'string', num2str(EYEBALLER_DISPLAY_RANGE), ...
             'callback', {@eyeballerDisplayRangeEditedCallback});
-                
+                        
+        uicontrol('Style', 'pushbutton', 'tag', 'sp2', 'units', 'normalized', ...
+            'String', 'Save Parameters', ...
+            'Position', [0.0092    0.3430    0.1459    0.0460], ...
+            'FontSize', 12.0, ...
+            'callback', @saveParamsBtnCallback);
+        
+        uicontrol('Style', 'pushbutton', 'tag', 'lp2', 'units', 'normalized', ...
+            'String', 'Load Parameters', ...
+            'Position', [0.1694    0.3430    0.1459    0.0460], ...
+            'FontSize', 12.0, ...
+            'callback', @loadParamsBtnCallback);
+
         uicontrol(MICROSACCADES_PARAMETERS_FIG, 'Style', 'pushbutton', 'tag', 'c216', 'units', 'normalized', ...
             'String', 'Go', ...
             'Position', [0.1949      0.0796      0.2457      0.1965], ...    
@@ -1502,8 +1579,8 @@ set(gui, 'Visible', 'on');
             'FontSize', 10.0, ...
             'callback', {@cancelMicrosaccadesAnalysisBtnCallback});
 
-        analysis_go= false;                      
-                        
+        analysis_go= false;  
+                
         waitfor(MICROSACCADES_PARAMETERS_FIG);
         function amplitudeLimitEditedCallback(hObject, ~)
             input= get(hObject,'string');
@@ -1585,8 +1662,6 @@ set(gui, 'Visible', 'on');
         function eyeballerDisplayRangeEditedCallback(hObject, ~)
             EYEBALLER_DISPLAY_RANGE = str2double(get(hObject,'string'));            
         end
-%         eyeballer_display_range_text
-%         eyeballer_display_range_edit        
         
         function doneEnteringMicrosaccadesAnalysisParametersBtnCallback(~, ~)        
             if ~MICROSACCADES_ANALYSIS_PARAMETERS.rate && ~MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes && ~MICROSACCADES_ANALYSIS_PARAMETERS.directions && ~MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence
@@ -1595,38 +1670,7 @@ set(gui, 'Visible', 'on');
                 errordlg(ERROR_MSG_NO_AMP_LIM);                
             elseif isempty(ENGBERT_ALGORITHM_DEFAULTS.vel_threshold)
                 errordlg(ERROR_MSG_NO_VEL_THRESHOLD);
-            else                
-                if isempty(xml_dom.getElementsByTagName(MICROSACCADES_ANALYSIS_PARAMS_NODE_NAME).item(0))
-                    saccades_analysis_params_xml_node = xml_dom.createElement(MICROSACCADES_ANALYSIS_PARAMS_NODE_NAME);
-                    xml_dom.getDocumentElement.appendChild(saccades_analysis_params_xml_node);
-                    createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_PLOT_RATE_XML_NODE_NAME);
-                    createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_PLOT_AMPS_XML_NODE_NAME);
-                    createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_PLOT_DIRECTIONS_XML_NODE_NAME);
-                    createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_PLOT_MAIN_SEQ_XML_NODE_NAME);
-                    createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_SMOOTHING_WINDOW_LEN_XML_NODE_NAME);
-                    createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_AMP_LIM_XML_NODE_NAME);
-                    createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_AMP_LOW_LIM_XML_NODE_NAME);
-                    createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_VEL_VEC_TYPE_XML_NODE_NAME);
-                    createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_VEL_THRESHOLD_XML_NODE_NAME);
-                    createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_SACCADE_DUR_MIN_XML_NODE_NAME);
-                    createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_FREQ_MAX_XML_NODE_NAME);
-                    createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_FILTER_BANDPASS_XML_NODE_NAME);
-                end
-                
-                setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_RATE_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.rate));
-                setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_AMPS_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes));
-                setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_DIRECTIONS_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.directions));
-                setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_MAIN_SEQ_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence));
-                setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SMOOTHING_WINDOW_LEN_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len));
-                setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LIM_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.amp_lim));
-                setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LOW_LIM_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.amp_low_lim));
-                setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_VEC_TYPE_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type));
-                setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_THRESHOLD_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.vel_threshold));
-                setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SACCADE_DUR_MIN_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.saccade_dur_min));
-                setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FREQ_MAX_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.frequency_max));
-                setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FILTER_BANDPASS_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass));
-                myXMLwrite(analysis_params_xml_full_path, xml_dom);
-                
+            else                                               
                 analysis_go= true;                
                 close(MICROSACCADES_PARAMETERS_FIG);   
                 MICROSACCADES_PARAMETERS_FIG= [];
