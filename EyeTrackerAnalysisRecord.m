@@ -1181,8 +1181,8 @@ classdef EyeTrackerAnalysisRecord < handle
             X(isnan(X)) = interp1(find(~isnan(X)), X(~isnan(X)), find(isnan(X)), 'PCHIP');
         end
         
-        function res = doesTriggerMatchRegexp(trigger, regexp)
-            [match_start_idx, match_end_idx] = regexp(trigger, regexp, 'ONCE');
+        function res = doesTriggerMatchRegexp(trigger, regex)
+            [match_start_idx, match_end_idx] = regexp(trigger, regex, 'ONCE');
             res = ~isempty(match_start_idx) && match_start_idx == 1 && match_end_idx == numel(trigger);
         end
     end
