@@ -380,7 +380,7 @@ classdef Eyeballer < handle
         
         function [was_new_extraction_requested, new_extraction_params]= run(obj)              
             set(obj.fig, 'Visible', 'on');   
-            %a=b;
+%             a=b;
             waitfor(obj.fig);                      
             was_new_extraction_requested= obj.was_new_extraction_requested;                        
             if was_new_extraction_requested                
@@ -1196,10 +1196,12 @@ classdef Eyeballer < handle
                 user_response = questdlg('Current work was not saved. Save now ?', 'Confirm finish', 'Yes', 'No', 'Cancel', 'Cancel');
                 if strcmp(user_response, 'Yes')
                     obj.savePressedCallback();
-                elseif strcmp(user_response, 'No')
-                    close(obj.fig);
+                elseif strcmp(user_response, 'Cancel')
+                    return;
                 end 
-            end            
+            end   
+            
+            close(obj.fig);
         end
         
         function cancelPressedCallback(obj, ~, ~)

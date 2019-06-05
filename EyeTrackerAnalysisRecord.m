@@ -159,10 +159,10 @@ classdef EyeTrackerAnalysisRecord < handle
                     progress_screen.displayMessage(['session #', num2str(session_i), ': segmentizing data by condition ', trial_onset_triggers{trigger_i}]);                    
                     [start_times, end_times, curr_cond_field_name] = extractSegmentsTimesFromMessages(curr_session_eye_tracker_data_struct, trial_onset_triggers{trigger_i});
                     if isempty(start_times)
-                        [start_times, end_times, curr_cond_field_name] = extractSegmentsTimesFromInputs(curr_session_eye_tracker_data_struct, str2double(trial_onset_triggers{trigger_i}));
+                        [start_times, end_times, curr_cond_field_name] = extractSegmentsTimesFromInputs(curr_session_eye_tracker_data_struct, trial_onset_triggers{trigger_i});
                         if isempty(start_times)
-                            obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_start_times.(curr_cond_field_name)= [];
-                            obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_end_times.(curr_cond_field_name)= [];
+                            %obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_start_times.(curr_cond_field_name)= [];
+                            %obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_end_times.(curr_cond_field_name)= [];
                             progress_screen.displayMessage(['session #', num2str(session_i), ':Didn''t find trigger ', '''', trial_onset_triggers{trigger_i}, '''']);
                             progress_screen.addProgress(0.2*progress_contribution/(sessions_nr*triggers_nr));
                             continue;
@@ -264,8 +264,10 @@ classdef EyeTrackerAnalysisRecord < handle
                     end
                 end
                 
-                curr_cond_field_name(end) = '';
-                curr_cond_field_name = [EyeTrackerAnalysisRecord.CONDS_NAMES_PREFIX, curr_cond_field_name];
+                if ~isempty(curr_cond_field_name)
+                    curr_cond_field_name(end) = '';
+                    curr_cond_field_name = [EyeTrackerAnalysisRecord.CONDS_NAMES_PREFIX, curr_cond_field_name];
+                end
             end                                      
             
             function [start_times, end_times, curr_cond_field_name] = extractSegmentsTimesFromInputs(eye, trial_onset_trigger)
@@ -318,8 +320,10 @@ classdef EyeTrackerAnalysisRecord < handle
                     end
                 end
                 
-                curr_cond_field_name(end) = '';
-                curr_cond_field_name = [EyeTrackerAnalysisRecord.CONDS_NAMES_PREFIX, curr_cond_field_name];
+                if ~isempty(curr_cond_field_name)
+                    curr_cond_field_name(end) = '';
+                    curr_cond_field_name = [EyeTrackerAnalysisRecord.CONDS_NAMES_PREFIX, curr_cond_field_name];
+                end
             end                                
         end
         
