@@ -232,14 +232,14 @@ classdef EyeTrackerAnalysisRecord < handle
                     end
                     
                     msg_time = eye.messages(field_i).time;
-                    if search_phase == 1
-                        if ~isempty(regexp(msg, trial_onset_trigger, 'ONCE'))
+                    if search_phase == 1                        
+                        if EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, trial_onset_trigger)
                             potential_trial_start_time = msg_time;
                             potential_trial_start_msg = msg;
                             search_phase = 2;
                         end                        
-                    elseif (are_offset_triggers_included && (any(cellfun(@(str) ~isempty(regexp(msg, str, 'ONCE')), trial_offset_triggers)) || msg_time - potential_trial_start_time > trial_dur - baseline)) || ...
-                           (~are_offset_triggers_included && (any(cellfun(@(str) ~isempty(regexp(msg, str, 'ONCE')), trial_onset_triggers)) || msg_time - potential_trial_start_time > trial_dur - baseline))
+                    elseif (are_offset_triggers_included && (any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_offset_triggers)) || msg_time - potential_trial_start_time > trial_dur - baseline)) || ...
+                           (~are_offset_triggers_included && (any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_onset_triggers)) || msg_time - potential_trial_start_time > trial_dur - baseline))
                         search_phase = 1;
                         start_times= [start_times, potential_trial_start_time - baseline]; %#ok<AGROW>
                         if isempty(regexp(curr_cond_field_name, ['(^|_)', potential_trial_start_msg, '_'], 'ONCE'))
@@ -250,7 +250,7 @@ classdef EyeTrackerAnalysisRecord < handle
                         else
                              continue;
                         end
-                    elseif any(cellfun(@(str) ~isempty(regexp(msg, str, 'ONCE')), trial_rejection_triggers))
+                    elseif any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str)), trial_rejection_triggers)
                         search_phase = 1;
                     end
                     
@@ -288,14 +288,14 @@ classdef EyeTrackerAnalysisRecord < handle
                     end
                     
                     input_time = eye.inputs(field_i).time;
-                    if search_phase == 1
-                        if ~isempty(regexp(input, trial_onset_trigger, 'ONCE'))                            
+                    if search_phase == 1                        
+                        if EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(input, trial_onset_trigger)
                             potential_trial_start_time = input_time;
                             potential_trial_start_input = input;                            
                             search_phase = 2;
                         end
-                    elseif (are_offset_triggers_included && (any(cellfun(@(trigger) ~isempty(regexp(input, trigger, 'ONCE')) , trial_offset_triggers)) || input_time - potential_trial_start_time > trial_dur - baseline)) || ...
-                           (~are_offset_triggers_included && (any(cellfun(@(trigger) ~isempty(regexp(input, trigger, 'ONCE')) , trial_onset_triggers)) || input_time - potential_trial_start_time > trial_dur - baseline))                       
+                    elseif (are_offset_triggers_included && (any(cellfun(@(trigger) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(input, trigger), trial_offset_triggers)) || input_time - potential_trial_start_time > trial_dur - baseline)) || ...
+                           (~are_offset_triggers_included && (any(cellfun(@(trigger) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(input, trigger), trial_onset_triggers)) || input_time - potential_trial_start_time > trial_dur - baseline))                       
                         search_phase = 1;
                         start_times= [start_times, potential_trial_start_time - baseline]; %#ok<AGROW>
                         if isempty(regexp(curr_cond_field_name, ['(^|_)', potential_trial_start_input, '_'], 'ONCE'))
@@ -306,7 +306,7 @@ classdef EyeTrackerAnalysisRecord < handle
                         else
                              continue;
                         end
-                    elseif any(cellfun(@(str) ~isempty(regexp(input, str, 'ONCE')), trial_rejection_triggers))
+                    elseif any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(input, str), trial_rejection_triggers))
                         search_phase = 1;
                     end
                     
@@ -1179,6 +1179,11 @@ classdef EyeTrackerAnalysisRecord < handle
         
         function X = naninterp(X)                                         
             X(isnan(X)) = interp1(find(~isnan(X)), X(~isnan(X)), find(isnan(X)), 'PCHIP');
+        end
+        
+        function res = doesTriggerMatchRegexp(trigger, regexp)
+            [match_start_idx, match_end_idx] = regexp(trigger, regexp, 'ONCE');
+            res = ~isempty(match_start_idx) && match_start_idx == 1 && match_end_idx == numel(trigger);
         end
     end
     
