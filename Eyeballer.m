@@ -111,7 +111,7 @@ classdef Eyeballer < handle
                         curr_trial_saccades_nr= numel( eyeballing_altered_saccades_data_unshuffled(trial_i).onsets );
                         if curr_trial_saccades_nr > 0
                             eyeballing_altered_saccades_data_unshuffled(trial_i).user_codes= ...
-                                Eyeballer.ENUM_ALGORITHM_GENERATED_SACCADE_CODE*ones(1, curr_trial_saccades_nr);
+                                Eyeballer.ENUM_ALGORITHM_GENERATED_SACCADE_CODE*ones(curr_trial_saccades_nr, 1);
                         end
                     end
                 end
@@ -702,9 +702,9 @@ classdef Eyeballer < handle
                     obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(blinked_out_start_t:blinked_out_end_t) = -abs(obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(blinked_out_start_t:blinked_out_end_t));
                     curr_subject_trial_saccades_data = obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial);
                     blinked_out_saccades_logical_vec = curr_subject_trial_saccades_data.onsets < blinked_out_end_t & blinked_out_start_t < curr_subject_trial_saccades_data.offsets;
-                    saccades_user_codes = obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes'; 
+                    saccades_user_codes = obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes; 
                     obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes(blinked_out_saccades_logical_vec & (saccades_user_codes == obj.ENUM_ALGORITHM_GENERATED_SACCADE_CODE | saccades_user_codes == obj.ENUM_REJECTED_SACCADE_CODE))= obj.ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE;
-                    blinked_out_user_saccades_logical_vec = blinked_out_saccades_logical_vec & obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes' == obj.ENUM_USER_GENERATED_SACCADE_CODE;                    
+                    blinked_out_user_saccades_logical_vec = blinked_out_saccades_logical_vec & obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes == obj.ENUM_USER_GENERATED_SACCADE_CODE;                    
                     if any(blinked_out_user_saccades_logical_vec)
                         Eyeballer.clearSaccadePlots([obj.curr_trial_saccades_plots_hs{blinked_out_user_saccades_logical_vec}]);
                         if ~isempty(obj.curr_displayed_tooltip)
@@ -717,7 +717,7 @@ classdef Eyeballer < handle
                 else
                     obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(blinked_out_start_t:blinked_out_end_t) = abs(obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(blinked_out_start_t:blinked_out_end_t));
                     curr_subject_trial_saccades_data = obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial);
-                    obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes(blinked_out_start_t < curr_subject_trial_saccades_data.onsets & curr_subject_trial_saccades_data.offsets < blinked_out_end_t & curr_subject_trial_saccades_data.user_codes' == obj.ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE)= obj.ENUM_ALGORITHM_GENERATED_SACCADE_CODE;
+                    obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes(blinked_out_start_t < curr_subject_trial_saccades_data.onsets & curr_subject_trial_saccades_data.offsets < blinked_out_end_t & curr_subject_trial_saccades_data.user_codes == obj.ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE)= obj.ENUM_ALGORITHM_GENERATED_SACCADE_CODE;
                 end                
                 obj.is_blink_being_drawn_on_x_axes = false;
                 obj.plotCurrTrialSaccades(false);
@@ -762,9 +762,9 @@ classdef Eyeballer < handle
                     obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(blinked_out_start_t:blinked_out_end_t) = -abs(obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(blinked_out_start_t:blinked_out_end_t));
                     curr_subject_trial_saccades_data = obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial);                    
                     blinked_out_saccades_logical_vec = curr_subject_trial_saccades_data.onsets < blinked_out_end_t & blinked_out_start_t < curr_subject_trial_saccades_data.offsets;                    
-                    saccades_user_codes = obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes'; 
+                    saccades_user_codes = obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes; 
                     obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes(blinked_out_saccades_logical_vec & (saccades_user_codes == obj.ENUM_ALGORITHM_GENERATED_SACCADE_CODE | saccades_user_codes == obj.ENUM_REJECTED_SACCADE_CODE))= obj.ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE;
-                    blinked_out_user_saccades_logical_vec = blinked_out_saccades_logical_vec & obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes' == obj.ENUM_USER_GENERATED_SACCADE_CODE;                    
+                    blinked_out_user_saccades_logical_vec = blinked_out_saccades_logical_vec & obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes == obj.ENUM_USER_GENERATED_SACCADE_CODE;                    
                     if any(blinked_out_user_saccades_logical_vec)
                         Eyeballer.clearSaccadePlots([obj.curr_trial_saccades_plots_hs{blinked_out_user_saccades_logical_vec}]);
                         if ~isempty(obj.curr_displayed_tooltip)
@@ -777,7 +777,7 @@ classdef Eyeballer < handle
                 else
                     obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(blinked_out_start_t:blinked_out_end_t) = abs(obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(blinked_out_start_t:blinked_out_end_t));
                     curr_subject_trial_saccades_data = obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial);
-                    obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes(blinked_out_start_t < curr_subject_trial_saccades_data.onsets & curr_subject_trial_saccades_data.offsets < blinked_out_end_t & curr_subject_trial_saccades_data.user_codes' == obj.ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE)= obj.ENUM_ALGORITHM_GENERATED_SACCADE_CODE;
+                    obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes(blinked_out_start_t < curr_subject_trial_saccades_data.onsets & curr_subject_trial_saccades_data.offsets < blinked_out_end_t & curr_subject_trial_saccades_data.user_codes == obj.ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE)= obj.ENUM_ALGORITHM_GENERATED_SACCADE_CODE;
                 end
                 obj.is_blink_being_drawn_on_y_axes = false;
                 obj.plotCurrTrialSaccades(false);
@@ -831,7 +831,7 @@ classdef Eyeballer < handle
                 obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).peak_vels= ...
                     [obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).peak_vels; saccade_data.peak_vel];
                 obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes= ...
-                    [ obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes, Eyeballer.ENUM_USER_GENERATED_SACCADE_CODE];                                          
+                    [ obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes; Eyeballer.ENUM_USER_GENERATED_SACCADE_CODE];                                          
                                 
                 obj.curr_trial_saccades_plots_hs{end+1}= obj.plotSaccade(saccade_data.onset:saccade_data.offset, obj.USER_GENERATED_SACCADE_COLOR);       
                 obj.user_undo_stack= [obj.user_undo_stack, {[obj.ENUM_NO_SACCADE_CODE, obj.curr_subject, obj.curr_trial, ...
