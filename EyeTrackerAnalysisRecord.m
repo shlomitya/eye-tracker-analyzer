@@ -127,20 +127,20 @@ classdef EyeTrackerAnalysisRecord < handle
             end                         
         end                
                   
-        function was_previous_segmentization_loaded= segmentizeData(obj, progress_screen, progress_contribution, trial_onset_triggers, trial_offset_triggers, trial_rejection_triggers, baseline, post_offset_triggers_segment, trial_dur, blinks_delta)
-            segmentizations_nr= numel(obj.segmentization_vecs);            
+        function was_previous_segmentization_loaded = segmentizeData(obj, progress_screen, progress_contribution, trial_onset_triggers, trial_offset_triggers, trial_rejection_triggers, baseline, post_offset_triggers_segment, trial_dur, blinks_delta)
+            segmentizations_nr= numel(obj.segmentization_vecs);             
             for segmentization_i= 1:segmentizations_nr
                 if isempty( setxor(obj.segmentization_vecs_index{segmentization_i, 1}, trial_onset_triggers) ) && ...
                         obj.segmentization_vecs_index{segmentization_i, 2} == trial_dur && ...
                         obj.segmentization_vecs_index{segmentization_i, 3} == baseline && ...
                         obj.segmentization_vecs_index{segmentization_i, 4} == blinks_delta && ...
                         isempty( setxor(obj.segmentization_vecs_index{segmentization_i, 5}, trial_offset_triggers) ) && ...
-                        ( isempty(obj.segmentization_vecs_index{segmentization_i, 6}) && isempty(post_offset_triggers_segment) || ...
-                          ~isempty(obj.segmentization_vecs_index{segmentization_i, 6}) && ~isempty(post_offset_triggers_segment) && obj.segmentization_vecs_index{segmentization_i, 6} == post_offset_triggers_segment ) && ...
+                        ( (isempty(obj.segmentization_vecs_index{segmentization_i, 6}) && isempty(post_offset_triggers_segment) ) || ...
+                          (~isempty(obj.segmentization_vecs_index{segmentization_i, 6}) && ~isempty(post_offset_triggers_segment)) && obj.segmentization_vecs_index{segmentization_i, 6} == post_offset_triggers_segment ) && ...
                         isempty( setxor(obj.segmentization_vecs_index{segmentization_i, 7}, trial_rejection_triggers) )  
                       
                     obj.chosen_segmentization_i= segmentization_i;                    
-                    was_previous_segmentization_loaded= true;
+                    was_previous_segmentization_loaded= true;                                        
                     progress_screen.addProgress(progress_contribution);
                     return;
                 end
@@ -154,6 +154,8 @@ classdef EyeTrackerAnalysisRecord < handle
                 eyelink_based_blinks_vec = EyeTrackerAnalysisRecord.eyelinkBased_blinkdetection(curr_session_eye_tracker_data_struct, blinks_delta, progress_screen, 0.8*progress_contribution/sessions_nr); %0.4*progress_contribution/sessions_nr);
                 pupils_based_blinks_vec = EyeTrackerAnalysisRecord.pupilBased_blinkdetection_twoEyes(curr_session_eye_tracker_data_struct.gazeRight.pupil, curr_session_eye_tracker_data_struct.gazeLeft.pupil, obj.sampling_rate, obj.PUPILS_BASED_BLINKS_DETECTION_STD, obj.PUPILS_BASED_BLINKS_DETECTION_CONSECUTIVE_SAMPLES, obj.PUPILS_BASED_BLINKS_DETECTION_TOLERANCE, blinks_delta, obj.PUPILS_BASED_BLINKS_DETECTION_MAX_SEG_TIME, progress_screen, 0); %0.4*progress_contribution/sessions_nr);
                 obj.segmentization_vecs{segmentizations_nr+1}(session_i).blinks= eyelink_based_blinks_vec | pupils_based_blinks_vec;                
+                obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_start_times = [];
+                obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_end_times = [];
                 triggers_nr= numel(trial_onset_triggers);                
                 for trigger_i= 1:triggers_nr                    
                     progress_screen.displayMessage(['session #', num2str(session_i), ': segmentizing data by condition ', trial_onset_triggers{trigger_i}]);                    
@@ -166,8 +168,8 @@ classdef EyeTrackerAnalysisRecord < handle
                             progress_screen.displayMessage(['session #', num2str(session_i), ':Didn''t find trigger ', '''', trial_onset_triggers{trigger_i}, '''']);
                             progress_screen.addProgress(0.2*progress_contribution/(sessions_nr*triggers_nr));
                             continue;
-                        end                 
-                    end                    
+                        end                                     
+                    end
                                                                                   
                     %assign trials timings 
                     trials_nr= numel(start_times);
@@ -328,13 +330,20 @@ classdef EyeTrackerAnalysisRecord < handle
         end
         
         function segmentized_data= getSegmentizedData(obj, filter_bandpass)
+            segmentized_data = [];
             if obj.chosen_segmentization_i==0
                 error('EyeTrackerAnalysisRecord:noSegmentizationChosen', 'must call segmentizeData() prior to getSegmentizedData() so segmentized data would be chosen/created');                
             end
-                        
+            
             sessions_nr= numel(obj.segmentization_vecs{obj.chosen_segmentization_i});
             segmentized_data_unmerged= cell(1,sessions_nr);
-            for session_i= 1:sessions_nr                
+            were_triggers_ever_found = false;
+            for session_i= 1:sessions_nr  
+                if isempty(obj.segmentization_vecs{obj.chosen_segmentization_i}(session_i).trials_start_times)
+                    continue;
+                else
+                    were_triggers_ever_found = true;
+                end
                 curr_session_segmentization_vecs_struct= obj.segmentization_vecs{obj.chosen_segmentization_i}(session_i);
                 curr_session_eye_tracker_data_struct= EyeTrackerAnalysisRecord.filterEyeData(obj.eye_tracker_data_structs{session_i}, filter_bandpass, obj.sampling_rate);
                 conds_names= fieldnames(curr_session_segmentization_vecs_struct.trials_start_times);                
@@ -387,22 +396,24 @@ classdef EyeTrackerAnalysisRecord < handle
                 end
             end
             
-            %merge sessions' structs                        
-            if sessions_nr>1                
-                conds_names= fieldnames(obj.segmentization_vecs{obj.chosen_segmentization_i}(1).trials_start_times);            
-                for cond_i= 1:numel(conds_names)     
-                    curr_merged_cond_name= conds_names{cond_i};
-                    segmentized_data.(curr_merged_cond_name)= [];
-                    for merged_session_i= 1:sessions_nr                                                                                                           
-                        if ~isempty(segmentized_data_unmerged{merged_session_i}.(curr_merged_cond_name))
-                            segmentized_data.(curr_merged_cond_name)= ...
-                                [segmentized_data.(curr_merged_cond_name), segmentized_data_unmerged{merged_session_i}.(curr_merged_cond_name)];                        
+            %merge sessions' structs  
+            if were_triggers_ever_found
+                if sessions_nr > 1
+                    conds_names= fieldnames(obj.segmentization_vecs{obj.chosen_segmentization_i}(1).trials_start_times);            
+                    for cond_i= 1:numel(conds_names)     
+                        curr_merged_cond_name= conds_names{cond_i};
+                        segmentized_data.(curr_merged_cond_name)= [];
+                        for merged_session_i= 1:sessions_nr                                                                                                           
+                            if ~isempty(segmentized_data_unmerged{merged_session_i}.(curr_merged_cond_name))
+                                segmentized_data.(curr_merged_cond_name)= ...
+                                    [segmentized_data.(curr_merged_cond_name), segmentized_data_unmerged{merged_session_i}.(curr_merged_cond_name)];                        
+                            end
                         end
-                    end
-                end                                                  
-            else
-                segmentized_data= segmentized_data_unmerged{1};                
-            end                              
+                    end                                                  
+                else
+                    segmentized_data= segmentized_data_unmerged{1};                
+                end               
+            end
         end
                 
         function registerSaccadesAnalysis(obj, saccades_analysis_struct)

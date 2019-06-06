@@ -84,6 +84,10 @@ classdef SaccadesExtractor < handle
                     end
                     
                     curr_subject_data_struct= subjects_data_structs{subject_i};
+                    if isempty(curr_subject_data_struct)
+                        progress_screen.addProgress(progress_contribution/obj.subjects_nr);
+                        continue;
+                    end
                     conds_names= fieldnames(curr_subject_data_struct);                    
                     for cond_i= 1:numel(conds_names)                  
                         curr_cond_name= conds_names{cond_i};
@@ -391,7 +395,10 @@ classdef SaccadesExtractor < handle
             
             %add a field for the saccades' onsets relative to the start
             %of the session.
-            for subject_i= 1:obj.subjects_nr                            
+            for subject_i= 1:obj.subjects_nr   
+                if isempty(saccades_struct{subject_i})
+                    continue;
+                end
                 conds_names= fieldnames(saccades_struct{subject_i});
                 for cond_i= 1:numel(conds_names)
                     curr_cond_name= conds_names{cond_i};

@@ -18,15 +18,32 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     
     screen_size= screen_size(1,:);
     figure_positions= round([0.1*screen_size(3), 0.1*screen_size(4), 0.8*screen_size(3), 0.8*screen_size(4)]);
-    conds_names= fieldnames(analysis_struct{1});
-    conds_nr= numel(conds_names);
+    
+    subjects_figs = [];
+    statistisized_figs = [];
+    analysis_struct_with_results = [];
+    subjects_nr= numel(analysis_struct);
+    were_ever_triggers_found_on_any_subject = false;
+    for subject_i= 1:subjects_nr      
+        if ~isempty(analysis_struct{subject_i})
+            conds_names= fieldnames(analysis_struct{subject_i});
+            conds_nr= numel(conds_names);
+            were_ever_triggers_found_on_any_subject = true;
+            break;
+        end
+    end
+    
+    if ~were_ever_triggers_found_on_any_subject
+        return;
+    end
+    
     if exe_plot_curves
         str_for_visible_prop= 'on';
     else
         str_for_visible_prop= 'off';
     end
     
-    subjects_nr= numel(analysis_struct);
+    
     subjects_figs= cell(2,2*sum(analyses),subjects_nr);
     analysis_struct_with_results.saccades_data= analysis_struct;
     analysis_struct_with_results.results_per_subject= cell(1, subjects_nr);
@@ -39,7 +56,10 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
         original_microsaccadic_rate = cell(1, conds_nr);
         smoothed_microsaccadic_rate = cell(1, conds_nr);
         for cond_i= 1:conds_nr                        
-            for subject_i = 1:subjects_nr                
+            for subject_i = 1:subjects_nr 
+                if isempty(analysis_struct{subject_i}) 
+                    continue;
+                end
                 if max_trial_duration_per_cond(cond_i) < size(analysis_struct{subject_i}.(conds_names{cond_i}).logical_onsets_mat, 2);
                    max_trial_duration_per_cond(cond_i) = size(analysis_struct{subject_i}.(conds_names{cond_i}).logical_onsets_mat, 2);
                 end
@@ -93,6 +113,11 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     % amplitude
     if analyses(2)
         for subject_i= 1:subjects_nr
+            if isempty(analysis_struct{subject_i})
+                progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
+                continue;
+            end
+            
             data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
             curr_created_plots_nr= curr_created_plots_nr + 1;
             subjects_figs{1,curr_created_plots_nr,subject_i}= ['amplitudes_by_condition_',num2str(subject_i)];
@@ -138,6 +163,10 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     % directions
     if analyses(3)
         for subject_i= 1:subjects_nr
+            if isempty(analysis_struct{subject_i})
+                progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
+                continue;
+            end
             data_filled_conds_logical_vec= logical(true(numel(conds_names),1));        
             curr_created_plots_nr= curr_created_plots_nr + 1;
             subjects_figs{1,curr_created_plots_nr,subject_i}= ['directions_by_condition_',num2str(subject_i)];
@@ -179,6 +208,10 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     % main sequence
     if analyses(4)
         for subject_i= 1:subjects_nr
+            if isempty(analysis_struct{subject_i})
+                progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
+                continue;
+            end
             data_filled_conds_logical_vec= logical(true(numel(conds_names),1));        
             curr_created_plots_nr= curr_created_plots_nr + 1;
             subjects_figs{1,curr_created_plots_nr,subject_i}= ['main_sequence_by_condition_',num2str(subject_i)];
@@ -257,6 +290,9 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             grand_amplitudes{cond_i}= [];
             grand_directions{cond_i}= [];
             for subject_i= 1:subjects_nr
+                if isempty(analysis_struct{subject_i})                    
+                    continue;
+                end
                 grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.(conds_names{cond_i}).amplitudes{:}];
                 grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.(conds_names{cond_i}).directions{:}];
             end
@@ -300,6 +336,9 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
         for cond_i=1:conds_nr
             grand_directions{cond_i}= [];
             for subject_i= 1:subjects_nr
+                if isempty(analysis_struct{subject_i})                
+                    continue;
+                end
                 grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.(conds_names{cond_i}).directions{:}];
             end
         end
@@ -344,6 +383,9 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             grand_velocities{cond_i}= [];
             grand_amplitudes{cond_i} = [];
             for subject_i= 1:subjects_nr
+                if isempty(analysis_struct{subject_i})                
+                    continue;
+                end
                 grand_velocities{cond_i}= [grand_velocities{cond_i}, analysis_struct{subject_i}.(conds_names{cond_i}).velocities{:}];
                 grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.(conds_names{cond_i}).amplitudes{:}];
             end

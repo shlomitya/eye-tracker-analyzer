@@ -971,15 +971,26 @@ set(gui, 'Visible', 'on');
             set(post_offset_trigger_segment_edit_uicontrol, 'Enable', 'off');
         end
         set(trials_rejection_triggers_display, 'string', getXmlNodeValuesVector(xml_dom, TRIALS_REJECTION_TRIGGERS_XML_NODE_NAME));            
-        set(pre_onset_trigger_segment_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, PRE_ONSET_TRIGGER_SEGMENT_XML_NODE_NAME));            
+        set(pre_onset_trigger_segment_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, PRE_ONSET_TRIGGER_SEGMENT_XML_NODE_NAME));
         BASELINE= str2double(get(pre_onset_trigger_segment_edit_uicontrol, 'string'));           
+        if isnan(BASELINE)
+            BASELINE = [];
+        end
         set(post_offset_trigger_segment_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, POST_OFFSET_TRIGGER_SEGMENT_XML_NODE_NAME));
         POST_OFFSET_TRIGGERS_SEGMENT= str2double(get(post_offset_trigger_segment_edit_uicontrol, 'string'));                        
+        if isnan(POST_OFFSET_TRIGGERS_SEGMENT)
+            POST_OFFSET_TRIGGERS_SEGMENT = [];
+        end
         set(analysis_segment_dur_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, ANALYSIS_SEGMENT_DUR_XML_NODE_NAME));
         TRIAL_DURATION= str2double(get(analysis_segment_dur_edit_uicontrol, 'string'));
+        if isnan(TRIAL_DURATION)
+            TRIAL_DURATION = [];
+        end
         set(blinks_delta_edit_uicontrol, 'string', getXmlNodeValue(xml_dom, BLINKS_DELTA_XML_NODE_NAME));
         BLINKS_DELTA= str2double(get(blinks_delta_edit_uicontrol, 'string'));                       
-                
+        if isnan(BLINKS_DELTA)
+            BLINKS_DELTA = [];
+        end    
         if ~isempty(xml_dom.getElementsByTagName(MICROSACCADES_ANALYSIS_PARAMS_NODE_NAME).item(0))                            
             MICROSACCADES_ANALYSIS_PARAMETERS.rate = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_RATE_XML_NODE_NAME));            
             MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_AMPS_XML_NODE_NAME));
@@ -1042,7 +1053,7 @@ set(gui, 'Visible', 'on');
         stages_names= {'loading data structures', progress_screen_message_during_analysis, 'saving figures'};
         progress_screen= DualBarProgressScreen('Analysis Progress', [0.8, 0.8, 0.8], 0.4, 0.4, progress_amounts_of_stages, stages_names);                         
         %try
-            etas= loadEtasSegmentized(progress_screen);            
+            etas = loadEtasSegmentized(progress_screen);             
             [subjects_figs, statistisized_figs, analysis_struct]= analysis_func(etas, progress_screen);
             
             if isempty(analysis_struct)
@@ -1270,7 +1281,21 @@ set(gui, 'Visible', 'on');
             ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass, ...
             PERFORM_EYEBALLING, EYEBALLER_DISPLAY_RANGE, BASELINE, ...
             get(load_etas_for_analysis_display_pane, 'string'), 0.2, progress_screen);    
-                
+               
+        was_trigger_ever_found_for_any_subject = false;
+        for subject_idx = 1:numel(analysis_structs)
+            if ~isempty(analysis_structs{subject_idx})
+                was_trigger_ever_found_for_any_subject = true;
+                break;
+            end
+        end
+        if ~was_trigger_ever_found_for_any_subject
+            subjects_figs = [];
+            statistisized_figs = [];
+            analysis_struct_with_results = [];
+            return;
+        end
+        
         progress_screen.giveFocus();  
         progress_screen.displayMessage('saving updated eeg files');
         saveUpdatedEegStructs(0.6, progress_screen);
@@ -1288,6 +1313,10 @@ set(gui, 'Visible', 'on');
                     continue;
                 end
                 segmentized_data_struct= subject_eta.getSegmentizedData(ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass); 
+                if isempty(segmentized_data_struct)
+                    progress_screen.addProgress(progress_contribution/subjects_nr);
+                    continue;
+                end
                 conds_names= fieldnames(segmentized_data_struct);
                 EEG= subject_eta.getEyeTrackerDataStructs();
                 EEG= EEG{1};
@@ -1344,8 +1373,11 @@ set(gui, 'Visible', 'on');
             reformated_analysis_structs= cell(1, subjects_nr);
             for subject_i= 1:subjects_nr
                 curr_subject_conds_names= fieldnames(analysis_structs{subject_i});
+                if isempty(analysis_structs{subject_i})
+                    continue;
+                end
                 for cond_i= 1:numel(curr_subject_conds_names)
-                    curr_cond_trials_nr= numel( analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}) );
+                    curr_cond_trials_nr= numel(analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}));
                     if ~isempty(eyeballing_stats)
                         reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).eyeballing_stats= ...
                             eyeballing_stats{subject_i}.(curr_subject_conds_names{cond_i});
@@ -1756,6 +1788,10 @@ set(gui, 'Visible', 'on');
         analysis_struct = cell(1,subjects_nr);
         for subject_i = 1:subjects_nr
             eta = subjects_etas{subject_i}.getSegmentizedData(ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass);
+            if isempty(eta)
+                progress_screen.addProgress(0.8/subjects_nr);
+                continue;
+            end
             conds = fieldnames(eta);
             conds_nr = numel(conds);
             analysis_struct{subject_i}.total.fixations_count = 0;
@@ -1812,10 +1848,7 @@ set(gui, 'Visible', 'on');
                 end
 %                 savefig(f, fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, ['sub',num2str(subject_i),cond]));    
 %                 set(f,'visible','off');                                
-            end    
-            if conds_nr == 0
-                progress_screen.addProgress(0.8/subjects_nr);
-            end
+            end                
         end
         
         function full_files_names = extractFilesNamesFromFolder(path, files_ext)
@@ -1831,87 +1864,105 @@ set(gui, 'Visible', 'on');
     function [subjects_figs, statistisized_figs, analysis_struct]= analyzePupilsSz(subjects_etas, progress_screen)  
         %===============%
         %=== analyze ===%
-        %===============%                                     
-        for subject_i= 1:subjects_nr
-            curr_subject_data_struct= subjects_etas{subject_i}.getSegmentizedData(ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass);
-            if subject_i == 1
-                conds_names = fieldnames(curr_subject_data_struct);
-                conds_nr = numel(conds_names);
-            end            
-            for cond_i= 1:conds_nr
-                curr_cond= conds_names{cond_i};                                                                
-                curr_cond_trials_nr= numel(curr_subject_data_struct.(curr_cond));                            
-                analysis_struct.single_subject_analyses{subject_i}.(curr_cond).right_eye = NaN(curr_cond_trials_nr, TRIAL_DURATION);
-                nalysis_struct.single_subject_analyses{subject_i}.(curr_cond).left_eye = NaN(curr_cond_trials_nr, TRIAL_DURATION);
-                for trial_i= 1:curr_cond_trials_nr
-                    if isempty(curr_subject_data_struct.(curr_cond)(trial_i).gazeRight)                
-                        continue;
-                    end
-                    analysis_struct.single_subject_analyses{subject_i}.(curr_cond).right_eye(trial_i, 1:curr_subject_data_struct.(curr_cond)(trial_i).samples_nr) = ...
-                        curr_subject_data_struct.(curr_cond)(trial_i).gazeRight.pupil;
-                    analysis_struct.single_subject_analyses{subject_i}.(curr_cond).left_eye(trial_i, 1:curr_subject_data_struct.(curr_cond)(trial_i).samples_nr) = ...
-                        curr_subject_data_struct.(curr_cond)(trial_i).gazeLeft.pupil;
-                    
-                    % baseline_period_mean_pupil= mean(mean([curr_subject_data_struct.(curr_cond)(trial_i).gazeRight.pupil(1:BASELINE);...
-                    %                                       curr_subject_data_struct.(curr_cond)(trial_i).gazeLeft.pupil(1:BASELINE)],1));
-                    % analysis_period_max_pupil= max(mean([curr_subject_data_struct.(curr_cond)(trial_i).gazeRight.pupil((BASELINE+1):TRIAL_DURATION);
-                    %                                      curr_subject_data_struct.(curr_cond)(trial_i).gazeLeft.pupil((BASELINE+1):TRIAL_DURATION)],1));                    
-                    % analysis_struct.single_subject_analyses{subject_i}.(curr_cond).ratios(trial_i, :)= pupils_szs(trial_i, :)/baseline_period_mean_pupil;                    
-                    
-                end
-               
-                progress_screen.addProgress(0.8/(subjects_nr*conds_nr));
-            end                        
-        end
-        
+        %===============%         
         subjects_figs = [];
         statistisized_figs = [];
-        progress_screen.addProgress(0.2);
-%         for cond_i = 1:conds_nr
-%             analysis_struct.grand_analysis.(conds_names{cond_i}).pupils_szs = [];
-%             for subject_i = 1:subjects_nr
-%                 analysis_struct.grand_analysis.(conds_names{cond_i}).pupils_szs = ...
-%                     [analysis_struct.grand_analysis.(conds_names{cond_i}).pupils_szs; analysis_struct.single_subject_analyses{subject_i}.(curr_cond).pupils_szs];
-%             end
-%             analysis_struct.grand_analysis.(conds_names{cond_i}).pupils_szs = nanmean(analysis_struct.grand_analysis.(conds_names{cond_i}).pupils_szs, 1);
-%         end
-%         
-%         %======================%
-%         %=== generate plots ===%
-%         %======================%
-%         subjects_figs= cell(2,1,subjects_nr);
-%         if EXE_PLOT_CURVES
-%             figure_visible_prop= 'on';
-%         else
-%             figure_visible_prop= 'off';
-%         end
-%         for subject_i= 1:subjects_nr                        
-%             subjects_figs{1,1,subject_i}= ['pupils_dilation_time_line',num2str(subject_i)];
-%             subjects_figs{2,1,subject_i}= figure('name','Pupils Dilation Time Line', 'NumberTitle', 'off', 'visible', figure_visible_prop);            
-%             for cond_i= 1:conds_nr
-%                 plot(-BASELINE + 1 : TRIAL_DURATION - BASELINE, analysis_struct.single_subject_analyses{subject_i}.(conds_names{cond_i}).ratios);
-%                 set(gca, 'XLim', [-BASELINE, TRIAL_DURATION - BASELINE]);
-%                 xlabel('Time [ms]');
-%                 ylabel('Pupils Dilation [?]');
-%             end
-%             legend(TRIAL_ONSET_TRIGGERS{:});
-%             progress_screen.addProgress(0.2/subjects_nr);
-%         end
-%                         
-%         statistisized_figs{1,1}= 'grand_average - pupils_dilation_time_line';
-%         statistisized_figs{2,1}= figure('name','grand average: Pupils Dilation Time Line', 'NumberTitle', 'off', 'visible', figure_visible_prop);        
-%         for cond_i= 1:conds_nr
-%             plot(-BASELINE + 1 : TRIAL_DURATION - BASELINE, analysis_struct.grand_analysis.(conds_names{cond_i}).pupils_szs);
-%             set(gca, 'XLim', [-BASELINE, TRIAL_DURATION-BASELINE]);
-%             xlabel('Time [ms]');
-%             ylabel('Pupils Dilation [?]');        
-%         end
-%         legend(TRIAL_ONSET_TRIGGERS{:});
+        
+        were_triggers_ever_found_on_any_subject = false;
+        for subject_i = 1:subjects_nr
+            curr_subject_data_struct= subjects_etas{subject_i}.getSegmentizedData(ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass);
+            if ~isempty(curr_subject_data_struct)                
+                conds_names = fieldnames(curr_subject_data_struct);                
+                conds_nr = numel(conds_names);
+                were_triggers_ever_found_on_any_subject = true;
+                break;
+            end           
+        end
+        
+        if were_triggers_ever_found_on_any_subject
+            for subject_i= 1:subjects_nr
+                curr_subject_data_struct= subjects_etas{subject_i}.getSegmentizedData(ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass);
+                if isempty(curr_subject_data_struct)
+                    progress_screen.addProgress(0.8/subjects_nr);
+                    continue;
+                end                
+                
+                for cond_i= 1:conds_nr
+                    curr_cond= conds_names{cond_i};                                                                
+                    curr_cond_trials_nr= numel(curr_subject_data_struct.(curr_cond));                            
+                    analysis_struct.single_subject_analyses{subject_i}.(curr_cond).right_eye = NaN(curr_cond_trials_nr, TRIAL_DURATION);
+                    nalysis_struct.single_subject_analyses{subject_i}.(curr_cond).left_eye = NaN(curr_cond_trials_nr, TRIAL_DURATION);
+                    for trial_i= 1:curr_cond_trials_nr
+                        if isempty(curr_subject_data_struct.(curr_cond)(trial_i).gazeRight)                
+                            continue;
+                        end
+                        analysis_struct.single_subject_analyses{subject_i}.(curr_cond).right_eye(trial_i, 1:curr_subject_data_struct.(curr_cond)(trial_i).samples_nr) = ...
+                            curr_subject_data_struct.(curr_cond)(trial_i).gazeRight.pupil;
+                        analysis_struct.single_subject_analyses{subject_i}.(curr_cond).left_eye(trial_i, 1:curr_subject_data_struct.(curr_cond)(trial_i).samples_nr) = ...
+                            curr_subject_data_struct.(curr_cond)(trial_i).gazeLeft.pupil;
+
+                        % baseline_period_mean_pupil= mean(mean([curr_subject_data_struct.(curr_cond)(trial_i).gazeRight.pupil(1:BASELINE);...
+                        %                                       curr_subject_data_struct.(curr_cond)(trial_i).gazeLeft.pupil(1:BASELINE)],1));
+                        % analysis_period_max_pupil= max(mean([curr_subject_data_struct.(curr_cond)(trial_i).gazeRight.pupil((BASELINE+1):TRIAL_DURATION);
+                        %                                      curr_subject_data_struct.(curr_cond)(trial_i).gazeLeft.pupil((BASELINE+1):TRIAL_DURATION)],1));                    
+                        % analysis_struct.single_subject_analyses{subject_i}.(curr_cond).ratios(trial_i, :)= pupils_szs(trial_i, :)/baseline_period_mean_pupil;                    
+
+                    end
+
+                    progress_screen.addProgress(0.8/(subjects_nr*conds_nr));
+                end                        
+            end
+            
+            progress_screen.addProgress(0.2);
+    %         for cond_i = 1:conds_nr
+    %             analysis_struct.grand_analysis.(conds_names{cond_i}).pupils_szs = [];
+    %             for subject_i = 1:subjects_nr
+    %                 analysis_struct.grand_analysis.(conds_names{cond_i}).pupils_szs = ...
+    %                     [analysis_struct.grand_analysis.(conds_names{cond_i}).pupils_szs; analysis_struct.single_subject_analyses{subject_i}.(curr_cond).pupils_szs];
+    %             end
+    %             analysis_struct.grand_analysis.(conds_names{cond_i}).pupils_szs = nanmean(analysis_struct.grand_analysis.(conds_names{cond_i}).pupils_szs, 1);
+    %         end
+    %         
+    %         %======================%
+    %         %=== generate plots ===%
+    %         %======================%
+    %         subjects_figs= cell(2,1,subjects_nr);
+    %         if EXE_PLOT_CURVES
+    %             figure_visible_prop= 'on';
+    %         else
+    %             figure_visible_prop= 'off';
+    %         end
+    %         for subject_i= 1:subjects_nr                        
+    %             subjects_figs{1,1,subject_i}= ['pupils_dilation_time_line',num2str(subject_i)];
+    %             subjects_figs{2,1,subject_i}= figure('name','Pupils Dilation Time Line', 'NumberTitle', 'off', 'visible', figure_visible_prop);            
+    %             for cond_i= 1:conds_nr
+    %                 plot(-BASELINE + 1 : TRIAL_DURATION - BASELINE, analysis_struct.single_subject_analyses{subject_i}.(conds_names{cond_i}).ratios);
+    %                 set(gca, 'XLim', [-BASELINE, TRIAL_DURATION - BASELINE]);
+    %                 xlabel('Time [ms]');
+    %                 ylabel('Pupils Dilation [?]');
+    %             end
+    %             legend(TRIAL_ONSET_TRIGGERS{:});
+    %             progress_screen.addProgress(0.2/subjects_nr);
+    %         end
+    %                         
+    %         statistisized_figs{1,1}= 'grand_average - pupils_dilation_time_line';
+    %         statistisized_figs{2,1}= figure('name','grand average: Pupils Dilation Time Line', 'NumberTitle', 'off', 'visible', figure_visible_prop);        
+    %         for cond_i= 1:conds_nr
+    %             plot(-BASELINE + 1 : TRIAL_DURATION - BASELINE, analysis_struct.grand_analysis.(conds_names{cond_i}).pupils_szs);
+    %             set(gca, 'XLim', [-BASELINE, TRIAL_DURATION-BASELINE]);
+    %             xlabel('Time [ms]');
+    %             ylabel('Pupils Dilation [?]');        
+    %         end
+    %         legend(TRIAL_ONSET_TRIGGERS{:});
+        else
+            progress_screen.addProgress(1.0);
+        end
     end
 
     function [subjects_figs, statistisized_figs, analysis_struct]= analyzeBlinks(subjects_etas, progress_screen)
         subjects_figs= [];
-        statistisized_figs= [];                    
+        statistisized_figs= [];   
+        
         blinks_analysis_subjects_nr= numel(subjects_etas);         
         analysis_struct= cell(1, blinks_analysis_subjects_nr);
         progress_screen.displayMessage('analyzing blinks');
@@ -1943,12 +1994,12 @@ set(gui, 'Visible', 'on');
     %TODO: check file existance    
     function etas= loadEtasSegmentized(progress_screen)     
         etas= cell(1,subjects_nr); 
-        etas_files_list= get(load_etas_for_analysis_display_pane, 'string');  
+        etas_files_list= get(load_etas_for_analysis_display_pane, 'string');          
         for subject_i= 1:subjects_nr                                     
             progress_screen.displayMessage(['loading subject #', num2str(subject_i), ' .eta file']);                                        
             eta= EyeTrackerAnalysisRecord.load(etas_files_list{subject_i});          
             progress_screen.addProgress(0.5/subjects_nr);
-            was_previous_segmentation_loaded= eta.segmentizeData(progress_screen, 0.4/subjects_nr, TRIAL_ONSET_TRIGGERS, TRIAL_OFFSET_TRIGGERS, TRIAL_REJECTION_TRIGGERS, BASELINE, POST_OFFSET_TRIGGERS_SEGMENT, TRIAL_DURATION, BLINKS_DELTA);
+            was_previous_segmentation_loaded= eta.segmentizeData(progress_screen, 0.4/subjects_nr, TRIAL_ONSET_TRIGGERS, TRIAL_OFFSET_TRIGGERS, TRIAL_REJECTION_TRIGGERS, BASELINE, POST_OFFSET_TRIGGERS_SEGMENT, TRIAL_DURATION, BLINKS_DELTA);            
             if was_previous_segmentation_loaded
                 progress_screen.displayMessage(['previous segmentation loaded for subject #', num2str(subject_i)]);
             else 
