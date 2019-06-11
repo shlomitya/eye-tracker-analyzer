@@ -252,7 +252,7 @@ classdef EyeTrackerAnalysisRecord < handle
                         else
                              continue;
                         end
-                    elseif any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str)), trial_rejection_triggers)
+                    elseif any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_rejection_triggers))
                         search_phase = 1;
                     end
                     
