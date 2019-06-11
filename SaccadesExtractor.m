@@ -345,8 +345,16 @@ classdef SaccadesExtractor < handle
                     
                     progress_screen.addProgress(progress_contribution/obj.subjects_nr);
                 end                                                                                                
-                                                                            
-                if perform_eyeballing   
+                     
+                was_any_trigger_ever_found = false;
+                for subject_i = 1:obj.subjects_nr
+                    if ~isempty(saccades_struct{subject_i})
+                        was_any_trigger_ever_found = true;
+                        break;
+                    end
+                end
+
+                if perform_eyeballing && was_any_trigger_ever_found    
                     manual_saccade_search_params.manual_saccade_search_func = @SaccadesExtractor.findSaccadeForcefullyOnDefinedTimesByEngbert;
                     manual_saccade_search_params.manual_saccade_search_func_input = manual_saccades_search_func_params_for_eyeballer;
                     manual_saccade_search_params.saccades_detecetion_algorithm_params.amp_lim = curr_requested_amp_lim;
