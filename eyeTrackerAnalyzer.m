@@ -1257,7 +1257,7 @@ set(gui, 'Visible', 'on');
     
     function clearFileNameFromListBox(listbox)
         listbox_string= get(listbox,'string');
-        if numel(listbox_string)==0
+        if numel(listbox_string)==0  
             return;        
         else
             listbox_string(get(listbox,'value'))= [];
