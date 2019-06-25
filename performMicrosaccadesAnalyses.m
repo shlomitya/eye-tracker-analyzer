@@ -25,8 +25,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     subjects_nr= numel(analysis_struct);
     were_ever_triggers_found_on_any_subject = false;
     for subject_i= 1:subjects_nr      
-        if ~isempty(analysis_struct{subject_i})
-            conds_names= fieldnames(analysis_struct{subject_i});
+        if ~isempty(analysis_struct{subject_i}.saccades)
+            conds_names= fieldnames(analysis_struct{subject_i}.saccades);
             conds_nr= numel(conds_names);
             were_ever_triggers_found_on_any_subject = true;
             break;
@@ -45,7 +45,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     
     
     subjects_figs= cell(2,2*sum(analyses),subjects_nr);
-    analysis_struct_with_results.saccades_data= analysis_struct;
+    analysis_struct_with_results.eye_movements_data= analysis_struct;
     analysis_struct_with_results.results_per_subject= cell(1, subjects_nr);
     analysis_struct_with_results.results_grand_total= [];
     curr_created_plots_nr= 0;
@@ -57,11 +57,11 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
         smoothed_microsaccadic_rate = cell(1, conds_nr);
         for cond_i= 1:conds_nr                        
             for subject_i = 1:subjects_nr 
-                if isempty(analysis_struct{subject_i}) 
+                if isempty(analysis_struct{subject_i}.saccades) 
                     continue;
                 end
-                if max_trial_duration_per_cond(cond_i) < size(analysis_struct{subject_i}.(conds_names{cond_i}).logical_onsets_mat, 2);
-                   max_trial_duration_per_cond(cond_i) = size(analysis_struct{subject_i}.(conds_names{cond_i}).logical_onsets_mat, 2);
+                if max_trial_duration_per_cond(cond_i) < size(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).logical_onsets_mat, 2);
+                   max_trial_duration_per_cond(cond_i) = size(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).logical_onsets_mat, 2);
                 end
             end
             original_microsaccadic_rate{cond_i} = NaN(subjects_nr, max_trial_duration_per_cond(cond_i));
@@ -80,7 +80,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             smoothing_edge_right= ceil(smoothing_window_len/2);
             for cond_i= 1:conds_nr
                 max_trial_duration = max_trial_duration_per_cond(cond_i);
-                original_microsaccadic_rate{cond_i}(subject_i, 1:size(analysis_struct{subject_i}.(conds_names{cond_i}).logical_onsets_mat, 2)) = nanmean(analysis_struct{subject_i}.(conds_names{cond_i}).logical_onsets_mat, 1);
+                original_microsaccadic_rate{cond_i}(subject_i, 1:size(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).logical_onsets_mat, 2)) = nanmean(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).logical_onsets_mat, 1);
                 smoothed_microsaccadic_rate_with_tails = smoothy( original_microsaccadic_rate{cond_i}(subject_i, 1:max_trial_duration), smoothing_window_len, progress_screen, 0.9*progress_contribution/(conds_nr*subjects_nr) );
                 smoothed_microsaccadic_rate{cond_i}(subject_i, :) = smoothed_microsaccadic_rate_with_tails((smoothing_edge_left + 1):(max_trial_duration - smoothing_edge_right));
             end
@@ -90,7 +90,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             for cond_i= 1:conds_nr                
                 plot(((smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right)) - baseline, ...
                        smoothed_microsaccadic_rate{cond_i}(subject_i,:), 'color', CURVES_COLORS(cond_i,:));
-                analysis_struct_with_results.results_per_subject{subject_i}.saccadic_rate.(conds_names{cond_i})= smoothed_microsaccadic_rate{cond_i}(subject_i,:); 
+                analysis_struct_with_results.results_per_subject{subject_i}.saccades_analysis.saccadic_rate.(conds_names{cond_i})= smoothed_microsaccadic_rate{cond_i}(subject_i,:); 
                 hold('on');
             end
             legend(conds_names);                        
@@ -101,7 +101,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
 %             subjects_figs{1,curr_created_plots_nr,subject_i}= ['microsaccades_number_',num2str(subject_i)];
 %             subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name','microsaccades_number','NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
 %             for cond_i= 1:conds_nr                
-%                 stem(1:numel(analysis_struct{subject_i}.(conds_names{cond_i}).number_of_saccades), analysis_struct{subject_i}.(conds_names{cond_i}).number_of_saccades', 'color', CURVES_COLORS(cond_i,:));                 
+%                 stem(1:numel(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).number_of_saccades), analysis_struct{subject_i}.saccades.(conds_names{cond_i}).number_of_saccades', 'color', CURVES_COLORS(cond_i,:));                 
 %                 hold('on');
 %             end
 %             legend(conds_names);                        
@@ -123,12 +123,12 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             subjects_figs{1,curr_created_plots_nr,subject_i}= ['amplitudes_by_condition_',num2str(subject_i)];
             subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name',['amplitudes by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
             for cond_i= 1:conds_nr                
-                amplitudes= [analysis_struct{subject_i}.(conds_names{cond_i}).amplitudes{:}];
+                amplitudes= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
                 if isempty(amplitudes)
                     data_filled_conds_logical_vec(cond_i)= false;
                     continue;
                 end
-                polar_h= polar([analysis_struct{subject_i}.(conds_names{cond_i}).directions{:}], amplitudes, '.');
+                polar_h= polar([analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}], amplitudes, '.');
                 set(polar_h, 'color', CURVES_COLORS(cond_i,:));
                 hold('on');
             end
@@ -143,8 +143,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             directions= [];
             if any(data_filled_conds_logical_vec)
                 for cond_i= 1:conds_nr
-                    amplitudes= [amplitudes, analysis_struct{subject_i}.(conds_names{cond_i}).amplitudes{:}]; %#ok<AGROW>
-                    directions= [directions, analysis_struct{subject_i}.(conds_names{cond_i}).directions{:}]; %#ok<AGROW>
+                    amplitudes= [amplitudes, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}]; %#ok<AGROW>
+                    directions= [directions, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}]; %#ok<AGROW>
                 end
 
                 polar(directions, amplitudes, '.');
@@ -173,7 +173,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name',['directions by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
             polar(360,100);
             for cond_i= 1:conds_nr                
-                directions= [analysis_struct{subject_i}.(conds_names{cond_i}).directions{:}];
+                directions= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
                 if isempty(directions)
                     data_filled_conds_logical_vec(cond_i)= false;
                     continue;
@@ -193,7 +193,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             directions= [];
             if any(data_filled_conds_logical_vec)
                 for cond_i= 1:conds_nr
-                    directions= [directions, analysis_struct{subject_i}.(conds_names{cond_i}).directions{:}]; %#ok<AGROW>
+                    directions= [directions, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}]; %#ok<AGROW>
                 end
 
                 rose(directions);
@@ -217,8 +217,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             subjects_figs{1,curr_created_plots_nr,subject_i}= ['main_sequence_by_condition_',num2str(subject_i)];
             subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name',['main sequence by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);            
             for cond_i= 1:conds_nr                
-                amplitudes= [analysis_struct{subject_i}.(conds_names{cond_i}).amplitudes{:}];
-                velocities= [analysis_struct{subject_i}.(conds_names{cond_i}).velocities{:}];
+                amplitudes= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
+                velocities= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}];
                 if isempty(amplitudes) || isempty(velocities)
                     data_filled_conds_logical_vec(cond_i)= false;
                     continue;
@@ -238,8 +238,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 velocities= [];
                 amplitudes = [];            
                 for cond_i= 1:conds_nr
-                    velocities= [velocities, analysis_struct{subject_i}.(conds_names{cond_i}).velocities{:}]; %#ok<AGROW>
-                    amplitudes= [amplitudes, analysis_struct{subject_i}.(conds_names{cond_i}).amplitudes{:}]; %#ok<AGROW>
+                    velocities= [velocities, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}]; %#ok<AGROW>
+                    amplitudes= [amplitudes, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}]; %#ok<AGROW>
                 end
                 
                 plot(amplitudes, velocities, '.k', 'MarkerSize', 5); %loglog
@@ -272,7 +272,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
         statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: microsaccades rate', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
         for cond_i= 1:conds_nr            
             plot((1:size(smoothed_grand_microsaccadic_rate,2)) - baseline, smoothed_grand_microsaccadic_rate(cond_i,:), 'color', CURVES_COLORS(cond_i,:));
-            analysis_struct_with_results.results_grand_total.saccadic_rate.(conds_names{cond_i})= smoothed_grand_microsaccadic_rate(cond_i,:);
+            analysis_struct_with_results.results_grand_total.saccades_analysis.saccadic_rate.(conds_names{cond_i})= smoothed_grand_microsaccadic_rate(cond_i,:);
             hold('on');
         end
         legend(conds_names);                       
@@ -293,8 +293,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 if isempty(analysis_struct{subject_i})                    
                     continue;
                 end
-                grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.(conds_names{cond_i}).amplitudes{:}];
-                grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.(conds_names{cond_i}).directions{:}];
+                grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
+                grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
             end
         end
 
@@ -339,7 +339,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 if isempty(analysis_struct{subject_i})                
                     continue;
                 end
-                grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.(conds_names{cond_i}).directions{:}];
+                grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
             end
         end
 
@@ -386,8 +386,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 if isempty(analysis_struct{subject_i})                
                     continue;
                 end
-                grand_velocities{cond_i}= [grand_velocities{cond_i}, analysis_struct{subject_i}.(conds_names{cond_i}).velocities{:}];
-                grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.(conds_names{cond_i}).amplitudes{:}];
+                grand_velocities{cond_i}= [grand_velocities{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}];
+                grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
             end
         end
 

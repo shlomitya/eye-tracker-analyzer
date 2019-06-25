@@ -1,6 +1,6 @@
 classdef EyeTrackerAnalysisRecord < handle
     properties (Access= public, Constant)
-        CONDS_NAMES_PREFIX= 'c';
+        CONDS_NAMES_PREFIX= 'C';
     end
     
     properties (Access= private, Constant)
@@ -151,8 +151,8 @@ classdef EyeTrackerAnalysisRecord < handle
             for session_i= 1:sessions_nr
                 curr_session_eye_tracker_data_struct= obj.eye_tracker_data_structs{session_i};                                                               
                 progress_screen.displayMessage(['session #', num2str(session_i), ': indexing blinks']);
-                eyelink_based_blinks_vec = EyeTrackerAnalysisRecord.eyelinkBased_blinkdetection(curr_session_eye_tracker_data_struct, blinks_delta, progress_screen, 0.8*progress_contribution/sessions_nr); %0.4*progress_contribution/sessions_nr);
-                pupils_based_blinks_vec = EyeTrackerAnalysisRecord.pupilBased_blinkdetection_twoEyes(curr_session_eye_tracker_data_struct.gazeRight.pupil, curr_session_eye_tracker_data_struct.gazeLeft.pupil, obj.sampling_rate, obj.PUPILS_BASED_BLINKS_DETECTION_STD, obj.PUPILS_BASED_BLINKS_DETECTION_CONSECUTIVE_SAMPLES, obj.PUPILS_BASED_BLINKS_DETECTION_TOLERANCE, blinks_delta, obj.PUPILS_BASED_BLINKS_DETECTION_MAX_SEG_TIME, progress_screen, 0); %0.4*progress_contribution/sessions_nr);
+                eyelink_based_blinks_vec = EyeTrackerAnalysisRecord.eyelinkBased_blinkdetection(curr_session_eye_tracker_data_struct, blinks_delta, progress_screen, 0.4*progress_contribution/sessions_nr);
+                pupils_based_blinks_vec = EyeTrackerAnalysisRecord.pupilBased_blinkdetection_twoEyes(curr_session_eye_tracker_data_struct.gazeRight.pupil, curr_session_eye_tracker_data_struct.gazeLeft.pupil, obj.sampling_rate, obj.PUPILS_BASED_BLINKS_DETECTION_STD, obj.PUPILS_BASED_BLINKS_DETECTION_CONSECUTIVE_SAMPLES, obj.PUPILS_BASED_BLINKS_DETECTION_TOLERANCE, blinks_delta, obj.PUPILS_BASED_BLINKS_DETECTION_MAX_SEG_TIME, progress_screen, 0.4*progress_contribution/sessions_nr);
                 obj.segmentization_vecs{segmentizations_nr+1}(session_i).blinks= eyelink_based_blinks_vec | pupils_based_blinks_vec;                
                 obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_start_times = [];
                 obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_end_times = [];
@@ -213,7 +213,12 @@ classdef EyeTrackerAnalysisRecord < handle
                 msg(ismember(msg,' `!@#$%^&*()-+=[]{}''";:,.<>/?\|')) = '_';                
                 if isstrprop(msg(1),'digit')
                     msg = [obj.CONDS_NAMES_PREFIX, msg];
-                end                
+                end   
+                
+                % 63 -> matlab's maximum allowed variable name length
+                if numel(msg) > 63
+                    msg = msg(1:63);
+                end
             end
             
             function [start_times, end_times, curr_cond_field_name] = extractSegmentsTimesFromMessages(eye, trial_onset_trigger)
@@ -244,8 +249,8 @@ classdef EyeTrackerAnalysisRecord < handle
                            (~are_offset_triggers_included && (any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_onset_triggers)) || msg_time - potential_trial_start_time > trial_dur - baseline))
                         search_phase = 1;
                         start_times= [start_times, potential_trial_start_time - baseline]; %#ok<AGROW>
-                        if isempty(regexp(curr_cond_field_name, ['(^|_)', potential_trial_start_msg, '_'], 'ONCE'))
-                            curr_cond_field_name = [curr_cond_field_name, potential_trial_start_msg, '_'];  %#ok<AGROW>
+                        if isempty(regexp(curr_cond_field_name, ['(^|_)', potential_trial_start_msg, 'X'], 'ONCE'))
+                            curr_cond_field_name = [curr_cond_field_name, potential_trial_start_msg, 'X'];  %#ok<AGROW>
                         end
                         if are_offset_triggers_included
                             end_times = [end_times, msg_time + post_offset_triggers_segment]; %#ok<AGROW>                                                                        
@@ -268,8 +273,8 @@ classdef EyeTrackerAnalysisRecord < handle
                 
                 if ~isempty(curr_cond_field_name)
                     curr_cond_field_name(end) = '';
-                    curr_cond_field_name = [EyeTrackerAnalysisRecord.CONDS_NAMES_PREFIX, curr_cond_field_name];
-                end
+                    curr_cond_field_name = convertMsgToValidFieldName([EyeTrackerAnalysisRecord.CONDS_NAMES_PREFIX, curr_cond_field_name]);                    
+                end                                
             end                                      
             
             function [start_times, end_times, curr_cond_field_name] = extractSegmentsTimesFromInputs(eye, trial_onset_trigger)
@@ -324,8 +329,8 @@ classdef EyeTrackerAnalysisRecord < handle
                 
                 if ~isempty(curr_cond_field_name)
                     curr_cond_field_name(end) = '';
-                    curr_cond_field_name = [EyeTrackerAnalysisRecord.CONDS_NAMES_PREFIX, curr_cond_field_name];
-                end
+                    curr_cond_field_name = convertMsgToValidFieldName([EyeTrackerAnalysisRecord.CONDS_NAMES_PREFIX, curr_cond_field_name]);
+                end                                
             end                                
         end
         
@@ -399,11 +404,11 @@ classdef EyeTrackerAnalysisRecord < handle
             %merge sessions' structs  
             if were_triggers_ever_found
                 if sessions_nr > 1
-                    for merged_session_i= 1:sessions_nr
-                        conds_names= fieldnames(obj.segmentization_vecs{obj.chosen_segmentization_i}(merged_session_i).trials_start_times);            
-                        for cond_i= 1:numel(conds_names)     
-                            curr_merged_cond_name= conds_names{cond_i};
-                            segmentized_data.(curr_merged_cond_name)= [];                                                                                                                                   
+                    conds_names= fieldnames(obj.segmentization_vecs{obj.chosen_segmentization_i}(1).trials_start_times);            
+                    for cond_i= 1:numel(conds_names)     
+                        curr_merged_cond_name= conds_names{cond_i};
+                        segmentized_data.(curr_merged_cond_name)= [];
+                        for merged_session_i= 1:sessions_nr                                                                                                           
                             if ~isempty(segmentized_data_unmerged{merged_session_i}.(curr_merged_cond_name))
                                 segmentized_data.(curr_merged_cond_name)= ...
                                     [segmentized_data.(curr_merged_cond_name), segmentized_data_unmerged{merged_session_i}.(curr_merged_cond_name)];                        
@@ -680,11 +685,13 @@ classdef EyeTrackerAnalysisRecord < handle
                     new_blink_vecr=[new_blink_vecr,blink_vecr];
                     new_blink_vecl=[new_blink_vecl,blink_vecl];
                     segments_errors=[segments_errors,problemflagr | problemflagl];                    
+                    progress_screen.addProgress(progress_contribution/length(starttimes));
                 end                
             else
                 [new_blink_vecr,problemflagr]=EyeTrackerAnalysisRecord.pupilBased_blinkdetection(pupilr,Fs,std,consq_samples,tolerance, progress_screen, 0.5*progress_contribution);
                 [new_blink_vecl,problemflagl]=EyeTrackerAnalysisRecord.pupilBased_blinkdetection(pupill,Fs,std,consq_samples,tolerance, progress_screen, 0.5*progress_contribution);
                 segments_errors=[problemflagr | problemflagl];
+                progress_screen.addProgress(progress_contribution);
             end
             
             %% count blinks only from both eyes:
@@ -781,6 +788,7 @@ classdef EyeTrackerAnalysisRecord < handle
                         valid_cnt=0;
                     end
                 end
+%                 progress_screen.addProgress(0.3/(length(temp_pupildata)-2)*progress_contribution);
             end
                                     
             %filter the slopes: optional - causes some problems
@@ -814,7 +822,8 @@ classdef EyeTrackerAnalysisRecord < handle
                         else
                             cnt=0;
                             cur_index=suspect_onsets_indexes(i);
-                        end                                                                        
+                        end 
+%                         progress_screen.addProgress(0.2/(length(suspect_onsets_indexes)-1)*progress_contribution);
                     end
                     
                     %add the last onset:
@@ -822,6 +831,8 @@ classdef EyeTrackerAnalysisRecord < handle
                         real_onsets=[real_onsets,suspect_onsets_indexes(i-1)-cnt];
                         cnt=0;
                     end                                        
+                else
+%                     progress_screen.addProgress(0.2*progress_contribution);
                 end
                                                 
                 %% code:offsets:
@@ -857,13 +868,16 @@ classdef EyeTrackerAnalysisRecord < handle
                         else
                             cur_index=suspect_offsets_indexes(i);
                             cnt=0;
-                        end                                                                        
+                        end      
+%                         progress_screen.addProgress(0.1/(length(suspect_offsets_indexes) - 1)*progress_contribution);
                     end
                     
                     %add the last onset:
                     if cnt>=consq_samples
                         real_offsets=[real_offsets,suspect_offsets_indexes(i-1)-cnt];
                     end                                        
+                else
+%                     progress_screen.addProgress(0.1*progress_contribution);
                 end
                 
                 %% initial testing graph:
@@ -904,6 +918,7 @@ classdef EyeTrackerAnalysisRecord < handle
                     if cur_onset==1;
                         final_onsets=[final_onsets,temp_onset];
                     end
+%                     progress_screen.addProgress(0.1/length(real_onsets)*progress_contribution);
                 end
                                 
                 %% fix the offset timings:                
@@ -924,6 +939,7 @@ classdef EyeTrackerAnalysisRecord < handle
                             final_offsets=[final_offsets,temp_offset+1];
                         end
                     end
+%                     progress_screen.addProgress(0.1/length(real_offsets)*progress_contribution);
                 end
                 
                 if cur_offset==arraysize
@@ -1157,16 +1173,19 @@ classdef EyeTrackerAnalysisRecord < handle
                     if sorted_types(1)==0                        
                         for i=1:2:length(sorted_timing)-1;
                             blink_vec(sorted_timing(i):sorted_timing(i+1))=1;
+%                             progress_screen.addProgress(0.1/floor(length(sorted_timing)/2)*progress_contribution);
                         end
                     else
                         for i=2:2:(length(sorted_timing)-1);
                             blink_vec(sorted_timing(i):sorted_timing(i+1))=1;
+%                             progress_screen.addProgress(0.1/floor((length(sorted_timing) - 1)/2)*progress_contribution);
                         end
                     end                                                                                                                                           
                 end                                
             else
                 blink_vec= true(1, length(pupildata));
                 problemflag=2; %means that the entire segment was empty
+%                 progress_screen.addProgress(0.7*progress_contribution);
             end            
         end
         

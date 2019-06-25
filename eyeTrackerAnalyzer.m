@@ -51,6 +51,7 @@ EYE_EEG_DATA_SYNC_SAVE_FOLDER= [];
 CURR_FILE_LOAD_FOLDER= pwd; 
 MICROSACCADES_PARAMETERS_FIG= [];
 BLINKS_PARAMETERS_FIG= [];
+TRIGGERS_XML_DELIMITER = '&%$#';
 
 %ERROR MESSAGES
 ERROR_MSG_NO_TRIGGERS= 'Please specify trial start triggers';
@@ -322,14 +323,14 @@ save_file_folder_etext= uicontrol(analyze_microsaccades_panel, 'Style', 'edit', 
 
 %RUN ANALYSES UICONTROLS
 uicontrol(analyze_microsaccades_panel, 'Style', 'checkbox', 'tag', 'c14', 'units', 'normalized', ...
-    'FontSize', 12.0, 'String', 'Display Curves', 'Position', [0.0654    0.0347    0.1074    0.0269], ...
+    'FontSize', 12.0, 'String', 'Show Resulting Figures', 'Position', [0.0354    0.0347    0.2074    0.0269], ...
     'BackgroundColor', GUI_BACKGROUND_COLOR, ...
     'value', EXE_PLOT_CURVES, ...
     'callback', {@plotCurvesToggledCallback});
 
 uicontrol(analyze_microsaccades_panel, 'Style', 'pushbutton', 'tag', 'msb', 'units', 'normalized', ...
-    'String', 'Analyze Saccades', ...
-    'Position', [0.2197    0.0212    0.2066    0.0519], ...
+    'String', 'Analyze Movements', ...
+    'Position', [0.2597    0.0212    0.3066    0.0519], ...
     'FontSize', 12.0, ...
     'callback', {@runAnalysisBtnCallback, @analyzeMicrosaccades, @microsaccadesParametersFigCreator, 'analyzing saccades'});
 
@@ -341,15 +342,15 @@ uicontrol(analyze_microsaccades_panel, 'Style', 'pushbutton', 'tag', 'bb', 'unit
 
 uicontrol(analyze_microsaccades_panel, 'Style', 'pushbutton', 'tag', 'fb', 'units', 'normalized', ...
     'String', 'Analyze Pupils Diameters', ...
-    'Position', [0.6636    0.0212    0.2066    0.0519], ...
+    'Position', [0.6017    0.0212    0.3066    0.0519], ...
     'FontSize', 12.0, ...
     'callback', {@runAnalysisBtnCallback, @analyzePupilsSz, [], 'Analyzing Pupils Size'});
 
-uicontrol(analyze_microsaccades_panel, 'Style', 'pushbutton', 'tag', 'fb', 'units', 'normalized', ...
-    'String', 'Analyze Fixations', ...
-    'Position', [0.4417    0.0212    0.2066    0.0519], ...
-    'FontSize', 12.0, ...
-    'callback', {@runAnalysisBtnCallback, @analyzeFixations, [], 'Analyzing Fixations'});
+% uicontrol(analyze_microsaccades_panel, 'Style', 'pushbutton', 'tag', 'fb', 'units', 'normalized', ...
+%     'String', 'Analyze Fixations', ...
+%     'Position', [0.6636    0.0212    0.2066    0.0519], ...
+%     'FontSize', 12.0, ...
+%     'callback', {@runAnalysisBtnCallback, @analyzeFixations, [], 'Analyzing Fixations'});
 
 %CREATE ETAS PRIMAL UICONTROLS
 img = imread('resources/save_file.png','png');
@@ -1071,29 +1072,18 @@ set(gui, 'Visible', 'on');
             end            
             for subject_fig_i= 1:size(subjects_figs,2)
                 progress_screen.displayMessage(['saving figures for variable #', num2str(subject_fig_i)]);
-                for subject_i= 1:size(subjects_figs,3)
-                    if ~EXE_PLOT_CURVES                        
-                    	set(subjects_figs{2,subject_fig_i,subject_i},'visible','on');                        
-                    end                                            
-                    savefig(subjects_figs{2,subject_fig_i,subject_i},fullfile(ANALYSIS_RESULTS_FILE_DESTINATION,subjects_figs{1,subject_fig_i,subject_i}));    
-                    if ~EXE_PLOT_CURVES                        
-                    	set(subjects_figs{2,subject_fig_i,subject_i},'visible','off');                        
-                    end
-                    
+                for subject_i= 1:size(subjects_figs,3)                               
+                    set(subjects_figs{2,subject_fig_i,subject_i}, 'CreateFcn', 'set(gcbo,''Visible'',''on'')'); 
+                    savefig(subjects_figs{2,subject_fig_i,subject_i},fullfile(ANALYSIS_RESULTS_FILE_DESTINATION,subjects_figs{1,subject_fig_i,subject_i}));                                           
                     progress_screen.addProgress(0.65/subjects_figs_nr);    
                 end           
             end
             
             statistisized_figs_nr= size(statistisized_figs,2);
             for statistisized_fig_i=1:statistisized_figs_nr
-                if ~isempty(statistisized_figs)
-                    if ~EXE_PLOT_CURVES                        
-                    	set(statistisized_figs{2,statistisized_fig_i},'visible','on');                        
-                    end 
-                    savefig(statistisized_figs{2,statistisized_fig_i}, fullfile(ANALYSIS_RESULTS_FILE_DESTINATION,statistisized_figs{1,statistisized_fig_i}));                        
-                    if ~EXE_PLOT_CURVES                        
-                    	set(statistisized_figs{2,statistisized_fig_i},'visible','off');                        
-                    end 
+                if ~isempty(statistisized_figs)                    
+                    set(statistisized_figs{2,statistisized_fig_i}, 'CreateFcn', 'set(gcbo,''Visible'',''on'')'); 
+                    savefig(statistisized_figs{2,statistisized_fig_i}, fullfile(ANALYSIS_RESULTS_FILE_DESTINATION,statistisized_figs{1,statistisized_fig_i}));                                           
                 end
                 
                 progress_screen.addProgress(0.35/statistisized_figs_nr); 
@@ -1271,7 +1261,7 @@ set(gui, 'Visible', 'on');
     function [subjects_figs, statistisized_figs, analysis_struct_with_results]= analyzeMicrosaccades(subjects_etas, progress_screen)        
         saccades_extractor= SaccadesExtractor(subjects_etas);        
         progress_screen.displayMessage('extracting saccades');
-        [eye_data_struct, analysis_structs, eyeballing_stats]= saccades_extractor.extractSaccadesByEngbert( ...
+        [eye_data_structs, saccades_analysis_structs, eyeballing_stats]= saccades_extractor.extractSaccadesByEngbert( ...
             ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type, ...
             ENGBERT_ALGORITHM_DEFAULTS.vel_threshold, ...
             ENGBERT_ALGORITHM_DEFAULTS.amp_lim, ...
@@ -1280,11 +1270,10 @@ set(gui, 'Visible', 'on');
             ENGBERT_ALGORITHM_DEFAULTS.frequency_max, ...
             ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass, ...
             PERFORM_EYEBALLING, EYEBALLER_DISPLAY_RANGE, BASELINE, ...
-            get(load_etas_for_analysis_display_pane, 'string'), 0.2, progress_screen);    
-               
+            get(load_etas_for_analysis_display_pane, 'string'), 0.15, progress_screen);                   
         was_trigger_ever_found_for_any_subject = false;
-        for subject_idx = 1:numel(analysis_structs)
-            if ~isempty(analysis_structs{subject_idx})
+        for subject_idx = 1:numel(saccades_analysis_structs)
+            if ~isempty(saccades_analysis_structs{subject_idx})
                 was_trigger_ever_found_for_any_subject = true;
                 break;
             end
@@ -1293,8 +1282,11 @@ set(gui, 'Visible', 'on');
             subjects_figs = [];
             statistisized_figs = [];
             analysis_struct_with_results = [];
+            progress_screen.addProgress(0.85);
             return;
         end
+                               
+        fixations_analysis_struct = computeFixations(subjects_etas, 0.05, progress_screen); 
         
         progress_screen.giveFocus();  
         progress_screen.displayMessage('saving updated eeg files');
@@ -1304,6 +1296,64 @@ set(gui, 'Visible', 'on');
         [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(reformated_analysis_structs, EXE_PLOT_CURVES, [MICROSACCADES_ANALYSIS_PARAMETERS.rate, MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence], BASELINE, MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len, TRIAL_DURATION, progress_screen, 0.2);                        
         analysis_struct_with_results.saccades_analsysis_parameters = ENGBERT_ALGORITHM_DEFAULTS;
                 
+        function fixations_analysis_struct = computeFixations(subjects_etas, progress_contribution, progress_screen)
+            progress_screen.displayMessage('extracting fixations');
+            fixations_analysis_struct = cell(1, subjects_nr);
+            for subject_i = 1:subjects_nr                 
+                eye_data_struct = eye_data_structs{subject_i};
+                if isempty(eye_data_struct) 
+                    progress_screen.addProgress(progress_contribution/subjects_nr);
+                    continue;
+                end
+                
+                conds = fieldnames(eye_data_struct);
+                conds_nr = numel(conds);
+                fixations_analysis_struct{subject_i}.total.fixations_count = 0;
+                fixations_analysis_struct{subject_i}.total.fixations_durations_mean = [];
+                for cond_i = 1:conds_nr
+                    cond = conds{cond_i};
+                    trials_nr = numel(eye_data_struct.(cond));
+                    for trial_i = 1:trials_nr
+                        if ~any(eye_data_struct.(cond)(trial_i).non_nan_times_logical_vec)
+                            progress_screen.addProgress(progress_contribution/(trials_nr*conds_nr*subjects_nr));
+                            continue;
+                        end
+                        
+                        d = [(1:numel(eye_data_struct.(cond)(trial_i).non_nan_times_logical_vec))', ...
+                            eye_data_struct.(cond)(trial_i).raw_eye_data.right_eye(:,1), ...
+                            eye_data_struct.(cond)(trial_i).raw_eye_data.right_eye(:,2), ...
+                            eye_data_struct.(cond)(trial_i).raw_eye_data.left_eye(:,1), ...
+                            eye_data_struct.(cond)(trial_i).raw_eye_data.left_eye(:,2), ...
+                            eye_data_struct.(cond)(trial_i).non_nan_times_logical_vec];
+                        
+                        fixations_analysis_struct{subject_i}.(cond)(trial_i) = getFixationsFromSaccadesDetection(d, ...
+                            saccades_analysis_structs{subject_i}.(cond)(trial_i).onsets', ...
+                            saccades_analysis_structs{subject_i}.(cond)(trial_i).offsets', ...
+                            saccades_analysis_structs{subject_i}.(cond)(trial_i).amplitudes', ...
+                            20, BLINKS_DELTA, false);
+                        
+                        fixations_nr = numel(fixations_analysis_struct{subject_i}.(cond)(trial_i).onsets);
+                        fixations_analysis_struct{subject_i}.total.fixations_count = fixations_analysis_struct{subject_i}.total.fixations_count + fixations_nr;
+%                         fixations_durs_ratios = min(fixations_struct.durations/TRIAL_DURATION,1);
+                        fixations_analysis_struct{subject_i}.total.fixations_durations_mean = ...
+                            [fixations_analysis_struct{subject_i}.total.fixations_durations_mean, mean(fixations_analysis_struct{subject_i}.(cond)(trial_i).durations)];
+%                     f = figure('name', [fig_title, ' - trial #', num2str(trial_i)], 'MenuBar', 'none', 'numbertitle', 'off', 'units', 'pixels');
+%                     for fixation_i = 1:fixations_nr
+%                         plot(fixations_coords(fixation_i,1),fixations_coords(fixation_i,2),'.','color',MAX_FIXATION_DUR_COLOR*fixations_durs_ratios(fixation_i),'markersize',20);
+%                     end       
+
+                        progress_screen.addProgress(progress_contribution/(trials_nr*conds_nr*subjects_nr));
+                    end
+                                        
+                    if trials_nr == 0
+                        progress_screen.addProgress(progress_contribution/(conds_nr*subjects_nr));
+                    end
+                    %                 savefig(f, fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, ['sub',num2str(subject_i),cond]));
+                    %                 set(f,'visible','off');
+                end
+            end
+        end
+        
         function saveUpdatedEegStructs(progress_contribution, progress_screen)
             etas_full_paths = get(load_etas_for_analysis_display_pane, 'string');
             for subject_i= 1:subjects_nr
@@ -1340,7 +1390,7 @@ set(gui, 'Visible', 'on');
                 EEG.nbchan=EEG.nbchan+1;
                 EEG.chanlocs(EEG.nbchan)=EEG.chanlocs(EEG.nbchan-1);
                 EEG.chanlocs(EEG.nbchan).labels='sac onset bool';                 
-                analysis_stuct= analysis_structs{subject_i};        
+                analysis_stuct= saccades_analysis_structs{subject_i};        
                 for cond_i= 1:numel(conds_names)
                     curr_cond_name= conds_names{cond_i};
                     for trial_i= 1:numel(analysis_stuct.(curr_cond_name))
@@ -1372,77 +1422,102 @@ set(gui, 'Visible', 'on');
         function reformated_analysis_structs= reformatAnalysisStruct()
             reformated_analysis_structs= cell(1, subjects_nr);
             for subject_i= 1:subjects_nr
-                curr_subject_conds_names= fieldnames(analysis_structs{subject_i});
-                if isempty(analysis_structs{subject_i})
+                curr_subject_conds_names= fieldnames(saccades_analysis_structs{subject_i});
+                if isempty(saccades_analysis_structs{subject_i})
                     continue;
                 end
+                reformated_analysis_structs{subject_i}.saccades = [];
+                reformated_analysis_structs{subject_i}.eyeballing_stats = [];
+                reformated_analysis_structs{subject_i}.fixations = [];
+                reformated_analysis_structs{subject_i}.raw_data = [];
                 for cond_i= 1:numel(curr_subject_conds_names)
-                    curr_cond_trials_nr= numel(analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}));
+                    cond = curr_subject_conds_names{cond_i};
+                    curr_cond_trials_nr= numel(saccades_analysis_structs{subject_i}.(cond));
                     if ~isempty(eyeballing_stats)
-                        reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).eyeballing_stats= ...
-                            eyeballing_stats{subject_i}.(curr_subject_conds_names{cond_i});
+                        reformated_analysis_structs{subject_i}.eyeballing_stats.(cond)= ...
+                            eyeballing_stats{subject_i}.(cond);
                     else
-                        reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).eyeballing_stats= [];
+                        reformated_analysis_structs{subject_i}.eyeballing_stats.(cond)= [];
                     end
                     
-                    reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).number_of_saccades= zeros(1, curr_cond_trials_nr);
-                    reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).durations= cell(1, curr_cond_trials_nr);
-                    reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).amplitudes= cell(1, curr_cond_trials_nr);
-                    reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).directions= cell(1, curr_cond_trials_nr);
-                    reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).onsets= cell(1, curr_cond_trials_nr);
-                    reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).velocities= cell(1, curr_cond_trials_nr);
-                    reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).was_trial_rejected= false(1, curr_cond_trials_nr);
-                    
+                    reformated_analysis_structs{subject_i}.saccades.(cond).number_of_saccades= zeros(1, curr_cond_trials_nr);
+                    reformated_analysis_structs{subject_i}.saccades.(cond).durations= cell(1, curr_cond_trials_nr);
+                    reformated_analysis_structs{subject_i}.saccades.(cond).amplitudes= cell(1, curr_cond_trials_nr);
+                    reformated_analysis_structs{subject_i}.saccades.(cond).directions= cell(1, curr_cond_trials_nr);
+                    reformated_analysis_structs{subject_i}.saccades.(cond).onsets= cell(1, curr_cond_trials_nr);
+                    reformated_analysis_structs{subject_i}.saccades.(cond).velocities= cell(1, curr_cond_trials_nr);
+                    reformated_analysis_structs{subject_i}.eyeballing_stats.(cond).was_trial_rejected= false(1, curr_cond_trials_nr);
+                                                                                                   
                     max_trial_dur = 0;
                     for trial_i= 1:curr_cond_trials_nr
-                        curr_trial_dur = numel(eye_data_struct{subject_i}.(curr_subject_conds_names{cond_i})(trial_i).non_nan_times_logical_vec);
+                        curr_trial_dur = numel(eye_data_structs{subject_i}.(cond)(trial_i).non_nan_times_logical_vec);
                         if max_trial_dur < curr_trial_dur
                             max_trial_dur = curr_trial_dur;
                         end                                                    
                     end                    
-                    reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).logical_onsets_mat= zeros(curr_cond_trials_nr, max_trial_dur);                    
-                    reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).vergence.x = NaN(curr_cond_trials_nr, max_trial_dur);
-                    reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).vergence.y = NaN(curr_cond_trials_nr, max_trial_dur);
-                    reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).non_nan_times= NaN(curr_cond_trials_nr, max_trial_dur);                                        
+                    reformated_analysis_structs{subject_i}.saccades.(cond).logical_onsets_mat= zeros(curr_cond_trials_nr, max_trial_dur);                    
+                    reformated_analysis_structs{subject_i}.raw_data.(cond).vergence.x = NaN(curr_cond_trials_nr, max_trial_dur);
+                    reformated_analysis_structs{subject_i}.raw_data.(cond).vergence.y = NaN(curr_cond_trials_nr, max_trial_dur);
+                    reformated_analysis_structs{subject_i}.raw_data.(cond).non_nan_times= NaN(curr_cond_trials_nr, max_trial_dur);
+                    reformated_analysis_structs{subject_i}.raw_data.(cond).right_eye.x= NaN(curr_cond_trials_nr, max_trial_dur);
+                    reformated_analysis_structs{subject_i}.raw_data.(cond).right_eye.y= NaN(curr_cond_trials_nr, max_trial_dur);
+                    reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.x= NaN(curr_cond_trials_nr, max_trial_dur);
+                    reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.y= NaN(curr_cond_trials_nr, max_trial_dur);
+                    reformated_analysis_structs{subject_i}.raw_data.(cond).non_nan_times_logical_vec= NaN(curr_cond_trials_nr, max_trial_dur);
+                                                                                                                          
                     for trial_i= 1:curr_cond_trials_nr
-                        curr_trial_saccades_struct= analysis_structs{subject_i}.(curr_subject_conds_names{cond_i})(trial_i);       
-                        curr_trial_eye_data_struct = eye_data_struct{subject_i}.(curr_subject_conds_names{cond_i})(trial_i); 
+                        curr_trial_saccades_struct= saccades_analysis_structs{subject_i}.(cond)(trial_i);       
+                        curr_trial_fixations_struct= fixations_analysis_struct{subject_i}.(cond)(trial_i);       
+                        curr_trial_eye_data_struct = eye_data_structs{subject_i}.(cond)(trial_i); 
                         if ~isfield(curr_trial_saccades_struct, 'is_trial_accepted') || curr_trial_saccades_struct.is_trial_accepted
                             if ~isempty(curr_trial_eye_data_struct) && ~isempty(curr_trial_eye_data_struct.non_nan_times_logical_vec)
                                 curr_trial_dur = numel(curr_trial_eye_data_struct.non_nan_times_logical_vec);
-                                reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).vergence.x(trial_i, 1:curr_trial_dur)  = ...
+                                reformated_analysis_structs{subject_i}.raw_data.(cond).vergence.x(trial_i, 1:curr_trial_dur)  = ...
                                     curr_trial_eye_data_struct.vergence(:,1)';
-                                reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).vergence.y(trial_i, 1:curr_trial_dur) = ...
+                                reformated_analysis_structs{subject_i}.raw_data.(cond).vergence.y(trial_i, 1:curr_trial_dur) = ...
                                     curr_trial_eye_data_struct.vergence(:,2)';                                
-                                reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).non_nan_times(trial_i, 1:curr_trial_dur)= ...
+                                reformated_analysis_structs{subject_i}.raw_data.(cond).non_nan_times(trial_i, 1:curr_trial_dur)= ...
                                     curr_trial_eye_data_struct.non_nan_times_logical_vec';
+                                reformated_analysis_structs{subject_i}.raw_data.(cond).right_eye.x(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.right_eye(:,1)';
+                                reformated_analysis_structs{subject_i}.raw_data.(cond).right_eye.y(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.right_eye(:,2)';                                
+                                reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.x(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.left_eye(:,1)';
+                                reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.y(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.left_eye(:,2)';
+                                reformated_analysis_structs{subject_i}.raw_data.(cond).non_nan_times_logical_vec(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.non_nan_times_logical_vec';
                             end
 
-                            if ~isempty(curr_trial_saccades_struct.onsets) && any( ~isnan(curr_trial_saccades_struct.onsets) )
-                                reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).logical_onsets_mat(trial_i, curr_trial_saccades_struct.onsets)= 1; 
-                                reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).logical_onsets_mat(trial_i, curr_trial_dur+1:max_trial_dur) = NaN;
-                                reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).number_of_saccades(trial_i)= ...
+                            if ~isempty(curr_trial_saccades_struct.onsets) && any(~isnan(curr_trial_saccades_struct.onsets))
+                                reformated_analysis_structs{subject_i}.saccades.(cond).logical_onsets_mat(trial_i, curr_trial_saccades_struct.onsets)= 1; 
+                                reformated_analysis_structs{subject_i}.saccades.(cond).logical_onsets_mat(trial_i, curr_trial_dur+1:max_trial_dur) = NaN;
+                                reformated_analysis_structs{subject_i}.saccades.(cond).number_of_saccades(trial_i)= ...
                                     numel(curr_trial_saccades_struct.onsets);
-                                reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).durations{trial_i}= ...
+                                reformated_analysis_structs{subject_i}.saccades.(cond).durations{trial_i}= ...
                                     curr_trial_saccades_struct.durations';
-                                reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).amplitudes{trial_i}= ...
+                                reformated_analysis_structs{subject_i}.saccades.(cond).amplitudes{trial_i}= ...
                                     curr_trial_saccades_struct.amplitudes';                        
-                                reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).directions{trial_i}= ...
+                                reformated_analysis_structs{subject_i}.saccades.(cond).directions{trial_i}= ...
                                     curr_trial_saccades_struct.directions';
-                                reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).onsets{trial_i}= ...
+                                reformated_analysis_structs{subject_i}.saccades.(cond).onsets{trial_i}= ...
                                     curr_trial_saccades_struct.onsets';
-                                reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).velocities{trial_i}= ...
+                                reformated_analysis_structs{subject_i}.saccades.(cond).velocities{trial_i}= ...
                                     curr_trial_saccades_struct.velocities';
-                            end
+                                reformated_analysis_structs{subject_i}.fixations.(cond).onsets{trial_i} = curr_trial_fixations_struct.onsets;
+                                reformated_analysis_structs{subject_i}.fixations.(cond).coordinates_left{trial_i} = [curr_trial_fixations_struct.Hpos(:,1), curr_trial_fixations_struct.Vpos(:,1)];
+                                reformated_analysis_structs{subject_i}.fixations.(cond).coordinates_right{trial_i} = [curr_trial_fixations_struct.Hpos(:,2), curr_trial_fixations_struct.Vpos(:,2)];
+                                reformated_analysis_structs{subject_i}.fixations.(cond).durations{trial_i} = curr_trial_fixations_struct.durations;    
+                            end                                                        
                         else
-                            reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).logical_onsets_mat(trial_i, :) = NaN;
-                            reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).number_of_saccades(trial_i)= NaN;                            
-                            reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).durations{trial_i}= NaN;                            
-                            reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).amplitudes{trial_i}= NaN;                            
-                            reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).directions{trial_i}= NaN;                            
-                            reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).onsets{trial_i}= NaN;                            
-                            reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).velocities{trial_i}= NaN;                            
-                            reformated_analysis_structs{subject_i}.(curr_subject_conds_names{cond_i}).was_trial_rejected(trial_i) = true;
+                            reformated_analysis_structs{subject_i}.saccades.(cond).logical_onsets_mat(trial_i, :) = NaN;
+                            reformated_analysis_structs{subject_i}.saccades.(cond).number_of_saccades(trial_i)= NaN;                            
+                            reformated_analysis_structs{subject_i}.saccades.(cond).durations{trial_i}= NaN;                            
+                            reformated_analysis_structs{subject_i}.saccades.(cond).amplitudes{trial_i}= NaN;                            
+                            reformated_analysis_structs{subject_i}.saccades.(cond).directions{trial_i}= NaN;                            
+                            reformated_analysis_structs{subject_i}.saccades.(cond).onsets{trial_i}= NaN;                            
+                            reformated_analysis_structs{subject_i}.saccades.(cond).velocities{trial_i}= NaN;                            
+                            reformated_analysis_structs{subject_i}.eyeballing_stats.(cond).was_trial_rejected(trial_i) = true;                            
+                            reformated_analysis_structs{subject_i}.fixations.(cond).onsets{trial_i} = NaN;
+                            reformated_analysis_structs{subject_i}.fixations.(cond).coordinates_left{trial_i} = NaN;
+                            reformated_analysis_structs{subject_i}.fixations.(cond).coordinates_right{trial_i} = NaN;
+                            reformated_analysis_structs{subject_i}.fixations.(cond).durations{trial_i} = NaN;                                                        
                         end
                     end
                 end                                
@@ -2087,7 +2162,7 @@ set(gui, 'Visible', 'on');
         for value_idx = 1:numel(values)
             values_str = [values_str, values{value_idx}];
             if value_idx < numel(values)
-                values_str = [values_str, ' '];
+                values_str = [values_str, TRIGGERS_XML_DELIMITER];
             end
         end
         xml_dom.getElementsByTagName(xml_node_name).item(0).setTextContent(values_str);
@@ -2096,7 +2171,7 @@ set(gui, 'Visible', 'on');
     function val = getXmlNodeValuesVector(xml_dom, xml_node_name)
         val = char(xml_dom.getElementsByTagName(xml_node_name).item(0).getTextContent);
         if ~isempty(val)
-            val = strsplit(val);
+            val = strsplit(val, TRIGGERS_XML_DELIMITER);
         else
             val = {};
         end
