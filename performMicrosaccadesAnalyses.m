@@ -6,11 +6,7 @@
 %   n-> number of trials),  amplitudes (under construction), directions
 %   (current structure -> just a simple array of the saccades directions
 % //////////////////////////////////////////////////////////////////////////
-function [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(analysis_struct, exe_plot_curves, analyses, baseline, smoothing_window_len, trial_duration, progress_screen, progress_contribution)
-    CURVES_COLORS= [1.0, 0.0, .0;  0.0, 1.0, 0.0;  0.0, 0.0, 1.0;  0.1, 0.1, 0.1;
-        1.0, 1.0, 0.0;  1.0, 0.0, 1.0;  1, 0.7333, 0.0;  0.0, 1.0, 1.0;
-        0.4, 0.8, 0.1;  0.4, 0.1, 0.8;  0.8, 0.4, 0.1;  0.8, 0.1, 0.4];   
-    
+function [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(analysis_struct, exe_plot_curves, analyses, baseline, smoothing_window_len, trial_duration, progress_screen, progress_contribution)                        
     screen_size= get(0,'monitorpositions');    
     if any(screen_size(1,:)<0)
         screen_size= get(0,'ScreenSize');
@@ -28,6 +24,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
         if ~isempty(analysis_struct{subject_i}.saccades)
             conds_names= fieldnames(analysis_struct{subject_i}.saccades);
             conds_nr= numel(conds_names);
+            curves_colors = hsv2rgb([linspace(0, (conds_nr - 1)/conds_nr, conds_nr); ones(1,conds_nr); 0.5*ones(1,conds_nr)]');
             were_ever_triggers_found_on_any_subject = true;
             break;
         end
@@ -89,7 +86,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name',['microsaccades_rate - subject #', num2str(subject_i)],'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
             for cond_i= 1:conds_nr                
                 plot(((smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right)) - baseline, ...
-                       smoothed_microsaccadic_rate{cond_i}(subject_i,:), 'color', CURVES_COLORS(cond_i,:));
+                       smoothed_microsaccadic_rate{cond_i}(subject_i,:), 'color', curves_colors(cond_i,:));
                 analysis_struct_with_results.results_per_subject{subject_i}.saccades_analysis.saccadic_rate.(conds_names{cond_i})= smoothed_microsaccadic_rate{cond_i}(subject_i,:); 
                 hold('on');
             end
@@ -101,7 +98,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
 %             subjects_figs{1,curr_created_plots_nr,subject_i}= ['microsaccades_number_',num2str(subject_i)];
 %             subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name','microsaccades_number','NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
 %             for cond_i= 1:conds_nr                
-%                 stem(1:numel(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).number_of_saccades), analysis_struct{subject_i}.saccades.(conds_names{cond_i}).number_of_saccades', 'color', CURVES_COLORS(cond_i,:));                 
+%                 stem(1:numel(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).number_of_saccades), analysis_struct{subject_i}.saccades.(conds_names{cond_i}).number_of_saccades', 'color', curves_colors(cond_i,:));                 
 %                 hold('on');
 %             end
 %             legend(conds_names);                        
@@ -129,7 +126,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     continue;
                 end
                 polar_h= polar([analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}], amplitudes, '.');
-                set(polar_h, 'color', CURVES_COLORS(cond_i,:));
+                set(polar_h, 'color', curves_colors(cond_i,:));
                 hold('on');
             end
             if any(data_filled_conds_logical_vec)
@@ -179,7 +176,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     continue;
                 end
                 rose_h= rose(directions);
-                set(rose_h, 'color', CURVES_COLORS(cond_i,:));
+                set(rose_h, 'color', curves_colors(cond_i,:));
                 hold('on');
             end
             if any(data_filled_conds_logical_vec)                 
@@ -224,7 +221,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     continue;
                 end
                 plot_h= plot(amplitudes, velocities, '.', 'MarkerSize', 5);  %loglog
-                set(plot_h, 'color', CURVES_COLORS(cond_i,:));
+                set(plot_h, 'color', curves_colors(cond_i,:));
                 hold('on');
             end
             if any(data_filled_conds_logical_vec)                 
@@ -271,7 +268,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
         statistisized_figs{1,curr_created_plots_nr}= 'grand_average-microsaccades_rate';
         statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: microsaccades rate', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
         for cond_i= 1:conds_nr            
-            plot((1:size(smoothed_grand_microsaccadic_rate,2)) - baseline, smoothed_grand_microsaccadic_rate(cond_i,:), 'color', CURVES_COLORS(cond_i,:));
+            plot((1:size(smoothed_grand_microsaccadic_rate,2)) - baseline, smoothed_grand_microsaccadic_rate(cond_i,:), 'color', curves_colors(cond_i,:));
             analysis_struct_with_results.results_grand_total.saccades_analysis.saccadic_rate.(conds_names{cond_i})= smoothed_grand_microsaccadic_rate(cond_i,:);
             hold('on');
         end
@@ -306,7 +303,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                continue;
             end
             polar_h= polar(grand_directions{cond_i}, grand_amplitudes{cond_i}, '.');            
-            set(polar_h, 'color', CURVES_COLORS(cond_i,:));            
+            set(polar_h, 'color', curves_colors(cond_i,:));            
             hold('on');
         end        
         if any(data_filled_conds_logical_vec)                 
@@ -353,7 +350,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             end
             rose_h= rose(grand_directions{cond_i});
             hold('on');
-            set(rose_h, 'color', CURVES_COLORS(cond_i,:));
+            set(rose_h, 'color', curves_colors(cond_i,:));
         end
         if any(data_filled_conds_logical_vec)                 
             legend(conds_names{data_filled_conds_logical_vec});             
@@ -399,7 +396,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 continue;
             end
             plot_h= plot(grand_amplitudes{cond_i}, grand_velocities{cond_i}, '.', 'MarkerSize', 5); %loglog
-            set(plot_h, 'color', CURVES_COLORS(cond_i,:));
+            set(plot_h, 'color', curves_colors(cond_i,:));
             hold('on');           
         end
         if any(data_filled_conds_logical_vec)                 
