@@ -127,7 +127,7 @@ classdef EyeTrackerAnalysisRecord < handle
             end                         
         end                
                   
-        function was_previous_segmentization_loaded = segmentizeData(obj, progress_screen, progress_contribution, trial_onset_triggers, trial_offset_triggers, trial_rejection_triggers, baseline, post_offset_triggers_segment, trial_dur, blinks_delta)
+        function was_previous_segmentization_loaded = segmentizeData(obj, progress_screen, progress_contribution, trial_onset_triggers, trial_offset_triggers, trial_rejection_triggers, baseline, post_offset_triggers_segment, trial_dur, blinks_delta, blink_detection_algos_flags)
             segmentizations_nr= numel(obj.segmentization_vecs);             
             for segmentization_i= 1:segmentizations_nr
                 if isempty( setxor(obj.segmentization_vecs_index{segmentization_i, 1}, trial_onset_triggers) ) && ...
@@ -151,8 +151,16 @@ classdef EyeTrackerAnalysisRecord < handle
             for session_i= 1:sessions_nr
                 curr_session_eye_tracker_data_struct= obj.eye_tracker_data_structs{session_i};                                                               
                 progress_screen.displayMessage(['session #', num2str(session_i), ': indexing blinks']);
-                eyelink_based_blinks_vec = EyeTrackerAnalysisRecord.eyelinkBased_blinkdetection(curr_session_eye_tracker_data_struct, blinks_delta, progress_screen, 0.4*progress_contribution/sessions_nr);
-                pupils_based_blinks_vec = EyeTrackerAnalysisRecord.pupilBased_blinkdetection_twoEyes(curr_session_eye_tracker_data_struct.gazeRight.pupil, curr_session_eye_tracker_data_struct.gazeLeft.pupil, obj.sampling_rate, obj.PUPILS_BASED_BLINKS_DETECTION_STD, obj.PUPILS_BASED_BLINKS_DETECTION_CONSECUTIVE_SAMPLES, obj.PUPILS_BASED_BLINKS_DETECTION_TOLERANCE, blinks_delta, obj.PUPILS_BASED_BLINKS_DETECTION_MAX_SEG_TIME, progress_screen, 0.4*progress_contribution/sessions_nr);
+                if blink_detection_algos_flags(1)
+                    eyelink_based_blinks_vec = EyeTrackerAnalysisRecord.eyelinkBased_blinkdetection(curr_session_eye_tracker_data_struct, blinks_delta, progress_screen, 0.4*progress_contribution/sessions_nr);
+                else
+                    eyelink_based_blinks_vec = zeros(1, length(curr_session_eye_tracker_data_struct.gazeRight.time));
+                end
+                if blink_detection_algos_flags(2)
+                    pupils_based_blinks_vec = EyeTrackerAnalysisRecord.pupilBased_blinkdetection_twoEyes(curr_session_eye_tracker_data_struct.gazeRight.pupil, curr_session_eye_tracker_data_struct.gazeLeft.pupil, obj.sampling_rate, obj.PUPILS_BASED_BLINKS_DETECTION_STD, obj.PUPILS_BASED_BLINKS_DETECTION_CONSECUTIVE_SAMPLES, obj.PUPILS_BASED_BLINKS_DETECTION_TOLERANCE, blinks_delta, obj.PUPILS_BASED_BLINKS_DETECTION_MAX_SEG_TIME, progress_screen, 0.4*progress_contribution/sessions_nr);
+                else
+                    pupils_based_blinks_vec = zeros(1, length(curr_session_eye_tracker_data_struct.gazeRight.time));
+                end
                 obj.segmentization_vecs{segmentizations_nr+1}(session_i).blinks= eyelink_based_blinks_vec | pupils_based_blinks_vec;                
                 obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_start_times = [];
                 obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_end_times = [];
