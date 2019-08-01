@@ -411,7 +411,8 @@ classdef EyeTrackerAnalysisRecord < handle
             
             %merge sessions' structs  
             if were_triggers_ever_found
-                if sessions_nr > 1                    
+                if sessions_nr > 1  
+                    segmentized_data = [];
                     for merged_session_i= 1:sessions_nr 
                         if isempty(segmentized_data_unmerged{merged_session_i})
                             continue;
@@ -419,10 +420,12 @@ classdef EyeTrackerAnalysisRecord < handle
                         conds_names= fieldnames(obj.segmentization_vecs{obj.chosen_segmentization_i}(merged_session_i).trials_start_times);                             
                         for cond_i= 1:numel(conds_names)     
                             curr_merged_cond_name= conds_names{cond_i};
-                            segmentized_data.(curr_merged_cond_name)= [];                                                    
+                            if ~isfield(segmentized_data, curr_merged_cond_name)
+                                segmentized_data.(curr_merged_cond_name)= [];
+                            end
                             if ~isempty(segmentized_data_unmerged{merged_session_i}.(curr_merged_cond_name))
                                 segmentized_data.(curr_merged_cond_name)= ...
-                                    [segmentized_data.(curr_merged_cond_name), segmentized_data_unmerged{merged_session_i}.(curr_merged_cond_name)];                        
+                                    [segmentized_data.(curr_merged_cond_name), segmentized_data_unmerged{merged_session_i}.(curr_merged_cond_name)];
                             end
                         end
                     end                                                  
