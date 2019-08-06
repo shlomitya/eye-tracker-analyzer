@@ -91,6 +91,7 @@ classdef Eyeballer < handle
             obj.original_saccades_data= saccades_data;
             obj.eyeballing_altered_saccades_data= cell(1, subjects_nr);               
             obj.rejection_texts = cell(1, subjects_nr);
+            trials_nr_tot = 0;
             for subject_i= 1:subjects_nr
                 curr_subject_conds_names= fieldnames(raw_eye_data{subject_i});
                 curr_subject_conds_nr= numel(curr_subject_conds_names);                               
@@ -136,16 +137,20 @@ classdef Eyeballer < handle
                         trial_dur_max = trial_dur;
                     end
                     obj.eyeballing_altered_saccades_data{subject_i}(trial_i).non_nan_times_logical_vec = double(obj.eye_data{subject_i}(trial_i).non_nan_times_logical_vec);                    
-                end                
+                end  
+                
+                trials_nr_tot = trials_nr_tot + curr_subject_trials_nr;
             end
             
-            data_ranges = [];
+            data_ranges = NaN(1, trials_nr_tot);
+            trials_it = 1;
             for subject_i= 1:subjects_nr
                 for trial_i = 1:numel(obj.eye_data{subject_i})
-                    data_ranges = [data_ranges, max([abs(obj.eye_data{subject_i}(trial_i).left_x), ...
-                                                     abs(obj.eye_data{subject_i}(trial_i).left_y), ...
-                                                     abs(obj.eye_data{subject_i}(trial_i).right_x), ...
-                                                     abs(obj.eye_data{subject_i}(trial_i).right_y)])];
+                    data_ranges(trials_it) = max([abs(obj.eye_data{subject_i}(trial_i).left_x), ...
+                                                  abs(obj.eye_data{subject_i}(trial_i).left_y), ...
+                                                  abs(obj.eye_data{subject_i}(trial_i).right_x), ...
+                                                  abs(obj.eye_data{subject_i}(trial_i).right_y)]);
+                    trials_it = trials_it + 1;
                 end
             end
                 
@@ -1079,6 +1084,7 @@ classdef Eyeballer < handle
             obj.user_redo_stack= [obj.user_redo_stack, {[action_to_perform_on_redo, obj.user_undo_stack{end}(2:end)]}];
             obj.user_undo_stack= obj.user_undo_stack(1:end-1);                        
             obj.centerAxesViewOnTime( round((concerned_saccade_onset_of_the_undo+concerned_saccade_offset_of_the_undo)/2) );                        
+            obj.is_session_saved = false;
         end
                 
         function redoPressedCallback(obj, ~, ~)            
@@ -1144,6 +1150,7 @@ classdef Eyeballer < handle
             obj.user_undo_stack= [obj.user_undo_stack, {[action_to_perform_on_undo, obj.user_redo_stack{end}(2:end)]}];            
             obj.user_redo_stack= obj.user_redo_stack(1:end-1);                                                            
             obj.centerAxesViewOnTime( round((concerned_saccade_onset_of_the_redo+concerned_saccade_offset_of_the_redo)/2) );                        
+            obj.is_session_saved = false;
         end
         
         function cleared_data= clearSaccadeData(obj, saccade_i)
@@ -1169,14 +1176,17 @@ classdef Eyeballer < handle
             disp('Saving...');
             [saccades_data, ~]= obj.getSaccadesStruct();
             addpath(fullfile(pwd, 'CaptionlessWindow'));
-            plsWaitFigSz = [obj.main_fig_pos(3)/6, obj.main_fig_pos(4)/24];
-            plsWaitFig = figure('menubar', 'none', 'toolbar', 'none', 'windowstyle', 'modal', ...
-                                'position', [obj.main_fig_pos(1) + 0.5*(obj.main_fig_pos(3) - plsWaitFigSz(1)), ...
-                                             obj.main_fig_pos(2) + 0.5*(obj.main_fig_pos(4) - plsWaitFigSz(2)), ...
+            main_fig_pos_curr = get(obj.fig, 'position');
+            plsWaitFigSz = [main_fig_pos_curr(3)/3, main_fig_pos_curr(4)/12];            
+            plsWaitFig = figure('menubar', 'none', 'toolbar', 'none', 'numbertitle', 'off', 'Resize','off', 'windowstyle', 'modal', ...
+                                'position', [main_fig_pos_curr(1) + 0.5*(main_fig_pos_curr(3) - plsWaitFigSz(1)), ...
+                                             main_fig_pos_curr(2) + 0.5*(main_fig_pos_curr(4) - plsWaitFigSz(2)), ...
                                              plsWaitFigSz(1), plsWaitFigSz(2)], ...
-                                'Color', [1,1,1]); 
-            cd('CaptionlessWindow');
-            removeFigCaption(plsWaitFig); 
+                                'Color', [0.5, 0.5, 0.5]); 
+            axes('XLim', [-1,1], 'YLim', [-1,1], 'Color', [0.5, 0.5, 0.5], 'XColor', [0.5, 0.5, 0.5], 'YColor', [0.5, 0.5, 0.5]);
+            text(-0.45, -0.15, 'Saving. Please Wait...');
+            cd('WindowAPI');
+            WindowAPI(plsWaitFig, 'Clip', true); 
             cd('..');
             uicontrol(plsWaitFig, 'Style', 'text', 'units', 'normalized', ...
                 'String', 'Saving. Please Wait...', ...
@@ -1210,10 +1220,11 @@ classdef Eyeballer < handle
         end 
                               
         function autoExtractSaccadesWithNewParamsPressedCallback(obj, ~, ~)
-            auto_extraction_params_fig_width= 0.7*obj.main_fig_pos(3);
-            auto_extraction_params_fig_height= 0.5*obj.main_fig_pos(4);
-            auto_extraction_params_fig_pos_x= obj.main_fig_pos(1)+0.5*(obj.main_fig_pos(3)-auto_extraction_params_fig_width);
-            auto_extraction_params_fig_pos_y= obj.main_fig_pos(2)+0.5*(obj.main_fig_pos(4)-auto_extraction_params_fig_height);
+            main_fig_pos_curr = get(obj.fig, 'position');
+            auto_extraction_params_fig_width= 0.7*main_fig_pos_curr(3);
+            auto_extraction_params_fig_height= 0.5*main_fig_pos_curr(4);
+            auto_extraction_params_fig_pos_x= main_fig_pos_curr(1)+0.5*(main_fig_pos_curr(3)-auto_extraction_params_fig_width);
+            auto_extraction_params_fig_pos_y= main_fig_pos_curr(2)+0.5*(main_fig_pos_curr(4)-auto_extraction_params_fig_height);
             auto_extraction_params_fig_pos= [auto_extraction_params_fig_pos_x, auto_extraction_params_fig_pos_y, ...
                                             auto_extraction_params_fig_width, auto_extraction_params_fig_height];                                        
             obj.auto_extraction_params_fig= figure('Visible', 'off', 'name', obj.AUTO_EXTRACTION_PARAMS_FIG_TITLE, 'NumberTitle', 'off', 'units', 'pixels', 'Position', auto_extraction_params_fig_pos, ...
@@ -1524,7 +1535,7 @@ classdef Eyeballer < handle
                 obj.rejection_texts{obj.curr_subject}{obj.curr_trial} = [text(sum(get(obj.eyes_x_coords_axes, 'XLim'))/2, sum(get(obj.eyes_x_coords_axes, 'YLim'))/2, 'REJECTED', 'parent', obj.eyes_x_coords_axes, 'Color', [1, 0, 0], 'FontSize', 20), ...
                                                                          text(sum(get(obj.eyes_y_coords_axes, 'XLim'))/2, sum(get(obj.eyes_y_coords_axes, 'YLim'))/2, 'REJECTED', 'parent', obj.eyes_y_coords_axes, 'Color', [1, 0, 0], 'FontSize', 20)];            
             end
-                
+            obj.is_session_saved = false;   
         end
             
         function displayMsg(obj, msg)
