@@ -18,8 +18,7 @@ classdef EyeTrackerAnalysisRecord < handle
         segmentization_vecs_index= {};
         segmentization_vecs= {};
         saccades_extractors_data= {};
-        chosen_segmentization_i= 0;
-        progress_screen;  
+        chosen_segmentization_i= 0;       
         dpp = [];
         sampling_rate = [];
     end
@@ -342,7 +341,7 @@ classdef EyeTrackerAnalysisRecord < handle
             end                                
         end
         
-        function segmentized_data= getSegmentizedData(obj, filter_bandpass)
+        function segmentized_data= getSegmentizedData(obj, progress_screen, progress_contribution, filter_bandpass)
             segmentized_data = [];
             if obj.chosen_segmentization_i==0
                 error('EyeTrackerAnalysisRecord:noSegmentizationChosen', 'must call segmentizeData() prior to getSegmentizedData() so segmentized data would be chosen/created');                
@@ -359,14 +358,15 @@ classdef EyeTrackerAnalysisRecord < handle
                 end
                 curr_session_segmentization_vecs_struct= obj.segmentization_vecs{obj.chosen_segmentization_i}(session_i);
                 curr_session_eye_tracker_data_struct= EyeTrackerAnalysisRecord.filterEyeData(obj.eye_tracker_data_structs{session_i}, filter_bandpass, obj.sampling_rate);
-                conds_names= fieldnames(curr_session_segmentization_vecs_struct.trials_start_times);                
+                conds_names= fieldnames(curr_session_segmentization_vecs_struct.trials_start_times);                                                 
                 for cond_name_i= 1:numel(conds_names)
                     curr_cond_name= conds_names{cond_name_i}; 
                     trials_nr= numel(curr_session_segmentization_vecs_struct.trials_start_times.(curr_cond_name));
                     if trials_nr==0
                         segmentized_data_unmerged{session_i}.(curr_cond_name)= [];
-                    else
+                    else                        
                         for trial_i= 1:trials_nr
+                            tic;
                             indStart= curr_session_segmentization_vecs_struct.trials_start_times.(curr_cond_name)(trial_i);
                             if isnan(indStart)
                                 segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).onset_from_session_start= [];
@@ -403,9 +403,11 @@ classdef EyeTrackerAnalysisRecord < handle
                                 segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).gazeRight.x= curr_session_eye_tracker_data_struct.gazeRight.x(indStart:indEnd);
                                 segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).gazeRight.y= curr_session_eye_tracker_data_struct.gazeRight.y(indStart:indEnd);
                                 segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).gazeRight.pupil= curr_session_eye_tracker_data_struct.gazeRight.pupil(indStart:indEnd);
-                            end
+                            end                        
                         end
                     end
+                    
+                    progress_screen.addProgress(progress_contribution / (numel(conds_names) * sessions_nr));
                 end
             end
             

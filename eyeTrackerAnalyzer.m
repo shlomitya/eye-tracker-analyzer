@@ -1255,7 +1255,7 @@ set(gui, 'Visible', 'on');
             ENGBERT_ALGORITHM_DEFAULTS.frequency_max, ...
             ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass, ...
             PERFORM_EYEBALLING, EYEBALLER_DISPLAY_RANGE, BASELINE, ...
-            get(load_etas_for_analysis_display_pane, 'string'), 0.15, progress_screen);                   
+            get(load_etas_for_analysis_display_pane, 'string'), 0.5, progress_screen);                   
         was_trigger_ever_found_for_any_subject = false;
         for subject_idx = 1:numel(saccades_analysis_structs)
             if ~isempty(saccades_analysis_structs{subject_idx})
@@ -1267,18 +1267,18 @@ set(gui, 'Visible', 'on');
             subjects_figs = [];
             statistisized_figs = [];
             analysis_struct_with_results = [];
-            progress_screen.addProgress(0.85);
+            progress_screen.addProgress(0.5);
             return;
         end
                                
-        fixations_analysis_struct = computeFixations(subjects_etas, 0.05, progress_screen); 
+        fixations_analysis_struct = computeFixations(subjects_etas, 0.1, progress_screen); 
         
         progress_screen.giveFocus();  
         progress_screen.displayMessage('saving updated eeg files');
-        saveUpdatedEegStructs(0.6, progress_screen);
+        saveUpdatedEegStructs(0.1, progress_screen);
         progress_screen.displayMessage('generating analyses plots');
         reformated_analysis_structs= reformatAnalysisStruct();
-        [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(reformated_analysis_structs, EXE_PLOT_CURVES, [MICROSACCADES_ANALYSIS_PARAMETERS.rate, MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence], BASELINE, MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len, TRIAL_DURATION, progress_screen, 0.2);                        
+        [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(reformated_analysis_structs, EXE_PLOT_CURVES, [MICROSACCADES_ANALYSIS_PARAMETERS.rate, MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence], BASELINE, MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len, TRIAL_DURATION, progress_screen, 0.25);                        
         analysis_struct_with_results.saccades_analsysis_parameters = ENGBERT_ALGORITHM_DEFAULTS;
                 
         function fixations_analysis_struct = computeFixations(subjects_etas, progress_contribution, progress_screen)
@@ -1515,7 +1515,7 @@ set(gui, 'Visible', 'on');
             close(MICROSACCADES_PARAMETERS_FIG);
         end
                         
-        MICROSACCADES_PARAMETERS_FIG= figure('Visible', 'on', 'name', 'Microsaccades Analysis Parameters', 'NumberTitle', 'off', 'units', 'pixels', ...
+        MICROSACCADES_PARAMETERS_FIG= figure('Visible', 'on', 'name', 'Eye Movements Analysis Parameters', 'NumberTitle', 'off', 'units', 'pixels', ...
             'Position', [main_figure_positions(1:2)+0.25*main_figure_positions(3:4), 0.9*main_figure_positions(3), 0.75*main_figure_positions(4)], ...
             'MenuBar', 'none', ... 
             'DeleteFcn', @microsaccadesParametersFigCloseCallback, ...

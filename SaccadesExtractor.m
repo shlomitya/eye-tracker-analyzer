@@ -62,8 +62,9 @@ classdef SaccadesExtractor < handle
             was_new_extraction_requested_by_eyeballer= false;
             while is_extraction_go    
                 %preliminary .eta work
+                progress_screen.updateProgress(0);
                 for subject_i= 1:obj.subjects_nr
-                    subjects_data_structs{subject_i}= obj.subjects_etas{subject_i}.getSegmentizedData(curr_requested_low_pass_filter);                
+                    subjects_data_structs{subject_i}= obj.subjects_etas{subject_i}.getSegmentizedData(progress_screen, 0.8*progress_contribution, curr_requested_low_pass_filter);                
                     previous_saccades_analysis= obj.subjects_etas{subject_i}.loadSaccadesAnalysis();
                     if ~isempty(previous_saccades_analysis)
                         if perform_eyeballing
@@ -75,17 +76,16 @@ classdef SaccadesExtractor < handle
                         eye_data_struct{subject_i}= previous_saccades_analysis.eye_data_struct;  
                     end
                 end
-
-                progress_screen.updateProgress(0);
+                
                 for subject_i= 1:obj.subjects_nr                    
                     if ~was_new_extraction_requested_by_eyeballer && ~isempty(saccades_struct{subject_i})    
-                        progress_screen.addProgress(progress_contribution/obj.subjects_nr);
+                        progress_screen.addProgress(0.2*progress_contribution/obj.subjects_nr);
                         continue;
                     end
                     
                     curr_subject_data_struct= subjects_data_structs{subject_i};
                     if isempty(curr_subject_data_struct)
-                        progress_screen.addProgress(progress_contribution/obj.subjects_nr);
+                        progress_screen.addProgress(0.2*progress_contribution/obj.subjects_nr);
                         continue;
                     end
                     conds_names= fieldnames(curr_subject_data_struct);                    
@@ -343,7 +343,7 @@ classdef SaccadesExtractor < handle
                         end                                                                          
                     end    
                     
-                    progress_screen.addProgress(progress_contribution/obj.subjects_nr);
+                    progress_screen.addProgress(0.2*progress_contribution/obj.subjects_nr);
                 end                                                                                                
                      
                 was_any_trigger_ever_found = false;
