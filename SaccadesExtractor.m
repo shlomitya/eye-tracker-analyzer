@@ -64,7 +64,7 @@ classdef SaccadesExtractor < handle
                 %preliminary .eta work
                 progress_screen.updateProgress(0);
                 for subject_i= 1:obj.subjects_nr
-                    subjects_data_structs{subject_i}= obj.subjects_etas{subject_i}.getSegmentizedData(progress_screen, 0.8*progress_contribution, curr_requested_low_pass_filter);                
+                    subjects_data_structs{subject_i}= obj.subjects_etas{subject_i}.getSegmentizedData(progress_screen, 0.8*progress_contribution/obj.subjects_nr, curr_requested_low_pass_filter);                
                     previous_saccades_analysis= obj.subjects_etas{subject_i}.loadSaccadesAnalysis();
                     if ~isempty(previous_saccades_analysis)
                         if perform_eyeballing
