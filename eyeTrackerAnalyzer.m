@@ -18,6 +18,8 @@ MICROSACCADES_ANALYSIS_PLOT_RATE_XML_NODE_NAME = 'PLOT_RATE';
 MICROSACCADES_ANALYSIS_PLOT_AMPS_XML_NODE_NAME = 'PLOT_AMPS';
 MICROSACCADES_ANALYSIS_PLOT_DIRECTIONS_XML_NODE_NAME = 'PLOT_DIRECTIONS';
 MICROSACCADES_ANALYSIS_PLOT_MAIN_SEQ_XML_NODE_NAME = 'PLOT_MAIN_SEQ';
+MICROSACCADES_ANALYSIS_GEN_SINGLE_GRAPHS_XML_NODE_NAME = 'GEN_SINGLE_GRAPHS';
+MICROSACCADES_ANALYSIS_GEN_GROUP_GRAPHS_SEQ_XML_NODE_NAME = 'GEN_GROUP_GRAPHS';
 MICROSACCADES_ANALYSIS_SMOOTHING_WINDOW_LEN_XML_NODE_NAME = 'SMOOTHING_WINDOW_LEN';
 MICROSACCADES_ANALYSIS_BLINKS_DELTA_XML_NODE_NAME = 'BLINKS_DELTA';
 MICROSACCADES_ANALYSIS_BDAF_XML_NODE_NAME = 'BLINKS_DETECTION_ALGOS_FLAG';
@@ -34,7 +36,7 @@ DPP= 1/60;
 EXE_PLOT_CURVES= false;
 MAX_SUBJECTS_NR_FOR_ETAS_CREATION= 10;
 
-MAIN_FIGURE_TITLE= 'Eye Tracker Analyzer';
+MAIN_FIGURE_TITLE= 'Eye Data Analyzer';
 TRIAL_ONSET_TRIGGERS= [];
 TRIAL_OFFSET_TRIGGERS = [];
 TRIAL_REJECTION_TRIGGERS = [];
@@ -71,6 +73,8 @@ MICROSACCADES_ANALYSIS_PARAMETERS.rate= 1;
 MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes= 1;
 MICROSACCADES_ANALYSIS_PARAMETERS.directions= 1;
 MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence= 1;
+MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs = 1;
+MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs = 1;
 MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len= 50;
 MICROSACCADES_ANALYSIS_PARAMETERS.blinks_delta= 200;
 MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags = [1,0];
@@ -309,11 +313,11 @@ save_file_folder_etext= uicontrol(analyze_microsaccades_panel, 'Style', 'edit', 
     'enable', 'inactive', 'Position', [0.26532      0.4865      0.4900     0.0316]);
 
 %RUN ANALYSES UICONTROLS
-uicontrol(analyze_microsaccades_panel, 'Style', 'checkbox', 'tag', 'c14', 'units', 'normalized', ...
-    'FontSize', 12.0, 'String', 'Show Resulting Figures', 'Position', [0.0354    0.0347    0.2074    0.0269], ...
-    'BackgroundColor', GUI_BACKGROUND_COLOR, ...
-    'value', EXE_PLOT_CURVES, ...
-    'callback', {@plotCurvesToggledCallback});
+% uicontrol(analyze_microsaccades_panel, 'Style', 'checkbox', 'tag', 'c14', 'units', 'normalized', ...
+%     'FontSize', 12.0, 'String', 'Show Resulting Figures', 'Position', [0.0354    0.0347    0.2074    0.0269], ...
+%     'BackgroundColor', GUI_BACKGROUND_COLOR, ...
+%     'value', EXE_PLOT_CURVES, ...
+%     'callback', {@plotCurvesToggledCallback});
 
 uicontrol(analyze_microsaccades_panel, 'Style', 'pushbutton', 'tag', 'msb', 'units', 'normalized', ...
     'String', 'Analyze Movements', ...
@@ -892,6 +896,8 @@ set(gui, 'Visible', 'on');
             createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_PLOT_AMPS_XML_NODE_NAME);
             createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_PLOT_DIRECTIONS_XML_NODE_NAME);
             createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_PLOT_MAIN_SEQ_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_GEN_SINGLE_GRAPHS_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_GEN_GROUP_GRAPHS_SEQ_XML_NODE_NAME);
             createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_SMOOTHING_WINDOW_LEN_XML_NODE_NAME);
             createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_BLINKS_DELTA_XML_NODE_NAME);
             createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_BDAF_XML_NODE_NAME);            
@@ -903,10 +909,13 @@ set(gui, 'Visible', 'on');
             createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_FREQ_MAX_XML_NODE_NAME);
             createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_FILTER_BANDPASS_XML_NODE_NAME);            
         %end        
+        
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_RATE_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.rate));
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_AMPS_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes));
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_DIRECTIONS_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.directions));
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_MAIN_SEQ_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_GEN_SINGLE_GRAPHS_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_GEN_GROUP_GRAPHS_SEQ_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs));
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SMOOTHING_WINDOW_LEN_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len));
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_BLINKS_DELTA_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.blinks_delta));
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_BDAF_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags));
@@ -960,22 +969,24 @@ set(gui, 'Visible', 'on');
             TRIAL_DURATION = [];
         end
         
-        %if ~isempty(xml_dom.getElementsByTagName(MICROSACCADES_ANALYSIS_PARAMS_NODE_NAME).item(0))                            
-            MICROSACCADES_ANALYSIS_PARAMETERS.rate = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_RATE_XML_NODE_NAME));            
-            MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_AMPS_XML_NODE_NAME));
-            MICROSACCADES_ANALYSIS_PARAMETERS.directions = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_DIRECTIONS_XML_NODE_NAME));
-            MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_MAIN_SEQ_XML_NODE_NAME));
-            MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SMOOTHING_WINDOW_LEN_XML_NODE_NAME));            
-            MICROSACCADES_ANALYSIS_PARAMETERS.blinks_delta = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_BLINKS_DELTA_XML_NODE_NAME));
-            MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_BDAF_XML_NODE_NAME));
-            ENGBERT_ALGORITHM_DEFAULTS.amp_lim= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LIM_XML_NODE_NAME));
-            ENGBERT_ALGORITHM_DEFAULTS.amp_low_lim = str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LOW_LIM_XML_NODE_NAME));
-            ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_VEC_TYPE_XML_NODE_NAME));
-            ENGBERT_ALGORITHM_DEFAULTS.vel_threshold= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_THRESHOLD_XML_NODE_NAME));
-            ENGBERT_ALGORITHM_DEFAULTS.saccade_dur_min= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SACCADE_DUR_MIN_XML_NODE_NAME));
-            ENGBERT_ALGORITHM_DEFAULTS.frequency_max= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FREQ_MAX_XML_NODE_NAME));
-            ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass= str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FILTER_BANDPASS_XML_NODE_NAME));                                    
-        %end
+        % load values to saccades analysis menu
+        MICROSACCADES_ANALYSIS_PARAMETERS.rate = valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_RATE_XML_NODE_NAME)), MICROSACCADES_ANALYSIS_PARAMETERS.rate);
+        MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes = valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_AMPS_XML_NODE_NAME)), MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes);
+        MICROSACCADES_ANALYSIS_PARAMETERS.directions = valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_DIRECTIONS_XML_NODE_NAME)), MICROSACCADES_ANALYSIS_PARAMETERS.directions);
+        MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence = valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_MAIN_SEQ_XML_NODE_NAME)), MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence);
+        MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs = valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_GEN_SINGLE_GRAPHS_XML_NODE_NAME)), MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs);
+        MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs = valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_GEN_GROUP_GRAPHS_SEQ_XML_NODE_NAME)), MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs);
+        MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len = valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SMOOTHING_WINDOW_LEN_XML_NODE_NAME)), MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len);
+        MICROSACCADES_ANALYSIS_PARAMETERS.blinks_delta = valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_BLINKS_DELTA_XML_NODE_NAME)), MICROSACCADES_ANALYSIS_PARAMETERS.blinks_delta);
+        MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags = valIfValidDefaultIfNaN(str2num(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_BDAF_XML_NODE_NAME)), MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags);
+        ENGBERT_ALGORITHM_DEFAULTS.amp_lim= valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LIM_XML_NODE_NAME)), ENGBERT_ALGORITHM_DEFAULTS.amp_lim);
+        ENGBERT_ALGORITHM_DEFAULTS.amp_low_lim = valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LOW_LIM_XML_NODE_NAME)), ENGBERT_ALGORITHM_DEFAULTS.amp_low_lim);
+        ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type= valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_VEC_TYPE_XML_NODE_NAME)), ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type);
+        ENGBERT_ALGORITHM_DEFAULTS.vel_threshold= valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_THRESHOLD_XML_NODE_NAME)), ENGBERT_ALGORITHM_DEFAULTS.vel_threshold);
+        ENGBERT_ALGORITHM_DEFAULTS.saccade_dur_min= valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SACCADE_DUR_MIN_XML_NODE_NAME)), ENGBERT_ALGORITHM_DEFAULTS.saccade_dur_min);
+        ENGBERT_ALGORITHM_DEFAULTS.frequency_max= valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FREQ_MAX_XML_NODE_NAME)), ENGBERT_ALGORITHM_DEFAULTS.frequency_max);
+        ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass= valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FILTER_BANDPASS_XML_NODE_NAME)), ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass);
+        
         if ~isempty(MICROSACCADES_PARAMETERS_FIG) && isobject(MICROSACCADES_PARAMETERS_FIG)            
             set(findobj('tag', 'c203'), 'string', num2str(ENGBERT_ALGORITHM_DEFAULTS.amp_lim));
             set(findobj('tag', 'c501'), 'string', num2str(ENGBERT_ALGORITHM_DEFAULTS.amp_low_lim));
@@ -985,16 +996,26 @@ set(gui, 'Visible', 'on');
             set(findobj('tag', 'c8152'), 'Value', ~MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags(1));
             set(findobj('tag', 'c8153'), 'Value', all(MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags));            
             set(findobj('tag', 'c205'), 'string', num2str(ENGBERT_ALGORITHM_DEFAULTS.vel_threshold));
-            set(findobj('tag', 'c206'), 'string', num2str(MICROSACCADES_ANALYSIS_PARAMETERS.rate));
+            set(findobj('tag', 'c206'), 'Value', num2str(MICROSACCADES_ANALYSIS_PARAMETERS.rate));
             set(findobj('tag', 'c2062'), 'string', num2str(MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len));
             set(findobj('tag', 'c207'), 'Value', MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes);
             set(findobj('tag', 'c208'), 'Value', MICROSACCADES_ANALYSIS_PARAMETERS.directions);
             set(findobj('tag', 'c400'), 'Value', MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence);
-            set(findobj('tag', 'c209'), 'Value', MICROSACCADES_ANALYSIS_PARAMETERS.PERFORM_EYEBALLING);
+            set(findobj('tag', 'c230'), 'Value', MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs);
+            set(findobj('tag', 'c231'), 'Value', MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs);
+            set(findobj('tag', 'c209'), 'Value', PERFORM_EYEBALLING);
             set(findobj('tag', 'c211'), 'string', num2str(ENGBERT_ALGORITHM_DEFAULTS.saccade_dur_min));
             set(findobj('tag', 'c213'), 'string', num2str(ENGBERT_ALGORITHM_DEFAULTS.frequency_max));
             set(findobj('tag', 'c215'), 'string', num2str(ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass));
             set(findobj('tag', 'c217'), 'string', num2str(EYEBALLER_DISPLAY_RANGE));
+        end
+        
+        function res = valIfValidDefaultIfNaN(val, default)
+            if ~isnan(val)
+                res = val;
+            else
+                res = default;
+            end
         end
     end
 
@@ -1047,33 +1068,54 @@ set(gui, 'Visible', 'on');
                 progress_screen.displayMessage('Done.');
                 return;
             end            
-            save(fullfile(ANALYSIS_RESULTS_FILE_DESTINATION,'analysis_struct.mat'), 'analysis_struct');
-                        
-            subjects_figs_nr= size(subjects_figs,2)*size(subjects_figs,3);
-            if subjects_figs_nr == 0
-                progress_screen.addProgress(1);  
-                progress_screen.displayMessage('Done.');
-                return;
-            end            
-            for subject_fig_i= 1:size(subjects_figs,2)
-                progress_screen.displayMessage(['saving figures for variable #', num2str(subject_fig_i)]);
-                for subject_i= 1:size(subjects_figs,3)                               
-                    set(subjects_figs{2,subject_fig_i,subject_i}, 'CreateFcn', 'set(gcbo,''Visible'',''on'')'); 
-                    savefig(subjects_figs{2,subject_fig_i,subject_i},fullfile(ANALYSIS_RESULTS_FILE_DESTINATION,subjects_figs{1,subject_fig_i,subject_i}));                                           
-                    progress_screen.addProgress(0.65/subjects_figs_nr);    
-                end           
+            save(fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, 'analysis_struct.mat'), 'analysis_struct');
+                                  
+            subjects_nr_with_figs = size(subjects_figs,3);
+            figs_nr_per_subject = size(subjects_figs,2);
+            figs_nr= figs_nr_per_subject*subjects_nr_with_figs;
+            subject_figs_folders = cell(1, subjects_nr_with_figs);
+            for subject_i= 1:subjects_nr_with_figs
+                subject_figs_folders{subject_i} = fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, ['subject ', num2str(subject_i)]);
+                if exist(subject_figs_folders{subject_i}, 'dir')~=7
+                    mkdir(subject_figs_folders{subject_i});        
+                end
+            end
+            if figs_nr > 0  
+                progress_screen.displayMessage('saving per-subject figures');
+                for subject_fig_i= 1:figs_nr_per_subject
+                    if ~isempty(subjects_figs{2, subject_fig_i, 1})                                                
+                        for subject_i= 1:subjects_nr_with_figs                            
+                            set(subjects_figs{2,subject_fig_i,subject_i}, 'CreateFcn', 'set(gcbo,''Visible'',''on'')');                         
+                            savefig(subjects_figs{2, subject_fig_i, subject_i}, fullfile(subject_figs_folders{subject_i}, subjects_figs{1, subject_fig_i, subject_i}));                                                                       
+                            progress_screen.addProgress(0.65/figs_nr);    
+                        end   
+                    else
+                        progress_screen.addProgress(0.65/figs_nr_per_subject);    
+                    end
+                end
+            else
+                progress_screen.addProgress(0.65);                  
             end
             
-            statistisized_figs_nr= size(statistisized_figs,2);
-            for statistisized_fig_i=1:statistisized_figs_nr
-                if ~isempty(statistisized_figs)                    
-                    set(statistisized_figs{2,statistisized_fig_i}, 'CreateFcn', 'set(gcbo,''Visible'',''on'')'); 
-                    savefig(statistisized_figs{2,statistisized_fig_i}, fullfile(ANALYSIS_RESULTS_FILE_DESTINATION,statistisized_figs{1,statistisized_fig_i}));                                           
-                end
-                
-                progress_screen.addProgress(0.35/statistisized_figs_nr); 
+            statistisized_figs_nr= size(statistisized_figs,2);            
+            if statistisized_figs_nr > 0
+                progress_screen.displayMessage('saving group figures');
+                for statistisized_fig_i=1:statistisized_figs_nr
+                    if ~isempty(statistisized_figs{2,statistisized_fig_i})                                          
+                        set(statistisized_figs{2,statistisized_fig_i}, 'CreateFcn', 'set(gcbo,''Visible'',''on'')'); 
+                        statistisized_fig_folder = fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, 'grouped graphs');
+                        if exist(statistisized_fig_folder, 'dir')~=7
+                            mkdir(statistisized_fig_folder);        
+                        end
+                        savefig(statistisized_figs{2,statistisized_fig_i}, fullfile(statistisized_fig_folder, statistisized_figs{1,statistisized_fig_i}));                                                                                                           
+                    end
+                    
+                    progress_screen.addProgress(0.35/statistisized_figs_nr);
+                end                
+            else
+                progress_screen.addProgress(0.35);
             end
-
+            
             %profile viewer;
             progress_screen.displayMessage('Done.');
 %         catch exception
@@ -1271,18 +1313,18 @@ set(gui, 'Visible', 'on');
             return;
         end
                                
-        fixations_analysis_struct = computeFixations(subjects_etas, 0.1, progress_screen); 
+        fixations_analysis_struct = computeFixations(subjects_etas, 0.15, progress_screen); 
         
         progress_screen.giveFocus();  
         progress_screen.displayMessage('saving updated eeg files');
         saveUpdatedEegStructs(0.1, progress_screen);
         progress_screen.displayMessage('generating analyses plots');
-        reformated_analysis_structs= reformatAnalysisStruct();
-        [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(reformated_analysis_structs, EXE_PLOT_CURVES, [MICROSACCADES_ANALYSIS_PARAMETERS.rate, MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence], BASELINE, MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len, TRIAL_DURATION, progress_screen, 0.25);                        
+        reformated_analysis_structs= reformatAnalysisStruct();                    
+        [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(reformated_analysis_structs, EXE_PLOT_CURVES, [MICROSACCADES_ANALYSIS_PARAMETERS.rate, MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence, MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs, MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs], BASELINE, MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len, TRIAL_DURATION, progress_screen, 0.25);                        
         analysis_struct_with_results.saccades_analsysis_parameters = ENGBERT_ALGORITHM_DEFAULTS;
                 
         function fixations_analysis_struct = computeFixations(subjects_etas, progress_contribution, progress_screen)
-            progress_screen.displayMessage('extracting fixations');
+            progress_screen.displayMessage('computing fixations');
             fixations_analysis_struct = cell(1, subjects_nr);
             for subject_i = 1:subjects_nr                 
                 eye_data_struct = eye_data_structs{subject_i};
@@ -1564,8 +1606,8 @@ set(gui, 'Visible', 'on');
             'string', num2str(MICROSACCADES_ANALYSIS_PARAMETERS.blinks_delta), ...
             'callback', {@blinksDeltaEditedCallback});
                         
-        blinks_delta_algos_flags_combo_button_group= uibuttongroup('tag', 'c815', ...
-            'Position', [0.0206     0.7291    0.3011      0.1491], ...         
+        blinks_delta_algos_flags_combo_button_group= uibuttongroup(microsaccades_analysis_params_panel, 'tag', 'c815', ...
+            'Position', [0.0280     0.5972    0.3640      0.2139], ...         
             'UserData', MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags, ...                              
             'SelectionChangeFcn', {@blinksDeltaAlgosFlagsCombo}, ...
             'BackgroundColor', GUI_BACKGROUND_COLOR);
@@ -1615,41 +1657,73 @@ set(gui, 'Visible', 'on');
             'string', num2str(ENGBERT_ALGORITHM_DEFAULTS.vel_threshold), ...
             'callback', {@velThresholdEditedCallback});        
         
-        uicontrol(microsaccades_analysis_params_panel, 'Style', 'checkbox', 'tag', 'c206', 'units', 'normalized', ...
-            'FontSize', 10.0, 'String', 'Save Rate', 'Position', [0.0293     0.2310      0.1000      0.0925], ...
+        gen_single_graphs_checkbox = uicontrol(microsaccades_analysis_params_panel, 'Style', 'checkbox', 'tag', 'c230', 'units', 'normalized', ...
+            'FontSize', 10.0, 'String', 'Generate Single Graphs', 'Position', [0.3204    0.2328    0.2091    0.0923], ...
+            'BackgroundColor', GUI_BACKGROUND_COLOR, ...
+            'value', MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs, ... 
+            'callback', {@genSingleToggledCallback});
+        
+        if subjects_nr > 1
+            is_gen_group_graphs_enabled_str = 'on';                                     
+        else
+            is_gen_group_graphs_enabled_str = 'off';
+            MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs = 0;
+        end
+        
+        gen_group_graphs_checkbox = uicontrol(microsaccades_analysis_params_panel, 'Style', 'checkbox', 'tag', 'c231', 'units', 'normalized', ...
+            'FontSize', 10.0, 'String', 'Generate Group Graphs', 'Position', [0.3204    0.1634    0.2029    0.0923], ...
+            'BackgroundColor', GUI_BACKGROUND_COLOR, ...
+            'value', MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs, ... 
+            'Enable', is_gen_group_graphs_enabled_str, ... 
+            'callback', {@genGroupToggledCallback});     
+        
+        if MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs || MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs
+            are_save_graphs_enabled_str = 'on';                                     
+        else
+            are_save_graphs_enabled_str = 'off';
+        end
+      
+        save_rate_graphs_checkbox = uicontrol(microsaccades_analysis_params_panel, 'Style', 'checkbox', 'tag', 'c206', 'units', 'normalized', ...
+            'FontSize', 10.0, 'String', 'Save Rate Graphs', 'Position', [0.0305     0.2309      0.1719      0.0925], ...
             'BackgroundColor', GUI_BACKGROUND_COLOR, ...
             'value', MICROSACCADES_ANALYSIS_PARAMETERS.rate, ...
+            'Enable', are_save_graphs_enabled_str, ... 
             'callback', {@analyzeRateToggledCallback});
         
         smoothing_window_len_edit_text= uicontrol(microsaccades_analysis_params_panel, 'Style', 'text', 'tag', 'c2061', 'units', 'normalized', ...
             'String', 'smoothing window length for saccadic rate (ms)', ...
             'Position', [0.4382     0.8480      0.1740      0.1258], ...
             'FontSize', 10.0, ...
+            'Enable', are_save_graphs_enabled_str, ... 
             'BackgroundColor', GUI_BACKGROUND_COLOR);
         
         smoothing_window_len_edit= uicontrol(microsaccades_analysis_params_panel, 'Style', 'edit', 'tag', 'c2062', 'units', 'normalized', ...
             'Position', [0.6182    0.8553    0.0672    0.1018], ...
             'string', MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len, ...
+            'Enable', are_save_graphs_enabled_str, ... 
             'callback', {@smoothingWindowLenEditedCallback}); 
         
-        uicontrol(microsaccades_analysis_params_panel, 'Style', 'checkbox', 'tag', 'c207', 'units', 'normalized', ...
-            'FontSize', 10.0, 'String', 'Save Amplitudes', 'Position', [0.0305    0.1644    0.1583    0.0859], ...
+        save_amplitude_graphs_checkbox = uicontrol(microsaccades_analysis_params_panel, 'Style', 'checkbox', 'tag', 'c207', 'units', 'normalized', ...
+            'FontSize', 10.0, 'String', 'Save Amplitudes Graphs', 'Position', [0.0305    0.1644    0.21166840148698912    0.08589999999999998], ...
             'BackgroundColor', GUI_BACKGROUND_COLOR, ...
             'value', MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, ...
+            'Enable', are_save_graphs_enabled_str, ... 
             'callback', {@analyzeAmplitudesToggledCallback});
 
-        uicontrol(microsaccades_analysis_params_panel, 'Style', 'checkbox', 'tag', 'c208', 'units', 'normalized', ...
-            'FontSize', 10.0, 'String', 'Save Directions', 'Position', [0.0305    0.0941    0.1354    0.0924], ...
+        save_direction_graphs_checkbox = uicontrol(microsaccades_analysis_params_panel, 'Style', 'checkbox', 'tag', 'c208', 'units', 'normalized', ...
+            'FontSize', 10.0, 'String', 'Save Directions Graphs', 'Position', [0.0305    0.0893    0.2042    0.0924], ...
             'BackgroundColor', GUI_BACKGROUND_COLOR, ...
             'value', MICROSACCADES_ANALYSIS_PARAMETERS.directions, ... 
+            'Enable', are_save_graphs_enabled_str, ... 
             'callback', {@analyzeDirectionsToggledCallback});
         
-        uicontrol(microsaccades_analysis_params_panel, 'Style', 'checkbox', 'tag', 'c400', 'units', 'normalized', ...
-            'FontSize', 10.0, 'String', 'Save Main Sequence', 'Position', [0.0305    0.0517    0.1868    0.0415], ...
+        save_main_seq_graphs_checkbox = uicontrol(microsaccades_analysis_params_panel, 'Style', 'checkbox', 'tag', 'c400', 'units', 'normalized', ...
+            'FontSize', 10.0, 'String', 'Save Main Sequence Graphs', 'Position', [0.0305    0.0397    0.2513    0.0414], ...
             'BackgroundColor', GUI_BACKGROUND_COLOR, ...
-            'value', MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence, ... 
-            'callback', {@analyzeMainSeqToggledCallback});
-        
+            'value', MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence, ...
+            'Enable', are_save_graphs_enabled_str, ... 
+            'callback', {@analyzeMainSeqToggledCallback});                                          
+                        
         uicontrol(eyeballer_params_panel, 'Style', 'checkbox', 'tag', 'c209', 'units', 'normalized', ...
             'FontSize', 10.0, 'String', 'Perform Eyeballing', 'Position', [0.0849    0.9148    0.6938    0.0400], ...
             'BackgroundColor', GUI_BACKGROUND_COLOR, ...
@@ -1658,7 +1732,7 @@ set(gui, 'Visible', 'on');
         
         uicontrol(microsaccades_analysis_params_panel, 'Style', 'text', 'tag', 'c210', 'units', 'normalized', ...
             'String', 'minimum duration for a saccade (ms)', ...
-            'Position', [0.7286690470166154     0.45547307886672744      0.1474597273853785    0.0917], ...
+            'Position', [0.7286     0.4554      0.1474    0.0917], ...
             'FontSize', 10.0, ...
             'BackgroundColor', GUI_BACKGROUND_COLOR);
 
@@ -1718,7 +1792,7 @@ set(gui, 'Visible', 'on');
             'FontSize', 10.0, ...            
             'callback', {@doneEnteringMicrosaccadesAnalysisParametersBtnCallback});
 
-        uicontrol(MICROSACCADES_PARAMETERS_FIG, 'Style', 'pushbutton', 'tag', 'c217', 'units', 'normalized', ...
+        uicontrol(MICROSACCADES_PARAMETERS_FIG, 'Style', 'pushbutton', 'tag', 'c225', 'units', 'normalized', ...
             'String', 'Cancel', ...
             'Position', [0.525      0.0796      0.2457      0.1965], ...    
             'FontSize', 10.0, ...
@@ -1767,32 +1841,104 @@ set(gui, 'Visible', 'on');
             end
         end        
         
+        function genSingleToggledCallback(hObject, ~)            
+            MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs= get(hObject,'value');
+            if MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs || MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs
+                set(save_rate_graphs_checkbox, 'Enable', 'on');
+                set(smoothing_window_len_edit_text, 'Enable', 'on');
+                set(smoothing_window_len_edit, 'Enable', 'on');
+                set(save_amplitude_graphs_checkbox, 'Enable', 'on');
+                set(save_direction_graphs_checkbox, 'Enable', 'on');
+                set(save_main_seq_graphs_checkbox, 'Enable', 'on');                                                                                
+            else
+                set(save_rate_graphs_checkbox, 'Enable', 'off');
+                set(smoothing_window_len_edit_text, 'Enable', 'off');
+                set(smoothing_window_len_edit, 'Enable', 'off');
+                set(save_amplitude_graphs_checkbox, 'Enable', 'off');
+                set(save_direction_graphs_checkbox, 'Enable', 'off');
+                set(save_main_seq_graphs_checkbox, 'Enable', 'off'); 
+            end
+        end
+        
+        function genGroupToggledCallback(hObject, ~)
+            MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs= get(hObject,'value');
+            if MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs || MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs
+                set(save_rate_graphs_checkbox, 'Enable', 'on');
+                set(smoothing_window_len_edit_text, 'Enable', 'on');
+                set(smoothing_window_len_edit, 'Enable', 'on');
+                set(save_amplitude_graphs_checkbox, 'Enable', 'on');
+                set(save_direction_graphs_checkbox, 'Enable', 'on');
+                set(save_main_seq_graphs_checkbox, 'Enable', 'on');                                                                                
+            else
+                set(save_rate_graphs_checkbox, 'Enable', 'off');
+                set(smoothing_window_len_edit_text, 'Enable', 'off');
+                set(smoothing_window_len_edit, 'Enable', 'off');
+                set(save_amplitude_graphs_checkbox, 'Enable', 'off');
+                set(save_direction_graphs_checkbox, 'Enable', 'off');
+                set(save_main_seq_graphs_checkbox, 'Enable', 'off'); 
+            end
+        end
+        
         function analyzeRateToggledCallback(hObject, ~)                        
             MICROSACCADES_ANALYSIS_PARAMETERS.rate= get(hObject,'value');
             if MICROSACCADES_ANALYSIS_PARAMETERS.rate
                 set(smoothing_window_len_edit, 'enable', 'on');
-                set(smoothing_window_len_edit_text, 'enable', 'on');                
+                set(smoothing_window_len_edit_text, 'enable', 'on');  
+                set(gen_single_graphs_checkbox, 'Enable', 'on');
+                set(gen_group_graphs_checkbox, 'Enable', is_gen_group_graphs_enabled_str);
             else
                 set(smoothing_window_len_edit, 'enable', 'off');
                 set(smoothing_window_len_edit_text, 'enable', 'off');
+                if ~any([MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence])
+                    set(gen_single_graphs_checkbox, 'Enable', 'off'); 
+                    set(gen_group_graphs_checkbox, 'Enable', 'off');                                         
+                end
             end
         end
     
         function smoothingWindowLenEditedCallback(hObject, ~)
             MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len= str2double(get(hObject,'string'));
+            if any([MICROSACCADES_ANALYSIS_PARAMETERS.rate, MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence])
+                set(gen_single_graphs_checkbox, 'Enable', 'on');
+                set(gen_group_graphs_checkbox, 'Enable', is_gen_group_graphs_enabled_str);
+            else
+                set(gen_single_graphs_checkbox, 'Enable', 'off');
+                set(gen_group_graphs_checkbox, 'Enable', 'off');
+            end
         end
         
         function analyzeAmplitudesToggledCallback(hObject, ~)
             MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes= get(hObject,'value');        
+            if any([MICROSACCADES_ANALYSIS_PARAMETERS.rate, MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence])
+                set(gen_single_graphs_checkbox, 'Enable', 'on');
+                set(gen_group_graphs_checkbox, 'Enable', is_gen_group_graphs_enabled_str);
+            else
+                set(gen_single_graphs_checkbox, 'Enable', 'off');
+                set(gen_group_graphs_checkbox, 'Enable', 'off');
+            end
         end
 
         function analyzeDirectionsToggledCallback(hObject, ~)
             MICROSACCADES_ANALYSIS_PARAMETERS.directions= get(hObject,'value');        
+            if any([MICROSACCADES_ANALYSIS_PARAMETERS.rate, MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence])
+                set(gen_single_graphs_checkbox, 'Enable', 'on');
+                set(gen_group_graphs_checkbox, 'Enable', is_gen_group_graphs_enabled_str);
+            else
+                set(gen_single_graphs_checkbox, 'Enable', 'off');
+                set(gen_group_graphs_checkbox, 'Enable', 'off');
+            end
         end
         
         function analyzeMainSeqToggledCallback(hObject, ~)
             MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence= get(hObject,'value');
-        end
+            if any([MICROSACCADES_ANALYSIS_PARAMETERS.rate, MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence])
+                set(gen_single_graphs_checkbox, 'Enable', 'on');
+                set(gen_group_graphs_checkbox, 'Enable', is_gen_group_graphs_enabled_str);
+            else
+                set(gen_single_graphs_checkbox, 'Enable', 'off');
+                set(gen_group_graphs_checkbox, 'Enable', 'off');
+            end
+        end                
         
         function eyeballMicrosaccadesToggledCallback(hObject, ~)
             PERFORM_EYEBALLING= get(hObject,'value');  

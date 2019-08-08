@@ -6,7 +6,15 @@
 %   n-> number of trials),  amplitudes (under construction), directions
 %   (current structure -> just a simple array of the saccades directions
 % //////////////////////////////////////////////////////////////////////////
-function [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(analysis_struct, exe_plot_curves, analyses, baseline, smoothing_window_len, trial_duration, progress_screen, progress_contribution)                        
+function [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(analysis_struct, exe_plot_curves, analyses_flags, baseline, smoothing_window_len, trial_duration, progress_screen, progress_contribution)                        
+    subjects_figs = [];
+    statistisized_figs = [];
+    analysis_struct_with_results = [];
+    if ~any(analyses_flags(1:4)) || ~any(analyses_flags([5,6]))
+        progress_screen.addProgress(progress_contribution);
+        return;
+    end
+    
     screen_size= get(0,'monitorpositions');    
     if any(screen_size(1,:)<0)
         screen_size= get(0,'ScreenSize');
@@ -14,10 +22,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     
     screen_size= screen_size(1,:);
     figure_positions= round([0.1*screen_size(3), 0.1*screen_size(4), 0.8*screen_size(3), 0.8*screen_size(4)]);
-    
-    subjects_figs = [];
-    statistisized_figs = [];
-    analysis_struct_with_results = [];
+            
     subjects_nr= numel(analysis_struct);
     were_ever_triggers_found_on_any_subject = false;
     for subject_i= 1:subjects_nr      
@@ -40,15 +45,15 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
         str_for_visible_prop= 'off';
     end
     
-    
-    subjects_figs= cell(2,2*sum(analyses),subjects_nr);
+    if  analyses_flags(5)         
+        subjects_figs= cell(2,8,subjects_nr);
+    end
     analysis_struct_with_results.eye_movements_data= analysis_struct;
     analysis_struct_with_results.results_per_subject= cell(1, subjects_nr);
-    analysis_struct_with_results.results_grand_total= [];
-    curr_created_plots_nr= 0;
+    analysis_struct_with_results.results_grand_total= [];  
     
     % saccadic rate
-    if analyses(1)                   
+    if analyses_flags(1)                  
         max_trial_duration_per_cond = zeros(1, conds_nr);
         original_microsaccadic_rate = cell(1, conds_nr);
         smoothed_microsaccadic_rate = cell(1, conds_nr);
@@ -64,14 +69,13 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             original_microsaccadic_rate{cond_i} = NaN(subjects_nr, max_trial_duration_per_cond(cond_i));
             smoothed_microsaccadic_rate{cond_i} = NaN(subjects_nr, max_trial_duration_per_cond(cond_i) - smoothing_window_len);
         end
-                        
+                
         for subject_i= 1:subjects_nr            
             if isempty(analysis_struct{subject_i})
                 progress_screen.addProgress(0.9*progress_contribution/subjects_nr);
                 continue;
             end           
-
-            curr_created_plots_nr= curr_created_plots_nr + 1;
+           
             %smooth window            
             smoothing_edge_left= floor(smoothing_window_len/2);
             smoothing_edge_right= ceil(smoothing_window_len/2);
@@ -82,17 +86,23 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 smoothed_microsaccadic_rate{cond_i}(subject_i, :) = smoothed_microsaccadic_rate_with_tails((smoothing_edge_left + 1):(max_trial_duration - smoothing_edge_right));
             end
            
-            subjects_figs{1,curr_created_plots_nr,subject_i}= ['microsaccades_rate_', num2str(subject_i)];
-            subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name',['microsaccades_rate - subject #', num2str(subject_i)],'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
-            for cond_i= 1:conds_nr                
-                plot(((smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right)) - baseline, ...
-                       smoothed_microsaccadic_rate{cond_i}(subject_i,:), 'color', curves_colors(cond_i,:));
-                analysis_struct_with_results.results_per_subject{subject_i}.saccades_analysis.saccadic_rate.(conds_names{cond_i})= smoothed_microsaccadic_rate{cond_i}(subject_i,:); 
-                hold('on');
+            if analyses_flags(5)  
+                subjects_figs{1,1,subject_i}= 'microsaccades_rate';
+                subjects_figs{2,1,subject_i}= figure('name',['microsaccades_rate - subject #', num2str(subject_i)],'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
             end
-            legend(conds_names);                        
-            xlabel('Time [ms]');
-            ylabel('Microsaccadic Rate [hz]');
+            for cond_i= 1:conds_nr  
+                if  analyses_flags(5)  
+                    plot(((smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right)) - baseline, ...
+                           smoothed_microsaccadic_rate{cond_i}(subject_i,:), 'color', curves_colors(cond_i,:));
+                   hold('on');
+                end
+                analysis_struct_with_results.results_per_subject{subject_i}.saccades_analysis.saccadic_rate.(conds_names{cond_i})= smoothed_microsaccadic_rate{cond_i}(subject_i,:);                 
+            end
+            if analyses_flags(5)  
+                legend(conds_names);                        
+                xlabel('Time [ms]');
+                ylabel('Microsaccadic Rate [hz]');
+            end
 
 %             curr_created_plots_nr= curr_created_plots_nr + 1;
 %             subjects_figs{1,curr_created_plots_nr,subject_i}= ['microsaccades_number_',num2str(subject_i)];
@@ -108,154 +118,153 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     end
 
     % amplitude
-    if analyses(2)
-        for subject_i= 1:subjects_nr
-            if isempty(analysis_struct{subject_i})
-                progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
-                continue;
-            end
+    if analyses_flags(5)
+        if analyses_flags(2)
+            curr_created_plots_nr= curr_created_plots_nr + 1;
+            for subject_i= 1:subjects_nr
+                if isempty(analysis_struct{subject_i})
+                    progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
+                    continue;
+                end
+
+                data_filled_conds_logical_vec= logical(true(numel(conds_names),1));                
+                subjects_figs{1,2,subject_i}= 'amplitudes_by_condition';
+                subjects_figs{2,2,subject_i}= figure('name',['amplitudes by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+                for cond_i= 1:conds_nr                
+                    amplitudes= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
+                    if isempty(amplitudes)
+                        data_filled_conds_logical_vec(cond_i)= false;
+                        continue;
+                    end
+                    polar_h= polar([analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}], amplitudes, '.');
+                    set(polar_h, 'color', curves_colors(cond_i,:));
+                    hold('on');
+                end
+                if any(data_filled_conds_logical_vec)
+                    legend(conds_names{data_filled_conds_logical_vec});
+                end
+           
+                subjects_figs{1,3,subject_i}= 'amplitudes';
+                subjects_figs{2,3,subject_i}= figure('name',['amplitudes - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);            
+                amplitudes= [];
+                directions= [];
+                if any(data_filled_conds_logical_vec)
+                    for cond_i= 1:conds_nr
+                        amplitudes= [amplitudes, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}]; %#ok<AGROW>
+                        directions= [directions, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}]; %#ok<AGROW>
+                    end
+
+                    polar(directions, amplitudes, '.');
+                end
             
-            data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
-            curr_created_plots_nr= curr_created_plots_nr + 1;
-            subjects_figs{1,curr_created_plots_nr,subject_i}= ['amplitudes_by_condition_',num2str(subject_i)];
-            subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name',['amplitudes by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
-            for cond_i= 1:conds_nr                
-                amplitudes= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
-                if isempty(amplitudes)
-                    data_filled_conds_logical_vec(cond_i)= false;
-                    continue;
-                end
-                polar_h= polar([analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}], amplitudes, '.');
-                set(polar_h, 'color', curves_colors(cond_i,:));
-                hold('on');
-            end
-            if any(data_filled_conds_logical_vec)
-                legend(conds_names{data_filled_conds_logical_vec});
-            end
-
-            curr_created_plots_nr= curr_created_plots_nr + 1;
-            subjects_figs{1,curr_created_plots_nr,subject_i}= ['amplitudes_',num2str(subject_i)];
-            subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name',['amplitudes - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);            
-            amplitudes= [];
-            directions= [];
-            if any(data_filled_conds_logical_vec)
-                for cond_i= 1:conds_nr
-                    amplitudes= [amplitudes, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}]; %#ok<AGROW>
-                    directions= [directions, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}]; %#ok<AGROW>
-                end
-
-                polar(directions, amplitudes, '.');
-            end
-                        
-            curr_created_plots_nr= curr_created_plots_nr + 1;
-            subjects_figs{1,curr_created_plots_nr,subject_i}= ['amplitudes_hist_',num2str(subject_i)];
-            subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name',['amplitudes histogram - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);                   
-            hist(amplitudes, 50);
-            progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
-        end
-    else
-        progress_screen.addProgress(0.033*progress_contribution);
-    end
-        
-    % directions
-    if analyses(3)
-        for subject_i= 1:subjects_nr
-            if isempty(analysis_struct{subject_i})
+                subjects_figs{1,4,subject_i}= 'amplitudes_hist';
+                subjects_figs{2,4,subject_i}= figure('name',['amplitudes histogram - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);                   
+                hist(amplitudes, 50);
                 progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
-                continue;
             end
-            data_filled_conds_logical_vec= logical(true(numel(conds_names),1));        
-            curr_created_plots_nr= curr_created_plots_nr + 1;
-            subjects_figs{1,curr_created_plots_nr,subject_i}= ['directions_by_condition_',num2str(subject_i)];
-            subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name',['directions by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
-            polar(360,100);
-            for cond_i= 1:conds_nr                
-                directions= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
-                if isempty(directions)
-                    data_filled_conds_logical_vec(cond_i)= false;
+        else
+            progress_screen.addProgress(0.033*progress_contribution);
+        end
+
+        % directions
+        if analyses_flags(3)
+            for subject_i= 1:subjects_nr
+                if isempty(analysis_struct{subject_i})
+                    progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
                     continue;
                 end
-                rose_h= rose(directions);
-                set(rose_h, 'color', curves_colors(cond_i,:));
-                hold('on');
-            end
-            if any(data_filled_conds_logical_vec)                 
-                legend(conds_names{data_filled_conds_logical_vec});             
-            end
+                data_filled_conds_logical_vec= logical(true(numel(conds_names),1));                     
+                subjects_figs{1,5,subject_i}= 'directions_by_condition';
+                subjects_figs{2,5,subject_i}= figure('name',['directions by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+                polar(360,100);
+                for cond_i= 1:conds_nr                
+                    directions= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
+                    if isempty(directions)
+                        data_filled_conds_logical_vec(cond_i)= false;
+                        continue;
+                    end
+                    rose_h= rose(directions);
+                    set(rose_h, 'color', curves_colors(cond_i,:));
+                    hold('on');
+                end
+                if any(data_filled_conds_logical_vec)                 
+                    legend(conds_names{data_filled_conds_logical_vec});             
+                end
+             
+                subjects_figs{1,6,subject_i}= 'directions';
+                subjects_figs{2,6,subject_i}= figure('name',['directions - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+                polar(360,200);
+                directions= [];
+                if any(data_filled_conds_logical_vec)
+                    for cond_i= 1:conds_nr
+                        directions= [directions, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}]; %#ok<AGROW>
+                    end
 
-            curr_created_plots_nr= curr_created_plots_nr + 1;
-            subjects_figs{1,curr_created_plots_nr,subject_i}= ['directions_',num2str(subject_i)];
-            subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name',['directions - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
-            polar(360,200);
-            directions= [];
-            if any(data_filled_conds_logical_vec)
-                for cond_i= 1:conds_nr
-                    directions= [directions, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}]; %#ok<AGROW>
+                    rose(directions);
                 end
 
-                rose(directions);
-            end
-            
-            progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
-        end
-    else
-        progress_screen.addProgress(0.033*progress_contribution);
-    end
-        
-    % main sequence
-    if analyses(4)
-        for subject_i= 1:subjects_nr
-            if isempty(analysis_struct{subject_i})
                 progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
-                continue;
             end
-            data_filled_conds_logical_vec= logical(true(numel(conds_names),1));        
-            curr_created_plots_nr= curr_created_plots_nr + 1;
-            subjects_figs{1,curr_created_plots_nr,subject_i}= ['main_sequence_by_condition_',num2str(subject_i)];
-            subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name',['main sequence by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);            
-            for cond_i= 1:conds_nr                
-                amplitudes= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
-                velocities= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}];
-                if isempty(amplitudes) || isempty(velocities)
-                    data_filled_conds_logical_vec(cond_i)= false;
+        else
+            progress_screen.addProgress(0.033*progress_contribution);
+        end
+
+        % main sequence
+        if analyses_flags(4)
+            for subject_i= 1:subjects_nr
+                if isempty(analysis_struct{subject_i})
+                    progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
                     continue;
                 end
-                plot_h= plot(amplitudes, velocities, '.', 'MarkerSize', 5);  %loglog
-                set(plot_h, 'color', curves_colors(cond_i,:));
-                hold('on');
-            end
-            if any(data_filled_conds_logical_vec)                 
-                legend(conds_names{data_filled_conds_logical_vec});             
-            end
-
-            curr_created_plots_nr= curr_created_plots_nr + 1;
-            subjects_figs{1,curr_created_plots_nr,subject_i}= ['main_sequence_',num2str(subject_i)];
-            subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name',['main sequence - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);            
-            if any(data_filled_conds_logical_vec)
-                velocities= [];
-                amplitudes = [];            
-                for cond_i= 1:conds_nr
-                    velocities= [velocities, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}]; %#ok<AGROW>
-                    amplitudes= [amplitudes, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}]; %#ok<AGROW>
+                data_filled_conds_logical_vec= logical(true(numel(conds_names),1));        
+                curr_created_plots_nr= curr_created_plots_nr + 1;
+                subjects_figs{1,7,subject_i}= 'main_sequence_by_condition';
+                subjects_figs{2,7,subject_i}= figure('name',['main sequence by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);            
+                for cond_i= 1:conds_nr                
+                    amplitudes= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
+                    velocities= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}];
+                    if isempty(amplitudes) || isempty(velocities)
+                        data_filled_conds_logical_vec(cond_i)= false;
+                        continue;
+                    end
+                    plot_h= plot(amplitudes, velocities, '.', 'MarkerSize', 5);  %loglog
+                    set(plot_h, 'color', curves_colors(cond_i,:));
+                    hold('on');
                 end
-                
-                plot(amplitudes, velocities, '.k', 'MarkerSize', 5); %loglog
-                [pearson_r, pearson_p_value] = corr(velocities',amplitudes');
-                set(gca, 'title', text(0,0,['Pearson''s r = ', num2str(pearson_r), ', p-value = ', num2str(pearson_p_value)]));
+                if any(data_filled_conds_logical_vec)                 
+                    legend(conds_names{data_filled_conds_logical_vec});             
+                end
+
+                curr_created_plots_nr= curr_created_plots_nr + 1;
+                subjects_figs{1,8,subject_i}= 'main_sequence';
+                subjects_figs{2,8,subject_i}= figure('name',['main sequence - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);            
+                if any(data_filled_conds_logical_vec)
+                    velocities= [];
+                    amplitudes = [];            
+                    for cond_i= 1:conds_nr
+                        velocities= [velocities, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}]; %#ok<AGROW>
+                        amplitudes= [amplitudes, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}]; %#ok<AGROW>
+                    end
+
+                    plot(amplitudes, velocities, '.k', 'MarkerSize', 5); %loglog
+                    [pearson_r, pearson_p_value] = corr(velocities',amplitudes');
+                    set(gca, 'title', text(0,0,['Pearson''s r = ', num2str(pearson_r), ', p-value = ', num2str(pearson_p_value)]));
+                end
+
+                progress_screen.addProgress(0.034*progress_contribution/subjects_nr);
             end
-                        
-            progress_screen.addProgress(0.034*progress_contribution/subjects_nr);
+        else
+            progress_screen.addProgress(0.034*progress_contribution);
         end
     else
-        progress_screen.addProgress(0.034*progress_contribution);
+        progress_screen.addProgress(0.1*progress_contribution);
     end
-    
 
     %CREATE GRAND AVERAGE PLOTS
     curr_created_plots_nr= 0;   
     
     % rate
-    if analyses(1)
+    if analyses_flags(1)
         curr_created_plots_nr= curr_created_plots_nr + 1;
         smoothed_grand_microsaccadic_rate= NaN(conds_nr, max_trial_duration_per_cond(cond_i) - smoothing_window_len);
         for cond_i= 1:conds_nr            
@@ -265,159 +274,168 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             smoothed_grand_microsaccadic_rate(cond_i,1:numel(smoothed_grand_microsaccadic_rate_without_tails_idxs))= smoothed_grand_microsaccadic_rate_with_tails(smoothed_grand_microsaccadic_rate_without_tails_idxs);
         end
 
-        statistisized_figs{1,curr_created_plots_nr}= 'grand_average-microsaccades_rate';
-        statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: microsaccades rate', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
-        for cond_i= 1:conds_nr            
-            plot((1:size(smoothed_grand_microsaccadic_rate,2)) - baseline, smoothed_grand_microsaccadic_rate(cond_i,:), 'color', curves_colors(cond_i,:));
-            analysis_struct_with_results.results_grand_total.saccades_analysis.saccadic_rate.(conds_names{cond_i})= smoothed_grand_microsaccadic_rate(cond_i,:);
-            hold('on');
+        if analyses_flags(6)
+            statistisized_figs{1,curr_created_plots_nr}= 'grand_average-microsaccades_rate';
+            statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: microsaccades rate', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
         end
-        legend(conds_names);                       
-        xlabel('Time [ms]');
-        ylabel('Microsaccadic Rate [hz]');
+        for cond_i= 1:conds_nr  
+            if analyses_flags(6)
+                plot((1:size(smoothed_grand_microsaccadic_rate,2)) - baseline, smoothed_grand_microsaccadic_rate(cond_i,:), 'color', curves_colors(cond_i,:));
+                hold('on');
+            end
+            analysis_struct_with_results.results_grand_total.saccades_analysis.saccadic_rate.(conds_names{cond_i})= smoothed_grand_microsaccadic_rate(cond_i,:);
+            
+        end
+        if analyses_flags(6)
+            legend(conds_names);                       
+            xlabel('Time [ms]');
+            ylabel('Microsaccadic Rate [hz]');
+        end
     end
 
     % amplitude
-    data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
-    if analyses(2)
-        curr_created_plots_nr= curr_created_plots_nr + 1;
-        grand_amplitudes= cell(1,conds_nr);
-        grand_directions= cell(1,conds_nr);
-        for cond_i=1:conds_nr
-            grand_amplitudes{cond_i}= [];
-            grand_directions{cond_i}= [];
-            for subject_i= 1:subjects_nr
-                if isempty(analysis_struct{subject_i})                    
+    if analyses_flags(6)
+        data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
+        if analyses_flags(2)
+            curr_created_plots_nr= curr_created_plots_nr + 1;
+            grand_amplitudes= cell(1,conds_nr);
+            grand_directions= cell(1,conds_nr);
+            for cond_i=1:conds_nr
+                grand_amplitudes{cond_i}= [];
+                grand_directions{cond_i}= [];
+                for subject_i= 1:subjects_nr
+                    if isempty(analysis_struct{subject_i})                    
+                        continue;
+                    end
+                    grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
+                    grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
+                end
+            end
+
+            statistisized_figs{1,curr_created_plots_nr}= 'grand_average-amplitudes_by_condition';
+            statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: amplitudes by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);        
+            for cond_i= 1:conds_nr            
+                if isempty(grand_amplitudes{cond_i})
+                   data_filled_conds_logical_vec(cond_i)= false;
+                   continue;
+                end
+                polar_h= polar(grand_directions{cond_i}, grand_amplitudes{cond_i}, '.');            
+                set(polar_h, 'color', curves_colors(cond_i,:));            
+                hold('on');
+            end        
+            if any(data_filled_conds_logical_vec)                 
+                legend(conds_names{data_filled_conds_logical_vec});             
+            end
+
+            curr_created_plots_nr= curr_created_plots_nr + 1;
+
+            statistisized_figs{1,curr_created_plots_nr}= 'grand_average-amplitudes';
+            statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: amplitudes ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);        
+            if any(data_filled_conds_logical_vec)                 
+                grand_amplitudes_over_conditions= [];
+                grand_directions_over_conditions= [];
+                for cond_i=1:conds_nr
+                    grand_amplitudes_over_conditions= [grand_amplitudes{cond_i}, grand_amplitudes_over_conditions];	%#ok<AGROW>
+                    grand_directions_over_conditions= [grand_directions{cond_i}, grand_directions_over_conditions];	%#ok<AGROW>
+                end
+                polar(grand_directions_over_conditions, grand_amplitudes_over_conditions, '.');
+            end
+        end
+
+        % directions
+        data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
+        if analyses_flags(3)
+            curr_created_plots_nr= curr_created_plots_nr + 1;
+            grand_directions= cell(1,conds_nr);
+            for cond_i=1:conds_nr
+                grand_directions{cond_i}= [];
+                for subject_i= 1:subjects_nr
+                    if isempty(analysis_struct{subject_i})                
+                        continue;
+                    end
+                    grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
+                end
+            end
+
+            statistisized_figs{1,curr_created_plots_nr}= 'grand_average-directions_by_condition';
+            statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: directions by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+            polar(360,200);
+            for cond_i= 1:conds_nr            
+                if isempty(grand_directions{cond_i})
+                    data_filled_conds_logical_vec(cond_i)= false;
                     continue;
                 end
-                grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
-                grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
+                rose_h= rose(grand_directions{cond_i});
+                hold('on');
+                set(rose_h, 'color', curves_colors(cond_i,:));
+            end
+            if any(data_filled_conds_logical_vec)                 
+                legend(conds_names{data_filled_conds_logical_vec});             
+            end 
+
+            curr_created_plots_nr= curr_created_plots_nr + 1;
+
+            statistisized_figs{1,curr_created_plots_nr}= 'grand_average-directions';
+            statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: directions ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+            polar(360,200);        
+            if any(data_filled_conds_logical_vec)
+                grand_directions_over_conditions= [];
+                for cond_i=1:conds_nr
+                    grand_directions_over_conditions= [grand_directions{cond_i}, grand_directions_over_conditions];	%#ok<AGROW>
+                end
+                rose(grand_directions_over_conditions);
             end
         end
 
-        statistisized_figs{1,curr_created_plots_nr}= 'grand_average-amplitudes_by_condition';
-        statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: amplitudes by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);        
-        for cond_i= 1:conds_nr            
-            if isempty(grand_amplitudes{cond_i})
-               data_filled_conds_logical_vec(cond_i)= false;
-               continue;
-            end
-            polar_h= polar(grand_directions{cond_i}, grand_amplitudes{cond_i}, '.');            
-            set(polar_h, 'color', curves_colors(cond_i,:));            
-            hold('on');
-        end        
-        if any(data_filled_conds_logical_vec)                 
-            legend(conds_names{data_filled_conds_logical_vec});             
-        end
-
-        curr_created_plots_nr= curr_created_plots_nr + 1;
-        
-        statistisized_figs{1,curr_created_plots_nr}= 'grand_average-amplitudes';
-        statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: amplitudes ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);        
-        if any(data_filled_conds_logical_vec)                 
-            grand_amplitudes_over_conditions= [];
-            grand_directions_over_conditions= [];
+        % main sequence
+        data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
+        if analyses_flags(4)
+            curr_created_plots_nr= curr_created_plots_nr + 1;
+            grand_velocities= cell(1,conds_nr);
+            grand_amplitudes = cell(1,conds_nr);
             for cond_i=1:conds_nr
-                grand_amplitudes_over_conditions= [grand_amplitudes{cond_i}, grand_amplitudes_over_conditions];	%#ok<AGROW>
-                grand_directions_over_conditions= [grand_directions{cond_i}, grand_directions_over_conditions];	%#ok<AGROW>
+                grand_velocities{cond_i}= [];
+                grand_amplitudes{cond_i} = [];
+                for subject_i= 1:subjects_nr
+                    if isempty(analysis_struct{subject_i})                
+                        continue;
+                    end
+                    grand_velocities{cond_i}= [grand_velocities{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}];
+                    grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
+                end
             end
-            polar(grand_directions_over_conditions, grand_amplitudes_over_conditions, '.');
-        end
-    end
 
-    % directions
-    data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
-    if analyses(3)
-        curr_created_plots_nr= curr_created_plots_nr + 1;
-        grand_directions= cell(1,conds_nr);
-        for cond_i=1:conds_nr
-            grand_directions{cond_i}= [];
-            for subject_i= 1:subjects_nr
-                if isempty(analysis_struct{subject_i})                
+            statistisized_figs{1,curr_created_plots_nr}= 'grand_average-main_sequence_by_condition';
+            statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: main sequence by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);        
+            for cond_i= 1:conds_nr            
+                if isempty(grand_velocities{cond_i}) || isempty(grand_amplitudes{cond_i})
+                    data_filled_conds_logical_vec(cond_i)= false;
                     continue;
                 end
-                grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
+                plot_h= plot(grand_amplitudes{cond_i}, grand_velocities{cond_i}, '.', 'MarkerSize', 5); %loglog
+                set(plot_h, 'color', curves_colors(cond_i,:));
+                hold('on');           
             end
-        end
+            if any(data_filled_conds_logical_vec)                 
+                legend(conds_names{data_filled_conds_logical_vec});             
+            end 
 
-        statistisized_figs{1,curr_created_plots_nr}= 'grand_average-directions_by_condition';
-        statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: directions by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
-        polar(360,200);
-        for cond_i= 1:conds_nr            
-            if isempty(grand_directions{cond_i})
-                data_filled_conds_logical_vec(cond_i)= false;
-                continue;
-            end
-            rose_h= rose(grand_directions{cond_i});
-            hold('on');
-            set(rose_h, 'color', curves_colors(cond_i,:));
-        end
-        if any(data_filled_conds_logical_vec)                 
-            legend(conds_names{data_filled_conds_logical_vec});             
-        end 
+            curr_created_plots_nr= curr_created_plots_nr + 1;
 
-        curr_created_plots_nr= curr_created_plots_nr + 1;
-        
-        statistisized_figs{1,curr_created_plots_nr}= 'grand_average-directions';
-        statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: directions ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
-        polar(360,200);        
-        if any(data_filled_conds_logical_vec)
-            grand_directions_over_conditions= [];
-            for cond_i=1:conds_nr
-                grand_directions_over_conditions= [grand_directions{cond_i}, grand_directions_over_conditions];	%#ok<AGROW>
-            end
-            rose(grand_directions_over_conditions);
-        end
-    end
-    
-    % main sequence
-    data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
-    if analyses(4)
-        curr_created_plots_nr= curr_created_plots_nr + 1;
-        grand_velocities= cell(1,conds_nr);
-        grand_amplitudes = cell(1,conds_nr);
-        for cond_i=1:conds_nr
-            grand_velocities{cond_i}= [];
-            grand_amplitudes{cond_i} = [];
-            for subject_i= 1:subjects_nr
-                if isempty(analysis_struct{subject_i})                
-                    continue;
+            statistisized_figs{1,curr_created_plots_nr}= 'grand_average-main_sequence';
+            statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: main sequence ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);               
+            if any(data_filled_conds_logical_vec)
+                grand_velocities_over_conditions= [];
+                grand_amplitudes_over_conditions= [];
+                for cond_i=1:conds_nr
+                    grand_velocities_over_conditions= [grand_velocities_over_conditions, grand_velocities{cond_i}];	%#ok<AGROW>
+                    grand_amplitudes_over_conditions= [grand_amplitudes_over_conditions, grand_amplitudes{cond_i}];	%#ok<AGROW>
                 end
-                grand_velocities{cond_i}= [grand_velocities{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}];
-                grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
-            end
-        end
+                plot(grand_amplitudes_over_conditions, grand_velocities_over_conditions, '.k', 'MarkerSize', 5); %loglog
 
-        statistisized_figs{1,curr_created_plots_nr}= 'grand_average-main_sequence_by_condition';
-        statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: main sequence by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);        
-        for cond_i= 1:conds_nr            
-            if isempty(grand_velocities{cond_i}) || isempty(grand_amplitudes{cond_i})
-                data_filled_conds_logical_vec(cond_i)= false;
-                continue;
+                [pearson_r, pearson_p_value] = corr(grand_velocities_over_conditions',grand_amplitudes_over_conditions');
+                set(gca, 'title', text(0,0,['Pearson''s r = ', num2str(pearson_r), ', p-value = ', num2str(pearson_p_value)]));
             end
-            plot_h= plot(grand_amplitudes{cond_i}, grand_velocities{cond_i}, '.', 'MarkerSize', 5); %loglog
-            set(plot_h, 'color', curves_colors(cond_i,:));
-            hold('on');           
-        end
-        if any(data_filled_conds_logical_vec)                 
-            legend(conds_names{data_filled_conds_logical_vec});             
-        end 
-
-        curr_created_plots_nr= curr_created_plots_nr + 1;
-        
-        statistisized_figs{1,curr_created_plots_nr}= 'grand_average-main_sequence';
-        statistisized_figs{2,curr_created_plots_nr}= figure('name','grand average: main sequence ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);               
-        if any(data_filled_conds_logical_vec)
-            grand_velocities_over_conditions= [];
-            grand_amplitudes_over_conditions= [];
-            for cond_i=1:conds_nr
-                grand_velocities_over_conditions= [grand_velocities_over_conditions, grand_velocities{cond_i}];	%#ok<AGROW>
-                grand_amplitudes_over_conditions= [grand_amplitudes_over_conditions, grand_amplitudes{cond_i}];	%#ok<AGROW>
-            end
-            plot(grand_amplitudes_over_conditions, grand_velocities_over_conditions, '.k', 'MarkerSize', 5); %loglog
-        
-            [pearson_r, pearson_p_value] = corr(grand_velocities_over_conditions',grand_amplitudes_over_conditions');
-            set(gca, 'title', text(0,0,['Pearson''s r = ', num2str(pearson_r), ', p-value = ', num2str(pearson_p_value)]));
         end
     end
 end
