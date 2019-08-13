@@ -146,17 +146,22 @@ classdef Eyeballer < handle
             trials_it = 1;
             for subject_i= 1:subjects_nr
                 for trial_i = 1:numel(obj.eye_data{subject_i})
-                    data_ranges(trials_it) = max([abs(obj.eye_data{subject_i}(trial_i).left_x), ...
-                                                  abs(obj.eye_data{subject_i}(trial_i).left_y), ...
-                                                  abs(obj.eye_data{subject_i}(trial_i).right_x), ...
-                                                  abs(obj.eye_data{subject_i}(trial_i).right_y)]);
+                    max_sample_val = max([abs(obj.eye_data{subject_i}(trial_i).left_x), ...
+                                          abs(obj.eye_data{subject_i}(trial_i).left_y), ...
+                                          abs(obj.eye_data{subject_i}(trial_i).right_x), ...
+                                          abs(obj.eye_data{subject_i}(trial_i).right_y)]);
+                    if ~isempty(max_sample_val)
+                        data_ranges(trials_it) = max_sample_val;
+                    else
+                        data_ranges(trials_it) = NaN;
+                    end
                     trials_it = trials_it + 1;
                 end
             end
                 
             obj.display_range_multiplier = display_range_multiplier;
-            obj.mean_range = mean(data_ranges);
-            obj.std_range = std(data_ranges);
+            obj.mean_range = nanmean(data_ranges);
+            obj.std_range = nanstd(data_ranges);
             obj.main_fig_pos= main_fig_pos;
             obj.main_gui_background_color= main_gui_background_color;                                                      
             obj.fig= figure('Visible', 'on', 'name', obj.FIG_TITLE, 'NumberTitle', 'off', 'units', 'pixels', 'Position', obj.main_fig_pos, ...

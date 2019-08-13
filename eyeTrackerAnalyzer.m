@@ -46,6 +46,7 @@ POST_OFFSET_TRIGGERS_SEGMENT = [];
 FILES_SAVE_DESTINATION= '';
 FILES_FORMATS_CONVERSION_SAVE_DESTINATION= '';
 ANALYSIS_RESULTS_FILE_DESTINATION= '';
+SPLIT_ANALYSIS_RESULTS_TO_SUBJECTS = [];
 ANALYSIS_PARAMS_FILES_FOLDER= '';
 ANALYSIS_PARAMS_FILE_NAME = '';
 PERFORM_EYEBALLING= 1;
@@ -299,18 +300,26 @@ uicontrol('Style', 'pushbutton', 'tag', 'lp', 'units', 'normalized', ...
 %ANALYSIS SAVE FOLDER UICONTROLS
 uicontrol(analyze_microsaccades_panel, 'Style', 'text', 'tag', 'c95', 'units', 'normalized', ...
     'String', 'Analysis Folder', ...
-    'Position', [0.1500    0.4860    0.1186    0.0300], ...
+    'Position', [0.1438    0.5146    0.1186    0.0300], ...
     'FontSize', 12.0, ...
     'BackgroundColor', GUI_BACKGROUND_COLOR);
 
 uicontrol(analyze_microsaccades_panel, 'Style', 'pushbutton', 'tag', 'c16', 'units', 'normalized', ...
     'String', 'Browse', ...
-    'Position', [0.77702      0.4867      0.0908       0.031], ...
+    'Position', [0.7708      0.5153      0.0908       0.031], ...
     'FontSize', 12.0, ...
     'callback', {@saveFolderBtnCallback});
 
 save_file_folder_etext= uicontrol(analyze_microsaccades_panel, 'Style', 'edit', 'tag', 'c17', 'units', 'normalized', ...
-    'enable', 'inactive', 'Position', [0.26532      0.4865      0.4900     0.0316]);
+    'enable', 'inactive', 'Position', [0.2591      0.5151      0.4900     0.0316]);
+
+split_analysis_results_checkbox = uicontrol(analyze_microsaccades_panel, 'Style', 'checkbox', 'tag', 'c96', 'units', 'normalized', ...
+    'FontSize', 10.0, 'String', 'Create Individual Analysis Structs', ...
+    'Position', [0.2583    0.4698    0.1929    0.0318], ...
+    'BackgroundColor', GUI_BACKGROUND_COLOR, ...
+    'value', false, ... 
+    'Enable', 'off', ... 
+    'callback', {@splitAnalysisResultsEditedCallback});
 
 %RUN ANALYSES UICONTROLS
 % uicontrol(analyze_microsaccades_panel, 'Style', 'checkbox', 'tag', 'c14', 'units', 'normalized', ...
@@ -777,6 +786,13 @@ set(gui, 'Visible', 'on');
         CURR_FILE_LOAD_FOLDER= path_name;                                              
         addFilesNamesToFilesListBox(load_etas_for_analysis_display_pane, files_names, path_name); 
         subjects_nr= numel(get(load_etas_for_analysis_display_pane,'string'));
+        if subjects_nr > 1
+            set(split_analysis_results_checkbox, 'enable', 'on');
+            SPLIT_ANALYSIS_RESULTS_TO_SUBJECTS = get(split_analysis_results_checkbox, 'value');
+        else
+            set(split_analysis_results_checkbox, 'enable', 'off');
+            SPLIT_ANALYSIS_RESULTS_TO_SUBJECTS = false;
+        end
     end   
     
     function clearEtasForAnalysisBtnCallback(~,~)
@@ -857,6 +873,10 @@ set(gui, 'Visible', 'on');
         ANALYSIS_RESULTS_FILE_DESTINATION = fullfile(FILES_SAVE_DESTINATION, ANALYSIS_RESULTS_FOLDER_NAME);
     end
      
+    function splitAnalysisResultsEditedCallback(hObject, ~)
+        SPLIT_ANALYSIS_RESULTS_TO_SUBJECTS= get(hObject,'value');        
+    end    
+
     function plotCurvesToggledCallback(hObject, ~)
         EXE_PLOT_CURVES= get(hObject,'value');
     end        
@@ -1067,39 +1087,56 @@ set(gui, 'Visible', 'on');
                 progress_screen.addProgress(1);  
                 progress_screen.displayMessage('Done.');
                 return;
-            end            
-            save(fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, 'analysis_struct.mat'), 'analysis_struct');
-                                  
-            subjects_nr_with_figs = size(subjects_figs,3);
-            figs_nr_per_subject = size(subjects_figs,2);
-            figs_nr= figs_nr_per_subject*subjects_nr_with_figs;
-            subject_figs_folders = cell(1, subjects_nr_with_figs);
-            for subject_i= 1:subjects_nr_with_figs
-                subject_figs_folders{subject_i} = fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, ['subject ', num2str(subject_i)]);
-                if exist(subject_figs_folders{subject_i}, 'dir')~=7
-                    mkdir(subject_figs_folders{subject_i});        
+            end      
+            
+            progress_screen.displayMessage('saving analysis results files');            
+            if SPLIT_ANALYSIS_RESULTS_TO_SUBJECTS || MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs
+                subjects_folders = cell(1, subjects_nr);
+                for subject_i= 1:subjects_nr
+                    subjects_folders{subject_i} = fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, ['subject ', num2str(subject_i)]);
+                    if exist(subjects_folders{subject_i}, 'dir')~=7
+                        mkdir(subjects_folders{subject_i});        
+                    end
                 end
             end
-            if figs_nr > 0  
-                progress_screen.displayMessage('saving per-subject figures');
+            
+            if SPLIT_ANALYSIS_RESULTS_TO_SUBJECTS
+                for subject_i= 1:subjects_nr
+                    subject_analysis_struct.eye_movements_data = analysis_struct.eye_movements_data{subject_i};
+                    subject_analysis_struct.results = analysis_struct.results_per_subject{subject_i};
+                    subject_analysis_struct.saccades_analsysis_parameters = analysis_struct.saccades_analsysis_parameters;                    
+                    save(fullfile(subjects_folders{subject_i}, ['analysis_struct_', num2str(subject_i), '.mat']), 'subject_analysis_struct');
+                    progress_screen.addProgress(0.20/subjects_nr);
+                end
+                grand_total_analysis_struct.results_grand_total =  analysis_struct.results_grand_total;
+                grand_total_analysis_struct.saccades_analsysis_parameters = analysis_struct.saccades_analsysis_parameters; %#ok<STRNU>
+                save(fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, 'analysis_struct.mat'), 'grand_total_analysis_struct');
+            else
+                save(fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, 'analysis_struct.mat'), 'analysis_struct');
+                progress_screen.addProgress(0.20);
+            end
+                             
+            if MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs                
+                subjects_nr_with_figs = size(subjects_figs,3);
+                figs_nr_per_subject = size(subjects_figs,2);
+                figs_nr= figs_nr_per_subject*subjects_nr_with_figs;                                                                       
                 for subject_fig_i= 1:figs_nr_per_subject
                     if ~isempty(subjects_figs{2, subject_fig_i, 1})                                                
                         for subject_i= 1:subjects_nr_with_figs                            
                             set(subjects_figs{2,subject_fig_i,subject_i}, 'CreateFcn', 'set(gcbo,''Visible'',''on'')');                         
-                            savefig(subjects_figs{2, subject_fig_i, subject_i}, fullfile(subject_figs_folders{subject_i}, subjects_figs{1, subject_fig_i, subject_i}));                                                                       
-                            progress_screen.addProgress(0.65/figs_nr);    
+                            savefig(subjects_figs{2, subject_fig_i, subject_i}, fullfile(subjects_folders{subject_i}, subjects_figs{1, subject_fig_i, subject_i}));                                                                       
+                            progress_screen.addProgress(0.60/figs_nr);    
                         end   
                     else
-                        progress_screen.addProgress(0.65/figs_nr_per_subject);    
+                        progress_screen.addProgress(0.60/figs_nr_per_subject);    
                     end
                 end
             else
-                progress_screen.addProgress(0.65);                  
+                progress_screen.addProgress(0.60);                  
             end
             
             statistisized_figs_nr= size(statistisized_figs,2);            
-            if statistisized_figs_nr > 0
-                progress_screen.displayMessage('saving group figures');
+            if statistisized_figs_nr > 0                
                 for statistisized_fig_i=1:statistisized_figs_nr
                     if ~isempty(statistisized_figs{2,statistisized_fig_i})                                          
                         set(statistisized_figs{2,statistisized_fig_i}, 'CreateFcn', 'set(gcbo,''Visible'',''on'')'); 
@@ -1110,10 +1147,10 @@ set(gui, 'Visible', 'on');
                         savefig(statistisized_figs{2,statistisized_fig_i}, fullfile(statistisized_fig_folder, statistisized_figs{1,statistisized_fig_i}));                                                                                                           
                     end
                     
-                    progress_screen.addProgress(0.35/statistisized_figs_nr);
+                    progress_screen.addProgress(0.20/statistisized_figs_nr);
                 end                
             else
-                progress_screen.addProgress(0.35);
+                progress_screen.addProgress(0.20);
             end
             
             %profile viewer;
@@ -1368,11 +1405,14 @@ set(gui, 'Visible', 'on');
 %                     for fixation_i = 1:fixations_nr
 %                         plot(fixations_coords(fixation_i,1),fixations_coords(fixation_i,2),'.','color',MAX_FIXATION_DUR_COLOR*fixations_durs_ratios(fixation_i),'markersize',20);
 %                     end       
-
-                        progress_screen.addProgress(progress_contribution/(trials_nr*conds_nr*subjects_nr));
+                        if mod(trial_i, 50) == 0
+                            progress_screen.addProgress(progress_contribution/((trials_nr/50)*conds_nr*subjects_nr));
+                        end
                     end
                                         
-                    if trials_nr == 0
+                    if trials_nr > 0
+                        progress_screen.addProgress(progress_contribution * mod(trials_nr, 50) / (trials_nr*conds_nr*subjects_nr));
+                    else
                         progress_screen.addProgress(progress_contribution/(conds_nr*subjects_nr));
                     end
                     %                 savefig(f, fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, ['sub',num2str(subject_i),cond]));
