@@ -26,8 +26,7 @@ classdef EyeTrackerAnalysisRecord < handle
     methods (Access= public)
         function obj= EyeTrackerAnalysisRecord(progress_screen, progress_contribution, analysis_tag, eye_tracker_files, dpp)             
             obj.analysis_tag= analysis_tag; 
-            obj.dpp = dpp;          
-            curr_path= pwd;            
+            obj.dpp = dpp;                    
             if ~iscell(eye_tracker_files)
                 eye_tracker_files= {eye_tracker_files};
             end
@@ -40,7 +39,7 @@ classdef EyeTrackerAnalysisRecord < handle
                 if strcmp(eye_tracker_file_ext, '.edf')                    
                     copyfile(curr_eye_tracker_full_file_name, EyeTrackerAnalysisRecord.READ_EDF_PATH);
                     progress_screen.displayMessage(['converting session #', num2str(eye_tracker_file_i), ' edf file']);
-                    cd(EyeTrackerAnalysisRecord.READ_EDF_PATH);
+                    addpath(EyeTrackerAnalysisRecord.READ_EDF_PATH);
                     extracted_struct = readEDF([eye_tracker_file_name, '.edf']);
                     extracted_struct = rmfield(extracted_struct, 'fixations');
                     extracted_struct = rmfield(extracted_struct, 'saccades');
@@ -56,7 +55,7 @@ classdef EyeTrackerAnalysisRecord < handle
                     extracted_struct.gazeRight = rmfield(extracted_struct.gazeRight, 'whichEye');
                     extracted_structs = {extracted_struct};
                     delete([eye_tracker_file_name, '.edf']);
-                    cd(curr_path);                  
+                    rmpath(EyeTrackerAnalysisRecord.READ_EDF_PATH);                  
                 elseif strcmp(eye_tracker_file_ext, '.mat')
                     progress_screen.displayMessage(['loading session #', num2str(eye_tracker_file_i), ' mat file']);
                     loaded_mat= load(curr_eye_tracker_full_file_name);
