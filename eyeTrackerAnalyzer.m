@@ -1100,10 +1100,25 @@ set(gui, 'Visible', 'on');
                 end
             end
             
-            if SPLIT_ANALYSIS_RESULTS_TO_SUBJECTS
+            % convert analysis_struct's subjects' cell arrays (cell arrays
+            % with A cell per subject) to structs (structs with A field per
+            % subject)
+            eye_movements_data_cell_arr = analysis_struct.eye_movements_data;
+            analysis_struct.eye_movements_data = [];
+            results_per_subject_cell_arr = analysis_struct.results_per_subject;
+            analysis_struct.results_per_subject = [];
+            etas_files_list= get(load_etas_for_analysis_display_pane, 'string');
+            for subject_i= 1:subjects_nr
+                [~, subject_file_name, ~] = fileparts(etas_files_list{subject_i});
+                analysis_struct.eye_movements_data.(subject_file_name) = eye_movements_data_cell_arr{subject_i};
+                analysis_struct.results_per_subject.(subject_file_name) = results_per_subject_cell_arr{subject_i};
+            end
+            
+            if SPLIT_ANALYSIS_RESULTS_TO_SUBJECTS    
+                analysis_struct_subjects_fields_names = fieldnames(analysis_struct.eye_movements_data);
                 for subject_i= 1:subjects_nr
-                    subject_analysis_struct.eye_movements_data = analysis_struct.eye_movements_data{subject_i};
-                    subject_analysis_struct.results = analysis_struct.results_per_subject{subject_i};
+                    subject_analysis_struct.eye_movements_data = analysis_struct.eye_movements_data.(analysis_struct_subjects_fields_names{subject_i});
+                    subject_analysis_struct.results = analysis_struct.results_per_subject.(analysis_struct_subjects_fields_names{subject_i});
                     subject_analysis_struct.saccades_analsysis_parameters = analysis_struct.saccades_analsysis_parameters;                    
                     save(fullfile(subjects_folders{subject_i}, ['analysis_struct_', num2str(subject_i), '.mat']), 'subject_analysis_struct');
                     progress_screen.addProgress(0.20/subjects_nr);
@@ -1255,7 +1270,7 @@ set(gui, 'Visible', 'on');
         
         total_files_nr= eta_files_nr + edf_files_nr;                    
                 
-        if eta_files_nr~=0                                    
+        if eta_files_nr ~= 0                                    
             for file_i= 1:eta_files_nr                
                 progress_screen.displayMessage(['Extracting: ', eta_listbox_string{file_i}]);
                 eta_loaded_struct= load(eta_listbox_string{file_i}, '-mat');                
@@ -1358,7 +1373,7 @@ set(gui, 'Visible', 'on');
         progress_screen.displayMessage('generating analyses plots');
         reformated_analysis_structs= reformatAnalysisStruct();                    
         [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(reformated_analysis_structs, EXE_PLOT_CURVES, [MICROSACCADES_ANALYSIS_PARAMETERS.rate, MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence, MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs, MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs], BASELINE, MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len, TRIAL_DURATION, progress_screen, 0.25);                        
-        analysis_struct_with_results.saccades_analsysis_parameters = ENGBERT_ALGORITHM_DEFAULTS;
+        analysis_struct_with_results.saccades_analsysis_parameters = ENGBERT_ALGORITHM_DEFAULTS;        
                 
         function fixations_analysis_struct = computeFixations(subjects_etas, progress_contribution, progress_screen)
             progress_screen.displayMessage('computing fixations');
@@ -1589,6 +1604,10 @@ set(gui, 'Visible', 'on');
                     end
                 end                                
             end                        
+        end
+        
+        function analysis_struct = convertCellPerSubject2FieldPerSubject(analysis_struct)
+            
         end
     end        
 
@@ -2322,11 +2341,10 @@ set(gui, 'Visible', 'on');
     end
     
     function convertEdfToMat(full_file_path, save_folder)        
-        curr_path= pwd;
-        cd(READ_EDF_PATH);
+        addpath(READ_EDF_PATH);
         copyfile(full_file_path, pwd);
         [~, edf_file_name]= fileparts(full_file_path);
-        eye_tracking_data_mat= readEDF([edf_file_name, '.edf']); %#ok<NASGU>
+        eye_tracking_data_mat= readEDF([edf_file_name, '.edf']);
         eye_tracking_data_mat = rmfield(eye_tracking_data_mat, 'fixations');
         eye_tracking_data_mat = rmfield(eye_tracking_data_mat, 'saccades');
         eye_tracking_data_mat.gazeLeft = rmfield(eye_tracking_data_mat.gazeLeft, 'pix2degX');
@@ -2339,9 +2357,9 @@ set(gui, 'Visible', 'on');
         eye_tracking_data_mat.gazeRight = rmfield(eye_tracking_data_mat.gazeRight, 'velocityX');
         eye_tracking_data_mat.gazeRight = rmfield(eye_tracking_data_mat.gazeRight, 'velocityY');
         eye_tracking_data_mat.gazeRight = rmfield(eye_tracking_data_mat.gazeRight, 'whichEye');
-        save(fullfile(save_folder, [edf_file_name, '.mat']), 'eye_tracking_data_mat');
+        save(fullfile(save_folder, [edf_file_name, '.mat']), 'eye_tracking_data_mat', '-v7.3');
         delete([edf_file_name, '.edf']);
-        cd(curr_path);
+        rmpath(READ_EDF_PATH);
     end
     
     function has_succeeded= createOutputFolders()
