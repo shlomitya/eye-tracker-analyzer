@@ -1180,7 +1180,7 @@ classdef Eyeballer < handle
             set(obj.fig, 'name', [obj.FIG_TITLE, ' - Saving...']);
             disp('Saving...');
             [saccades_data, ~]= obj.getSaccadesStruct();
-            addpath(fullfile(pwd, 'CaptionlessWindow'));
+            addpath(fullfile(pwd, 'WindowAPI'));
             main_fig_pos_curr = get(obj.fig, 'position');
             plsWaitFigSz = [main_fig_pos_curr(3)/3, main_fig_pos_curr(4)/12];            
             plsWaitFig = figure('menubar', 'none', 'toolbar', 'none', 'numbertitle', 'off', 'Resize','off', 'windowstyle', 'modal', ...
@@ -1189,10 +1189,8 @@ classdef Eyeballer < handle
                                              plsWaitFigSz(1), plsWaitFigSz(2)], ...
                                 'Color', [0.5, 0.5, 0.5]); 
             axes('XLim', [-1,1], 'YLim', [-1,1], 'Color', [0.5, 0.5, 0.5], 'XColor', [0.5, 0.5, 0.5], 'YColor', [0.5, 0.5, 0.5]);
-            text(-0.45, -0.15, 'Saving. Please Wait...');
-            cd('WindowAPI');
-            WindowAPI(plsWaitFig, 'Clip', true); 
-            cd('..');
+            text(-0.45, -0.15, 'Saving. Please Wait...');            
+            WindowAPI(plsWaitFig, 'Clip', true);         
             uicontrol(plsWaitFig, 'Style', 'text', 'units', 'normalized', ...
                 'String', 'Saving. Please Wait...', ...
                 'Position', [0.1    0.2    0.8    0.6], ...
@@ -1202,7 +1200,7 @@ classdef Eyeballer < handle
             set(obj.fig, 'name', obj.FIG_TITLE);
             disp('Done.');       
             close(plsWaitFig);
-            rmpath(fullfile(pwd, 'CaptionlessWindow'));
+            rmpath(fullfile(pwd, 'WindowAPI'));
             obj.is_session_saved = true;
         end
                             
