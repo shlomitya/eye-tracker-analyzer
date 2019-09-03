@@ -45,7 +45,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
         str_for_visible_prop= 'off';
     end
     
-    if  analyses_flags(5)         
+    if analyses_flags(5)         
         subjects_figs= cell(2,8,subjects_nr);        
     end
     analysis_struct_with_results.eye_movements_data= analysis_struct;
@@ -324,7 +324,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             end            
 
             statistisized_figs{1,3}= 'grand_average-amplitudes';
-            statistisized_figs{2,3}= figure('name','grand average: amplitudes ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);        
+            statistisized_figs{2,3}= figure('name','grand average: amplitudes', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);        
             if any(data_filled_conds_logical_vec)                 
                 grand_amplitudes_over_conditions= [];
                 grand_directions_over_conditions= [];
@@ -334,6 +334,10 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 end
                 polar(grand_directions_over_conditions, grand_amplitudes_over_conditions, '.');
             end
+                                                
+            statistisized_figs{1,4}= 'grand_average-amplitudes_hist';
+            statistisized_figs{2,4}= figure('name', 'grand average: amplitudes histogram', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);                       
+            hist(grand_amplitudes_over_conditions, 50);             
         end
 
         % directions
@@ -411,7 +415,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             end 
          
             statistisized_figs{1,7}= 'grand_average-main_sequence';
-            statistisized_figs{2,7}= figure('name','grand average: main sequence ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);               
+            statistisized_figs{2,7}= figure('name','grand average: main sequence', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);               
             if any(data_filled_conds_logical_vec)
                 grand_velocities_over_conditions= [];
                 grand_amplitudes_over_conditions= [];

@@ -32,7 +32,7 @@ classdef EyeTrackerAnalysisRecord < handle
             end
             eye_tracker_files_nr= numel(eye_tracker_files);
             obj.is_eeg_involved= false;
-            obj.eye_tracker_data_structs= {};            
+            obj.eye_tracker_data_structs= {};             
             for eye_tracker_file_i= 1:eye_tracker_files_nr                 
                 curr_eye_tracker_full_file_name= eye_tracker_files{eye_tracker_file_i};
                 [~, eye_tracker_file_name, eye_tracker_file_ext]= fileparts(curr_eye_tracker_full_file_name);                                    
@@ -252,7 +252,7 @@ classdef EyeTrackerAnalysisRecord < handle
                             potential_trial_start_msg = msg;
                             search_phase = 2;
                         end                        
-                    elseif (are_offset_triggers_included && (any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_offset_triggers)) || msg_time - potential_trial_start_time > trial_dur - baseline)) || ...
+                    elseif (are_offset_triggers_included && any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_offset_triggers))) || ...
                            (~are_offset_triggers_included && (any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_onset_triggers)) || msg_time - potential_trial_start_time > trial_dur - baseline))
                         search_phase = 1;
                         start_times= [start_times, potential_trial_start_time - baseline]; %#ok<AGROW>
@@ -264,7 +264,8 @@ classdef EyeTrackerAnalysisRecord < handle
                         else
                              continue;
                         end
-                    elseif any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_rejection_triggers))
+                    elseif (are_offset_triggers_included && msg_time - potential_trial_start_time > trial_dur - baseline) || ...
+                           (any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_rejection_triggers)))
                         search_phase = 1;
                     end
                     
@@ -308,7 +309,7 @@ classdef EyeTrackerAnalysisRecord < handle
                             potential_trial_start_input = input;                            
                             search_phase = 2;
                         end
-                    elseif (are_offset_triggers_included && (any(cellfun(@(trigger) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(input, trigger), trial_offset_triggers)) || input_time - potential_trial_start_time > trial_dur - baseline)) || ...
+                    elseif (are_offset_triggers_included && any(cellfun(@(trigger) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(input, trigger), trial_offset_triggers))) || ...
                            (~are_offset_triggers_included && (any(cellfun(@(trigger) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(input, trigger), trial_onset_triggers)) || input_time - potential_trial_start_time > trial_dur - baseline))                       
                         search_phase = 1;
                         start_times= [start_times, potential_trial_start_time - baseline]; %#ok<AGROW>
@@ -320,7 +321,8 @@ classdef EyeTrackerAnalysisRecord < handle
                         else
                              continue;
                         end
-                    elseif any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(input, str), trial_rejection_triggers))
+                    elseif (are_offset_triggers_included && input_time - potential_trial_start_time > trial_dur - baseline) || ...
+                            any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(input, str), trial_rejection_triggers))
                         search_phase = 1;
                     end
                     
@@ -363,7 +365,8 @@ classdef EyeTrackerAnalysisRecord < handle
                     curr_cond_name= conds_names{cond_name_i}; 
                     trials_nr= numel(curr_session_segmentization_vecs_struct.trials_start_times.(curr_cond_name));
                     if trials_nr==0
-                        segmentized_data_unmerged{session_i}.(curr_cond_name)= [];                        
+                        segmentized_data_unmerged{session_i}.(curr_cond_name)= [];    
+                        progress_screen.addProgress(progress_contribution / (numel(conds_names) * sessions_nr));
                     else                        
                         for trial_i= 1:trials_nr                           
                             indStart= curr_session_segmentization_vecs_struct.trials_start_times.(curr_cond_name)(trial_i);
@@ -437,6 +440,8 @@ classdef EyeTrackerAnalysisRecord < handle
                 else
                     segmentized_data= segmentized_data_unmerged{1};                
                 end               
+            else
+                progress_screen.addProgress(progress_contribution);
             end
         end
                 
