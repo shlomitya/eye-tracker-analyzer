@@ -1394,7 +1394,9 @@ set(gui, 'Visible', 'on');
                     trials_nr = numel(eye_data_struct.(cond));
                     for trial_i = 1:trials_nr
                         if ~any(eye_data_struct.(cond)(trial_i).non_nan_times_logical_vec)
-                            progress_screen.addProgress(progress_contribution/(trials_nr*conds_nr*subjects_nr));
+                            % calling getFixationsFromSaccadesDetection with no arguments returns a structure with empty fields
+                            fixations_analysis_struct{subject_i}.(cond)(trial_i) = getFixationsFromSaccadesDetection();
+                            %progress_screen.addProgress(progress_contribution/(trials_nr*conds_nr*subjects_nr));
                             continue;
                         end
                         
