@@ -1,4 +1,22 @@
-function [fix_struct]=getFixationsFromSaccadesDetection(d,onsets ,offsets ,amplitudes, toocloseThresh, blink_padding, to_plot)
+function fix_struct = getFixationsFromSaccadesDetection(d, onsets ,offsets ,amplitudes, toocloseThresh, blink_padding, to_plot)
+if nargin == 0
+    fix_struct.onsets=[];
+    fix_struct.offsets=[];
+    fix_struct.Hpos=[];
+    fix_struct.Vpos=[];
+    fix_struct.onset_types=[];
+    fix_struct.offset_types=[];
+    fix_struct.amplitudes=[];
+    fix_struct.durations=[];
+    fix_struct.disperity_V=[];
+    fix_struct.disperity_Vabs=[];
+    fix_struct.disperity_H=[];
+    fix_struct.disperity_Habs=[];
+    fix_struct.has_fixation_started_with_a_blink = [];
+    
+    return;
+end
+
 ENUM_ONSET_TYPES_SACCADE = 1;
 ENUM_ONSET_TYPES_BLINK = 3;
 ENUM_OFFSET_TYPES_SACCADE = 2;
