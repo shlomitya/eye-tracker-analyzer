@@ -83,10 +83,10 @@ end
 
 if ~IGNORE_BLINKS
     %reduce 50ms from blink_padding, to be sure not to catch the end or start of the blink (position).
-    blink_padding=blink_padding-50;
+    blink_padding = blink_padding - 50;
     % add a fixation offset at the beggning of each blink, and an offset at the end of it:
-    blink_interval_onsets= find((diff(d(:,6)))==1)+blink_padding;
-    blink_interval_offsets=find((diff(d(:,6)))==-1)-blink_padding;
+    blink_interval_onsets= find((diff(d(:,6))) == -1) + blink_padding;
+    blink_interval_offsets= find((diff(d(:,6))) == 1) - blink_padding;
 end
 
 
@@ -199,7 +199,7 @@ if to_plot
     figure();
     plot(d(:,2:5));
     hold on;
-    plot(d(:,6)*1000);
+    plot((1 - d(:,6))*1000);
     hold on
     plot([Nonsets; Nonsets],repmat([0 2000],length(Nonsets),1)','r')
     plot([Noffsets; Noffsets],repmat([0 2000],length(Noffsets),1)','g')        
@@ -241,7 +241,7 @@ for i=1:length(Nonsets);
     end
     
     tempd=d;
-    tempd(d(:,6)==1,2:5)=nan;
+    tempd(d(:,6)==0,2:5)=nan;
     
     
     

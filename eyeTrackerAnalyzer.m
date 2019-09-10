@@ -1582,11 +1582,14 @@ set(gui, 'Visible', 'on');
                                     curr_trial_saccades_struct.onsets';
                                 reformated_analysis_structs{subject_i}.saccades.(cond).velocities{trial_i}= ...
                                     curr_trial_saccades_struct.velocities';
+                            end
+                                
+                            if ~isempty(curr_trial_fixations_struct.onsets) && any(~isnan(curr_trial_fixations_struct.onsets))
                                 reformated_analysis_structs{subject_i}.fixations.(cond).onsets{trial_i} = curr_trial_fixations_struct.onsets;
                                 reformated_analysis_structs{subject_i}.fixations.(cond).coordinates_left{trial_i} = [curr_trial_fixations_struct.Hpos(:,1), curr_trial_fixations_struct.Vpos(:,1)];
                                 reformated_analysis_structs{subject_i}.fixations.(cond).coordinates_right{trial_i} = [curr_trial_fixations_struct.Hpos(:,2), curr_trial_fixations_struct.Vpos(:,2)];
                                 reformated_analysis_structs{subject_i}.fixations.(cond).durations{trial_i} = curr_trial_fixations_struct.durations;    
-                            end                                                        
+                            end                                                    
                         else
                             reformated_analysis_structs{subject_i}.saccades.(cond).logical_onsets_mat(trial_i, :) = NaN;
                             reformated_analysis_structs{subject_i}.saccades.(cond).number_of_saccades(trial_i)= NaN;                            
