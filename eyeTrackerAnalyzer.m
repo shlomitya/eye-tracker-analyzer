@@ -1546,8 +1546,7 @@ set(gui, 'Visible', 'on');
                     reformated_analysis_structs{subject_i}.raw_data.(cond).right_eye.x= NaN(curr_cond_trials_nr, max_trial_dur);
                     reformated_analysis_structs{subject_i}.raw_data.(cond).right_eye.y= NaN(curr_cond_trials_nr, max_trial_dur);
                     reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.x= NaN(curr_cond_trials_nr, max_trial_dur);
-                    reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.y= NaN(curr_cond_trials_nr, max_trial_dur);
-                    reformated_analysis_structs{subject_i}.raw_data.(cond).non_nan_times_logical_vec= NaN(curr_cond_trials_nr, max_trial_dur);
+                    reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.y= NaN(curr_cond_trials_nr, max_trial_dur);                    
                                                                                                                           
                     for trial_i= 1:curr_cond_trials_nr
                         curr_trial_saccades_struct= saccades_analysis_structs{subject_i}.(cond)(trial_i);       
@@ -1565,8 +1564,7 @@ set(gui, 'Visible', 'on');
                                 reformated_analysis_structs{subject_i}.raw_data.(cond).right_eye.x(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.right_eye(:,1)';
                                 reformated_analysis_structs{subject_i}.raw_data.(cond).right_eye.y(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.right_eye(:,2)';                                
                                 reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.x(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.left_eye(:,1)';
-                                reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.y(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.left_eye(:,2)';
-                                reformated_analysis_structs{subject_i}.raw_data.(cond).non_nan_times_logical_vec(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.non_nan_times_logical_vec';
+                                reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.y(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.left_eye(:,2)';                                
                             end
 
                             if ~isempty(curr_trial_saccades_struct.onsets) && any(~isnan(curr_trial_saccades_struct.onsets))
