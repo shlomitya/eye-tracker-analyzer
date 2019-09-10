@@ -251,7 +251,10 @@ classdef EyeTrackerAnalysisRecord < handle
                             potential_trial_start_time = msg_time;
                             potential_trial_start_msg = msg;
                             search_phase = 2;
-                        end                        
+                        end    
+                    elseif (are_offset_triggers_included && msg_time - potential_trial_start_time > trial_dur - baseline) || ...
+                           (any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_rejection_triggers)))
+                        search_phase = 1;                        
                     elseif (are_offset_triggers_included && any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_offset_triggers))) || ...
                            (~are_offset_triggers_included && (any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_onset_triggers)) || msg_time - potential_trial_start_time > trial_dur - baseline))
                         search_phase = 1;
@@ -263,10 +266,7 @@ classdef EyeTrackerAnalysisRecord < handle
                             end_times = [end_times, msg_time + post_offset_triggers_segment]; %#ok<AGROW>                                                                        
                         else
                              continue;
-                        end
-                    elseif (are_offset_triggers_included && msg_time - potential_trial_start_time > trial_dur - baseline) || ...
-                           (any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_rejection_triggers)))
-                        search_phase = 1;
+                        end                    
                     end
                     
                     field_i = field_i + 1;
