@@ -81,7 +81,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             smoothing_edge_right= ceil(smoothing_window_len/2);
             for cond_i= 1:conds_nr
                 max_trial_duration = max_trial_duration_per_cond(cond_i);
-                original_microsaccadic_rate{cond_i}(subject_i, 1:size(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).logical_onsets_mat, 2)) = nanmean(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).logical_onsets_mat, 1);
+                original_microsaccadic_rate{cond_i}(subject_i, 1:size(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).logical_onsets_mat, 2)) = nanmean(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).logical_onsets_mat);
                 smoothed_microsaccadic_rate_with_tails = smoothy( original_microsaccadic_rate{cond_i}(subject_i, 1:max_trial_duration), smoothing_window_len, progress_screen, 0.9*progress_contribution/(conds_nr*subjects_nr) );
                 smoothed_microsaccadic_rate{cond_i}(subject_i, :) = smoothed_microsaccadic_rate_with_tails((smoothing_edge_left + 1):(max_trial_duration - smoothing_edge_right));
             end
@@ -262,34 +262,37 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
          statistisized_figs = cell(2,7);
     end
     % rate
-    if analyses_flags(1)        
-        smoothed_grand_microsaccadic_rate= NaN(conds_nr, max_trial_duration_per_cond(cond_i) - smoothing_window_len);
-        for cond_i= 1:conds_nr            
-            curr_cond_original_grand_microsaccadic_rate= nanmean(original_microsaccadic_rate{cond_i}, 1);
-            smoothed_grand_microsaccadic_rate_with_tails= smoothy( curr_cond_original_grand_microsaccadic_rate, smoothing_window_len, progress_screen, 0 );
-            smoothed_grand_microsaccadic_rate_without_tails_idxs = (smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right);
-            smoothed_grand_microsaccadic_rate(cond_i,1:numel(smoothed_grand_microsaccadic_rate_without_tails_idxs))= smoothed_grand_microsaccadic_rate_with_tails(smoothed_grand_microsaccadic_rate_without_tails_idxs);
-        end
-
-        if analyses_flags(6)
-            statistisized_figs{1,1}= 'grand_average-microsaccades_rate';
-            statistisized_figs{2,1}= figure('name','grand average: microsaccades rate', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
-        end
-        for cond_i= 1:conds_nr  
-            if analyses_flags(6)
-                plot((1:size(smoothed_grand_microsaccadic_rate,2)) - baseline, smoothed_grand_microsaccadic_rate(cond_i,:), 'color', curves_colors(cond_i,:));
-                hold('on');
+    if subjects_nr > 1 
+        if analyses_flags(1)        
+            smoothed_grand_microsaccadic_rate= NaN(conds_nr, max_trial_duration_per_cond(cond_i) - smoothing_window_len);
+            for cond_i= 1:conds_nr            
+                curr_cond_original_grand_microsaccadic_rate= nanmean(original_microsaccadic_rate{cond_i}, 1);
+                smoothed_grand_microsaccadic_rate_with_tails= smoothy( curr_cond_original_grand_microsaccadic_rate, smoothing_window_len, progress_screen, 0 );
+                smoothed_grand_microsaccadic_rate_without_tails_idxs = (smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right);
+                smoothed_grand_microsaccadic_rate(cond_i,1:numel(smoothed_grand_microsaccadic_rate_without_tails_idxs))= smoothed_grand_microsaccadic_rate_with_tails(smoothed_grand_microsaccadic_rate_without_tails_idxs);
             end
-            analysis_struct_with_results.results_grand_total.saccades_analysis.saccadic_rate.(conds_names{cond_i})= smoothed_grand_microsaccadic_rate(cond_i,:);
-            
-        end
-        if analyses_flags(6)
-            legend(conds_names);                       
-            xlabel('Time [ms]');
-            ylabel('Microsaccadic Rate [hz]');
-        end
-    end
 
+            if analyses_flags(6)
+                statistisized_figs{1,1}= 'grand_average-microsaccades_rate';
+                statistisized_figs{2,1}= figure('name','grand average: microsaccades rate', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+            end
+            for cond_i= 1:conds_nr  
+                if analyses_flags(6)
+                    plot((1:size(smoothed_grand_microsaccadic_rate,2)) - baseline, smoothed_grand_microsaccadic_rate(cond_i,:), 'color', curves_colors(cond_i,:));
+                    hold('on');
+                end
+                analysis_struct_with_results.results_grand_total.saccades_analysis.saccadic_rate.(conds_names{cond_i})= smoothed_grand_microsaccadic_rate(cond_i,:);            
+            end
+            if analyses_flags(6)
+                legend(conds_names);                       
+                xlabel('Time [ms]');
+                ylabel('Microsaccadic Rate [hz]');
+            end
+        end
+    else
+        analysis_struct_with_results.results_grand_total = [];
+    end
+    
     % amplitude
     if analyses_flags(6)
         data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
