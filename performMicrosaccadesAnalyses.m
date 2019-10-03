@@ -10,7 +10,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     subjects_figs = [];
     statistisized_figs = [];
     analysis_struct_with_results = [];
-    if ~any(analyses_flags(1:4)) || ~any(analyses_flags([5,6]))
+    if ~any(analyses_flags(1:6))
         progress_screen.addProgress(progress_contribution);
         return;
     end
@@ -259,14 +259,14 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
 
     %CREATE GRAND AVERAGE PLOTS
     if analyses_flags(6)
-         statistisized_figs = cell(2,7);
+         statistisized_figs = cell(2,8);
     end
     % rate
     if subjects_nr > 1 
         if analyses_flags(1)        
             smoothed_grand_microsaccadic_rate= NaN(conds_nr, max_trial_duration_per_cond(cond_i) - smoothing_window_len);
             for cond_i= 1:conds_nr            
-                curr_cond_original_grand_microsaccadic_rate= nanmean(original_microsaccadic_rate{cond_i}, 1);
+                curr_cond_original_grand_microsaccadic_rate= mean(original_microsaccadic_rate{cond_i}, 1, 'omitnan');
                 smoothed_grand_microsaccadic_rate_with_tails= smoothy( curr_cond_original_grand_microsaccadic_rate, smoothing_window_len, progress_screen, 0 );
                 smoothed_grand_microsaccadic_rate_without_tails_idxs = (smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right);
                 smoothed_grand_microsaccadic_rate(cond_i,1:numel(smoothed_grand_microsaccadic_rate_without_tails_idxs))= smoothed_grand_microsaccadic_rate_with_tails(smoothed_grand_microsaccadic_rate_without_tails_idxs);
@@ -357,8 +357,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 end
             end
 
-            statistisized_figs{1,4}= 'grand_average-directions_by_condition';
-            statistisized_figs{2,4}= figure('name','grand average: directions by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+            statistisized_figs{1,5}= 'grand_average-directions_by_condition';
+            statistisized_figs{2,5}= figure('name','grand average: directions by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
             polar(360,200);
             for cond_i= 1:conds_nr            
                 if isempty(grand_directions{cond_i})
@@ -373,8 +373,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 legend(conds_names{data_filled_conds_logical_vec});             
             end 
           
-            statistisized_figs{1,5}= 'grand_average-directions';
-            statistisized_figs{2,5}= figure('name','grand average: directions ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+            statistisized_figs{1,6}= 'grand_average-directions';
+            statistisized_figs{2,6}= figure('name','grand average: directions ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
             polar(360,200);        
             if any(data_filled_conds_logical_vec)
                 grand_directions_over_conditions= [];
@@ -402,8 +402,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 end
             end
 
-            statistisized_figs{1,6}= 'grand_average-main_sequence_by_condition';
-            statistisized_figs{2,6}= figure('name','grand average: main sequence by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);        
+            statistisized_figs{1,7}= 'grand_average-main_sequence_by_condition';
+            statistisized_figs{2,7}= figure('name','grand average: main sequence by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);        
             for cond_i= 1:conds_nr            
                 if isempty(grand_velocities{cond_i}) || isempty(grand_amplitudes{cond_i})
                     data_filled_conds_logical_vec(cond_i)= false;
@@ -417,8 +417,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 legend(conds_names{data_filled_conds_logical_vec});             
             end 
          
-            statistisized_figs{1,7}= 'grand_average-main_sequence';
-            statistisized_figs{2,7}= figure('name','grand average: main sequence', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);               
+            statistisized_figs{1,8}= 'grand_average-main_sequence';
+            statistisized_figs{2,8}= figure('name','grand average: main sequence', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);               
             if any(data_filled_conds_logical_vec)
                 grand_velocities_over_conditions= [];
                 grand_amplitudes_over_conditions= [];
