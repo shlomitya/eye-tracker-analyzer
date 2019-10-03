@@ -933,10 +933,7 @@ set(gui, 'Visible', 'on');
         subjects_nr= numel(get(load_etas_for_analysis_display_pane,'string'));
         if subjects_nr > 1
             set(split_analysis_results_checkbox, 'enable', 'on');
-            SPLIT_ANALYSIS_RESULTS_TO_SUBJECTS = get(split_analysis_results_checkbox, 'value');
-        else
-            set(split_analysis_results_checkbox, 'enable', 'off');
-            SPLIT_ANALYSIS_RESULTS_TO_SUBJECTS = false;
+            SPLIT_ANALYSIS_RESULTS_TO_SUBJECTS = get(split_analysis_results_checkbox, 'value');                    
         end
     end   
     
@@ -944,6 +941,10 @@ set(gui, 'Visible', 'on');
         clearFileNameFromListBox(load_etas_for_analysis_display_pane);
         load_etas_for_analysis_display_pane_string= get(load_etas_for_analysis_display_pane,'string');
         subjects_nr= numel(load_etas_for_analysis_display_pane_string);
+        if subjects_nr <= 1
+            set(split_analysis_results_checkbox, 'enable', 'off');
+            SPLIT_ANALYSIS_RESULTS_TO_SUBJECTS = false;
+        end
     end
 
     function addStrToGroupCallback(hObject, ~, triggers_display)
