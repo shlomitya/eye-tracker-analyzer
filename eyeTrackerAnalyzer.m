@@ -712,6 +712,15 @@ set(gui, 'Visible', 'on');
     end
 
     function clearAllEtaCreationPanelsBtnCallback(~,~)  
+        if requested_etas_nr == 0
+            return;
+        end
+        
+        user_response = questdlg('Are you sure you want to clear everything ?', 'Verify Clear All', 'Yes', 'No', 'Yes');
+        if strcmp(user_response, 'No')
+            return;        
+        end 
+        
         if requested_etas_nr == MAX_SUBJECTS_NR_FOR_ETAS_CREATION
             eta_creation_uicontrols_group_i = MAX_SUBJECTS_NR_FOR_ETAS_CREATION;
         else
