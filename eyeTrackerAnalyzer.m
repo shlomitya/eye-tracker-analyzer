@@ -1009,11 +1009,22 @@ set(gui, 'Visible', 'on');
 
 
     function saveFolderBtnCallback(~,~)
-        files_save_destination = uigetdir(FILES_SAVE_DESTINATION, 'Choose Analysis Workspace Location');
-        if files_save_destination == 0                       
-            return;
+        was_folder_found = false;
+        files_save_destination = FILES_SAVE_DESTINATION;
+        while ~was_folder_found
+            files_save_destination = uigetdir(files_save_destination, 'Choose Analysis Workspace Location');
+            if files_save_destination == 0                       
+                return;
+            end
+
+            if exist(fullfile(files_save_destination, ANALYSIS_RESULTS_FOLDER_NAME), 'file')
+                user_response = questdlg('Folder contains an ''analysis_struct.m'' file. If you proceed, the file will be overwritten. Continue ?', 'Confirm Analysis Folder', 'Yes', 'No', 'No');
+                if strcmp(user_response, 'Yes')
+                    was_folder_found = true;
+                end 
+            end
         end
-                
+        
         FILES_SAVE_DESTINATION = files_save_destination;                                
         set(save_file_folder_etext,'string',files_save_destination);
         ANALYSIS_RESULTS_FILE_DESTINATION = fullfile(FILES_SAVE_DESTINATION, ANALYSIS_RESULTS_FOLDER_NAME);
