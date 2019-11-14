@@ -861,7 +861,6 @@ set(gui, 'Visible', 'on');
         end        
     end
 
-
     function saveFolderBtnCallback(~,~)
         files_save_destination = uigetdir(FILES_SAVE_DESTINATION, 'Choose Analysis Workspace Location');
         if files_save_destination == 0                       
