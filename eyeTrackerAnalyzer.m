@@ -1021,6 +1021,8 @@ set(gui, 'Visible', 'on');
                 if strcmp(user_response, 'Yes')
                     was_folder_found = true;
                 end 
+            else
+                was_folder_found = true;
             end
         end
         
