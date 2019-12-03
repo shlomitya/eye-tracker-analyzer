@@ -911,11 +911,11 @@ set(gui, 'Visible', 'on');
                 save_file_full_path = fullfile(ETAS_CREATION_SINGLE_SESSIONED_SAVE_DESTINATION, [curr_subject_eta_save_file_name, '_copy', num2str(file_copy_idx), '.eta']);
                 file_copy_idx = file_copy_idx + 1;
             end
-            curr_eta.save();
+            curr_eta.save(save_file_full_path);
             progress_screen.addProgress(0.1/requested_etas_single_sessioned_nr);
         end
         
-        if ~progress_screen.isCompleted();
+        if ~progress_screen.isCompleted()
             progress_screen.updateProgress(1);
         end
         
