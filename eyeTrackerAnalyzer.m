@@ -446,8 +446,8 @@ uicontrol(etas_creation_single_sessioned_panel, 'Style', 'pushbutton', 'tag', 'c
 uicontrol(etas_creation_single_sessioned_panel, 'Style', 'pushbutton', 'tag', 'c602', 'units', 'normalized', ...
     'Position', [0.0699    0.7225    0.0494    0.0551], ...
     'CData', imresize(x_icon_img_data,1.2), ...
-    'callback', {@clearFileNameFromListBox, load_files_for_etas_creation_single_sessioned_display_pane});
-
+    'callback', {@clearFilesForEtaCreationSingleSessionedBtnCallback});
+    
 uicontrol(etas_creation_single_sessioned_panel, 'Style', 'text', 'tag', 'c95', 'units', 'normalized', ...
     'String', 'Save Folder', ...
     'Position', [0.1438    0.5146    0.1186    0.0300], ...
@@ -880,6 +880,10 @@ set(gui, 'Visible', 'on');
         addFilesNamesToFilesListBox(load_files_for_etas_creation_single_sessioned_display_pane, files_names, path_name);         
     end
     
+    function clearFilesForEtaCreationSingleSessionedBtnCallback(~,~)
+        clearFileNameFromListBox(load_files_for_etas_creation_single_sessioned_display_pane);
+    end
+
     function browseEtasCreationSingleSessionedBtnCallback(~,~)
         ETAS_CREATION_SINGLE_SESSIONED_SAVE_DESTINATION = uigetdir(ETAS_CREATION_SINGLE_SESSIONED_SAVE_DESTINATION, 'Choose Etas Save Location');
         if ETAS_CREATION_SINGLE_SESSIONED_SAVE_DESTINATION==0
