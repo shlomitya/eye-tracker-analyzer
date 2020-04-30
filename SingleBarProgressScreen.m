@@ -96,7 +96,11 @@ classdef SingleBarProgressScreen < handle
             displayed_msg_len= obj.message_pane_java_internal_edit_control.getDocument.getLength;
             pause(0.1*(floor(displayed_msg_len/3000)+1));
             set(obj.message_pane_java_internal_edit_control,'Editable',1);
-            obj.message_pane_java_internal_edit_control.setCaretPosition(displayed_msg_len);            
+            try
+                obj.message_pane_java_internal_edit_control.setCaretPosition(displayed_msg_len);                                            
+            catch e
+               disp(e.message);
+            end               
             set(obj.message_pane_java_internal_edit_control,'Editable',0);
             drawnow;
         end           

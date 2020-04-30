@@ -129,16 +129,19 @@ classdef DualBarProgressScreen < handle
                 messages_pane_string= char(messages_pane_string(1:end-1,:), msg);                
             end
             
-            %try
+            
             messages_pane_string= char(messages_pane_string, ' ');
             set(obj.messages_pane,'string',messages_pane_string);
             displayed_msg_len= obj.message_pane_java_internal_edit_control.getDocument.getLength;
             pause(0.1*(floor(displayed_msg_len/3000)+1));
             set(obj.message_pane_java_internal_edit_control,'Editable',1);
-            obj.message_pane_java_internal_edit_control.setCaretPosition(displayed_msg_len);            
+            try
+                obj.message_pane_java_internal_edit_control.setCaretPosition(displayed_msg_len);            
+            catch e
+                disp(e.message);
+            end
             set(obj.message_pane_java_internal_edit_control,'Editable',0);
             drawnow;
-            %catch
         end    
         
         function is_completed= isCompleted(obj)
