@@ -738,9 +738,9 @@ classdef Eyeballer < handle
                     obj.is_blink_being_drawn_on_y_axes = false;
                 end                
                 obj.manual_blink_first_t = curr_mouse_pos_x;
-                obj.blink_curr_marker_h = plot(obj.eyes_x_coords_axes, [curr_mouse_pos_x, curr_mouse_pos_x] - obj.timeline_left_offset, obj.mean_range + 4*obj.std_range*[-1,1], '-b');
+                obj.blink_curr_marker_h = plot(obj.eyes_x_coords_axes, [curr_mouse_pos_x, curr_mouse_pos_x] - obj.timeline_left_offset, obj.mean_range + 100000*obj.std_range*[-1,1], '-b');
                 set(obj.blink_curr_marker_h, 'ButtonDownFcn', @obj.eyeCoordsXAxesButtonDownCallback);
-                obj.blink_start_marker_h = plot(obj.eyes_x_coords_axes, [curr_mouse_pos_x, curr_mouse_pos_x] - obj.timeline_left_offset, obj.mean_range + 4*obj.std_range*[-1,1], '-b');
+                obj.blink_start_marker_h = plot(obj.eyes_x_coords_axes, [curr_mouse_pos_x, curr_mouse_pos_x] - obj.timeline_left_offset, obj.mean_range + 100000*obj.std_range*[-1,1], '-b');
                 set(obj.blink_start_marker_h, 'ButtonDownFcn', @obj.eyeCoordsXAxesButtonDownCallback);
                 set(obj.fig, 'Pointer', 'cross');
                 obj.is_blink_being_drawn_on_x_axes = true;
@@ -798,9 +798,9 @@ classdef Eyeballer < handle
                     obj.is_blink_being_drawn_on_x_axes = false;
                 end                
                 obj.manual_blink_first_t = curr_mouse_pos_x;
-                obj.blink_curr_marker_h = plot(obj.eyes_y_coords_axes, [curr_mouse_pos_x, curr_mouse_pos_x] - obj.timeline_left_offset, obj.mean_range + 4*obj.std_range*[-1,1], '-b');
+                obj.blink_curr_marker_h = plot(obj.eyes_y_coords_axes, [curr_mouse_pos_x, curr_mouse_pos_x] - obj.timeline_left_offset, obj.mean_range + 10000*obj.std_range*[-1,1], '-b');
                 set(obj.blink_curr_marker_h, 'ButtonDownFcn', @obj.eyeCoordsYAxesButtonDownCallback);
-                obj.blink_start_marker_h = plot(obj.eyes_y_coords_axes, [curr_mouse_pos_x, curr_mouse_pos_x] - obj.timeline_left_offset, obj.mean_range + 4*obj.std_range*[-1,1], '-b');
+                obj.blink_start_marker_h = plot(obj.eyes_y_coords_axes, [curr_mouse_pos_x, curr_mouse_pos_x] - obj.timeline_left_offset, obj.mean_range + 10000*obj.std_range*[-1,1], '-b');
                 set(obj.blink_start_marker_h, 'ButtonDownFcn', @obj.eyeCoordsYAxesButtonDownCallback);
                 set(obj.fig, 'Pointer', 'cross');
                 obj.is_blink_being_drawn_on_y_axes = true;
