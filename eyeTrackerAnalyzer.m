@@ -1272,6 +1272,7 @@ set(gui, 'Visible', 'on');
             etas_files_list= get(load_etas_for_analysis_display_pane, 'string');
             for subject_i= 1:subjects_nr
                 [~, subject_file_name, ~] = fileparts(etas_files_list{subject_i});
+                subject_file_name = replace(subject_file_name, {'(', '*', '.', ')', ' ', ']', '[', '{', '}'}, '_');
                 analysis_struct.eye_movements_data.(subject_file_name) = eye_movements_data_cell_arr{subject_i};
                 analysis_struct.results_per_subject.(subject_file_name) = results_per_subject_cell_arr{subject_i};
             end
