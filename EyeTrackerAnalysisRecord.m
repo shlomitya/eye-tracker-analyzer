@@ -1227,7 +1227,7 @@ classdef EyeTrackerAnalysisRecord < handle
             end
             
             % [nlow,Wnlow]=buttord((0.5*lowpass)/(0.5*rate), lowpass/(0.5*rate) , 0.01, 24);
-            [nlow,Wnlow]=buttord( lowpass/(0.5*rate), min(0.999999, 2*lowpass/(0.5*rate)) , 3, 24); % Alon 27.1.09: changed so that high is the cuttoff freq of -3dB
+            [nlow,Wnlow]=buttord( min(0.9, lowpass/(0.5*rate)), min(0.99, 2*lowpass/(0.5*rate)) , 3, 24); % Alon 27.1.09: changed so that high is the cuttoff freq of -3dB
             %disp(['Wnlow = ' num2str(Wnlow)]);
             % [nlow,Wnlow]=buttord((0.5*lowpass)/(0.5*rate), lowpass/(0.5*rate) , 10, 18)
             
