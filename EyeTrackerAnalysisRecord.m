@@ -68,11 +68,11 @@ classdef EyeTrackerAnalysisRecord < handle
                     obj.is_eeg_involved= true;
                 end                                
                 
-                if eye_tracker_file_i == 1
-                    obj.sampling_rate = 1000 / median(diff(extracted_structs{1}.gazeRight.time));
+                if eye_tracker_file_i == 1                    
+                    obj.sampling_rate = EyeTrackerAnalysisRecord.compSamplingRate(extracted_structs{1}.gazeRight.time);
                 else   
-                    for session_i = 1:numel(extracted_structs)
-                        curr_session_sampling_rate = 1000 / (extracted_structs{session_i}.gazeRight.time(2) - extracted_structs{session_i}.gazeRight.time(1));
+                    for session_i = 1:numel(extracted_structs)                        
+                    	curr_session_sampling_rate = EyeTrackerAnalysisRecord.compSamplingRate(extracted_structs{session_i}.gazeRight.time);
                         if curr_session_sampling_rate ~= obj.sampling_rate
                             error('EyeTrackerAnalysisRecord:InvalidMat', [eye_tracker_file_name, 'contains data with different sampling rate (', num2str(curr_session_sampling_rate), ' Hz) than does the first session file (', num2str(obj.sampling_rate), ' Hz) - sessions with different sampling rates are not supported.']);                    
                         end
@@ -611,6 +611,12 @@ classdef EyeTrackerAnalysisRecord < handle
             end            
         end
             
+        % expects sampling rate to be at least 100HZ        
+        function sampling_rate = compSamplingRate(time_vec) 
+            time_intervals = abs(diff(time_vec));
+            sampling_rate = round(1000 / mean(time_intervals(time_intervals <= 10)));
+        end
+        
         function eye_data_struct= filterEyeData(eye_data_struct, bandpass, rate)            
             eye_data_struct.gazeRight.x= EyeTrackerAnalysisRecord.naninterp(eye_data_struct.gazeRight.x);
             eye_data_struct.gazeRight.y= EyeTrackerAnalysisRecord.naninterp(eye_data_struct.gazeRight.y);
