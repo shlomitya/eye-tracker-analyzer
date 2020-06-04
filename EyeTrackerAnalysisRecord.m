@@ -359,7 +359,8 @@ classdef EyeTrackerAnalysisRecord < handle
                     were_triggers_ever_found = true;
                 end
                 curr_session_segmentization_vecs_struct= obj.segmentization_vecs{obj.chosen_segmentization_i}(session_i);
-                curr_session_eye_tracker_data_struct= EyeTrackerAnalysisRecord.filterEyeData(obj.eye_tracker_data_structs{session_i}, filter_bandpass, obj.sampling_rate);
+                %curr_session_eye_tracker_data_struct= EyeTrackerAnalysisRecord.filterEyeData(obj.eye_tracker_data_structs{session_i}, filter_bandpass, obj.sampling_rate);
+                curr_session_eye_tracker_data_struct = obj.eye_tracker_data_structs{session_i};
                 conds_names= fieldnames(curr_session_segmentization_vecs_struct.trials_start_times);                                                 
                 for cond_name_i= 1:numel(conds_names)
                     curr_cond_name= conds_names{cond_name_i}; 

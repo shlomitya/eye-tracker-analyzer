@@ -87,6 +87,7 @@ ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type= 1;
 ENGBERT_ALGORITHM_DEFAULTS.vel_threshold= 6;
 ENGBERT_ALGORITHM_DEFAULTS.saccade_dur_min= 6;
 ENGBERT_ALGORITHM_DEFAULTS.frequency_max= 50;
+ENGBERT_ALGORITHM_DEFAULTS.do_filter = true;
 ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass= 60;
 
 %==================%
