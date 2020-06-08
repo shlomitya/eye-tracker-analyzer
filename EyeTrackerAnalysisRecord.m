@@ -621,7 +621,7 @@ classdef EyeTrackerAnalysisRecord < handle
             sampling_rate = round(1000 / mean(time_intervals(time_intervals <= 10)));
         end
         
-        function eye_data_struct= filterEyeData(eye_data_struct, bandpass, rate)            
+        function eye_data_struct= filterEyeData(eye_data_struct, bandpass, rate)                
             eye_data_struct.gazeRight.x= EyeTrackerAnalysisRecord.naninterp(eye_data_struct.gazeRight.x);
             eye_data_struct.gazeRight.y= EyeTrackerAnalysisRecord.naninterp(eye_data_struct.gazeRight.y);
             eye_data_struct.gazeRight.x= EyeTrackerAnalysisRecord.lowPassFilter(bandpass,eye_data_struct.gazeRight.x,rate); %<<<=== rate ???
@@ -1242,6 +1242,14 @@ classdef EyeTrackerAnalysisRecord < handle
         end
         
         function X = naninterp(X)                                         
+            % replacing the leading and trailing nans with the first and 
+            % last non-nan values respectively 
+            first_non_nan_val_idx = find(~isnan(X), 1);
+            X(1:first_non_nan_val_idx - 1) = X(first_non_nan_val_idx);
+            last_non_nan_val_idx = numel(X) - find(~isnan(X(end:-1:1)), 1) + 1;
+            X(last_non_nan_val_idx + 1:end) = X(last_non_nan_val_idx);
+            
+            % interpolating
             X(isnan(X)) = interp1(find(~isnan(X)), X(~isnan(X)), find(isnan(X)), 'PCHIP');
         end
         
