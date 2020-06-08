@@ -83,8 +83,7 @@ classdef Eyeballer < handle
             subjects_nr= numel(raw_eye_data);            
             obj.eye_data= cell(1, subjects_nr);
             obj.timeline_left_offset = timeline_left_offset;
-            %obj.sampling_rates = sampling_rates;
-            obj.sampling_rates = 1000 * ones(1,numel(sampling_rates));
+            obj.sampling_rates = sampling_rates;
             obj.save_func= save_func;          
             obj.manual_saccade_search_func= manual_saccade_search_params.manual_saccade_search_func;  
             obj.manual_saccade_search_func_input= cell(1, subjects_nr);
@@ -147,10 +146,10 @@ classdef Eyeballer < handle
             trials_it = 1;
             for subject_i= 1:subjects_nr
                 for trial_i = 1:numel(obj.eye_data{subject_i})
-                    max_sample_val = max([abs(obj.eye_data{subject_i}(trial_i).left_x), ...
-                                          abs(obj.eye_data{subject_i}(trial_i).left_y), ...
-                                          abs(obj.eye_data{subject_i}(trial_i).right_x), ...
-                                          abs(obj.eye_data{subject_i}(trial_i).right_y)]);
+                    max_sample_val = max([abs(obj.eye_data{subject_i}(trial_i).left_x(obj.eye_data{subject_i}(trial_i).non_nan_times_logical_vec)), ...
+                                          abs(obj.eye_data{subject_i}(trial_i).left_y(obj.eye_data{subject_i}(trial_i).non_nan_times_logical_vec)), ...
+                                          abs(obj.eye_data{subject_i}(trial_i).right_x(obj.eye_data{subject_i}(trial_i).non_nan_times_logical_vec)), ...
+                                          abs(obj.eye_data{subject_i}(trial_i).right_y(obj.eye_data{subject_i}(trial_i).non_nan_times_logical_vec))]);
                     if ~isempty(max_sample_val)
                         data_ranges(trials_it) = max_sample_val;
                     else

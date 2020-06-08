@@ -29,8 +29,7 @@ classdef SaccadesExtractor < handle
             for subject_i = 1:obj.subjects_nr
                 obj.dpps(subject_i)= subjects_etas{subject_i}.getDpp();
                 obj.sampling_rates(subject_i)= subjects_etas{subject_i}.getSamplingRate();
-            end
-                          
+            end                          
                  
             screen_size= get(0,'monitorpositions');
             if any(screen_size(1)<0)

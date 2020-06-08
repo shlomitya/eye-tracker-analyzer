@@ -188,15 +188,12 @@ classdef EyeTrackerAnalysisRecord < handle
                         if isempty(indStart)
                             continue;
                         end
-                        if ~isempty(trial_offset_triggers)   
-                            indEnd = find(ismember(curr_session_eye_tracker_data_struct.gazeLeft.time, end_times(trial_i) + (0 : (1000/obj.sampling_rate - 1))), 1);
-                            if isempty(indEnd)
-                                continue;
-                            end
-                        else
-                            indEnd = indStart + min(ceil(trial_dur/(1000/obj.sampling_rate)) - 1, session_samples_nr - indStart);
-                        end
                         
+                        indEnd = find(ismember(curr_session_eye_tracker_data_struct.gazeLeft.time, end_times(trial_i) + (0 : (1000/obj.sampling_rate - 1))), 1);
+                        if isempty(indEnd)
+                            continue;
+                        end
+                                                
                         obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_start_times.(curr_cond_field_name)(trial_i) = indStart;
                         obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_end_times.(curr_cond_field_name)(trial_i) = indEnd;
                     end 
@@ -263,10 +260,14 @@ classdef EyeTrackerAnalysisRecord < handle
                             curr_cond_field_name = [curr_cond_field_name, potential_trial_start_msg, 'X'];  %#ok<AGROW>
                         end
                         if are_offset_triggers_included
-                            end_times = [end_times, msg_time + post_offset_triggers_segment]; %#ok<AGROW>                                                                        
+                            end_times = [end_times, msg_time + post_offset_triggers_segment]; %#ok<AGROW>
+                        elseif msg_time - potential_trial_start_time < trial_dur - baseline
+                            end_times = [end_times, msg_time]; %#ok<AGROW>
+                            continue;
                         else
-                             continue;
-                        end                    
+                            end_times = [end_times, msg_time + trial_dur]; %#ok<AGROW>
+                            continue;
+                        end
                     end
                     
                     field_i = field_i + 1;
@@ -275,7 +276,9 @@ classdef EyeTrackerAnalysisRecord < handle
                 if search_phase == 2
                     start_times= [start_times, potential_trial_start_time - baseline];
                     if are_offset_triggers_included
-                        end_times = [end_times, potential_trial_start_time + trial_dur + post_offset_triggers_segment];
+                        end_times = [end_times, min(potential_trial_start_time + trial_dur + post_offset_triggers_segment, eye.gazeLeft.time(end))];
+                    else                        
+                        end_times = [end_times, min(potential_trial_start_time + trial_dur, eye.gazeLeft.time(end))];
                     end
                 end
                 
@@ -359,8 +362,8 @@ classdef EyeTrackerAnalysisRecord < handle
                     were_triggers_ever_found = true;
                 end
                 curr_session_segmentization_vecs_struct= obj.segmentization_vecs{obj.chosen_segmentization_i}(session_i);
-                curr_session_eye_tracker_data_struct= EyeTrackerAnalysisRecord.filterEyeData(obj.eye_tracker_data_structs{session_i}, filter_bandpass, obj.sampling_rate);
-%                 curr_session_eye_tracker_data_struct = obj.eye_tracker_data_structs{session_i};
+%                 curr_session_eye_tracker_data_struct= EyeTrackerAnalysisRecord.filterEyeData(obj.eye_tracker_data_structs{session_i}, filter_bandpass, obj.sampling_rate);
+                curr_session_eye_tracker_data_struct = obj.eye_tracker_data_structs{session_i};
                 conds_names= fieldnames(curr_session_segmentization_vecs_struct.trials_start_times);                                                 
                 for cond_name_i= 1:numel(conds_names)
                     curr_cond_name= conds_names{cond_name_i}; 
@@ -841,7 +844,7 @@ classdef EyeTrackerAnalysisRecord < handle
                 if ~isempty(suspect_onsets_indexes)
                     cur_index=suspect_onsets_indexes(1);
                     cnt=1;                    
-                    for i=2:length(suspect_onsets_indexes);                        
+                    for i=2:length(suspect_onsets_indexes)                        
                         if ismember(suspect_onsets_indexes(i),cur_index:cur_index+tolerance)
                             cnt=cnt+1;
                             cur_index=suspect_onsets_indexes(i);
