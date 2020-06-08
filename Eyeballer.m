@@ -83,7 +83,8 @@ classdef Eyeballer < handle
             subjects_nr= numel(raw_eye_data);            
             obj.eye_data= cell(1, subjects_nr);
             obj.timeline_left_offset = timeline_left_offset;
-            obj.sampling_rates = sampling_rates;
+            %obj.sampling_rates = sampling_rates;
+            obj.sampling_rates = 1000 * ones(1,numel(sampling_rates));
             obj.save_func= save_func;          
             obj.manual_saccade_search_func= manual_saccade_search_params.manual_saccade_search_func;  
             obj.manual_saccade_search_func_input= cell(1, subjects_nr);
