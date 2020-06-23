@@ -507,8 +507,9 @@ classdef Eyeballer < handle
                 return;
             end
 
-            plot(obj.eyes_x_coords_axes, (0:max(obj.AXES_X_RANGE_SIZE, trial_dur)) - obj.timeline_left_offset, zeros(1,max(obj.AXES_X_RANGE_SIZE, trial_dur) + 1), '--', 'color', [0 0 0]);
-            plot(obj.eyes_y_coords_axes, (0:max(obj.AXES_X_RANGE_SIZE, trial_dur)) - obj.timeline_left_offset, zeros(1,max(obj.AXES_X_RANGE_SIZE, trial_dur) + 1), '--', 'color', [0 0 0]);
+            time_axis_len = max(obj.AXES_X_RANGE_SIZE, round(trial_dur * 1000 / obj.sampling_rates(obj.curr_subject)));
+            plot(obj.eyes_x_coords_axes, (0:time_axis_len) - obj.timeline_left_offset, zeros(1,time_axis_len + 1), '--', 'color', [0 0 0]);
+            plot(obj.eyes_y_coords_axes, (0:time_axis_len) - obj.timeline_left_offset, zeros(1,time_axis_len + 1), '--', 'color', [0 0 0]);
             if do_axes_lims_reset
                 set(obj.eyes_x_coords_axes, 'XLim', [0, min(obj.AXES_X_RANGE_SIZE, trial_dur)] - obj.timeline_left_offset);
                 set(obj.eyes_y_coords_axes, 'XLim', [0, min(obj.AXES_X_RANGE_SIZE, trial_dur)] - obj.timeline_left_offset);
@@ -537,7 +538,7 @@ classdef Eyeballer < handle
                 for seg_i= 1:numel(blink_segs_end_times)
                     blink_seg_times= blink_segs_start_times(seg_i):blink_segs_end_times(seg_i);
                     [no_data_on_x_plot, no_data_on_y_plot] = plotBlinkSeg(blink_seg_times);
-                end                                                
+                end
                                
                 curr_subject_trial_saccades_data= obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial);
                 curr_subject_trial_saccades_nr= numel(curr_subject_trial_saccades_data.onsets);  

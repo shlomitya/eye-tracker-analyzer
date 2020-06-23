@@ -624,12 +624,12 @@ classdef EyeTrackerAnalysisRecord < handle
         function eye_data_struct= filterEyeData(eye_data_struct, bandpass, rate)                
             eye_data_struct.gazeRight.x= EyeTrackerAnalysisRecord.naninterp(eye_data_struct.gazeRight.x);
             eye_data_struct.gazeRight.y= EyeTrackerAnalysisRecord.naninterp(eye_data_struct.gazeRight.y);
-            eye_data_struct.gazeRight.x= EyeTrackerAnalysisRecord.lowPassFilter(bandpass,eye_data_struct.gazeRight.x,rate); %<<<=== rate ???
-            eye_data_struct.gazeRight.y= EyeTrackerAnalysisRecord.lowPassFilter(bandpass,eye_data_struct.gazeRight.y,rate); %<<<=== rate ???
+            eye_data_struct.gazeRight.x= EyeTrackerAnalysisRecord.lowPassFilter(bandpass,eye_data_struct.gazeRight.x,rate);
+            eye_data_struct.gazeRight.y= EyeTrackerAnalysisRecord.lowPassFilter(bandpass,eye_data_struct.gazeRight.y,rate);
             eye_data_struct.gazeLeft.x= EyeTrackerAnalysisRecord.naninterp(eye_data_struct.gazeLeft.x);
             eye_data_struct.gazeLeft.y= EyeTrackerAnalysisRecord.naninterp(eye_data_struct.gazeLeft.y);
-            eye_data_struct.gazeLeft.x= EyeTrackerAnalysisRecord.lowPassFilter(bandpass,eye_data_struct.gazeLeft.x,rate); %<<<=== rate ???
-            eye_data_struct.gazeLeft.y= EyeTrackerAnalysisRecord.lowPassFilter(bandpass,eye_data_struct.gazeLeft.y,rate); %<<<=== rate ???                                                        
+            eye_data_struct.gazeLeft.x= EyeTrackerAnalysisRecord.lowPassFilter(bandpass,eye_data_struct.gazeLeft.x,rate);
+            eye_data_struct.gazeLeft.y= EyeTrackerAnalysisRecord.lowPassFilter(bandpass,eye_data_struct.gazeLeft.y,rate);                                                        
         end
                         
         function blinksbool= eyelinkBased_blinkdetection(eyelink, delta, progress_screen, progress_contribution)

@@ -40,7 +40,7 @@ classdef SaccadesExtractor < handle
             obj.eyeballer_main_gui_pos= round([0.2*screen_size(3), -0.2*screen_size(4), 0.6*screen_size(3), 0.8*screen_size(4)]);
         end
         
-        function [eye_data_struct, saccades_struct, eyeballing_stats]= extractSaccadesByEngbert(obj, vel_calc_type, vel_threshold, amp_lim, amp_low_lim, saccade_dur_min, frequency_max, filter_bandpass, perform_eyeballing, eyeballer_display_range_multiplier, eyeballer_timeline_left_offset, etas_full_paths, progress_contribution, progress_screen)                           
+        function [eye_data_struct, saccades_struct, eyeballing_stats]= extractSaccadesByEngbert(obj, vel_calc_type, vel_threshold, amp_lim, amp_low_lim, saccade_dur_min, frequency_max, filter_bandpass, perform_eyeballing, eyeballer_display_range_multiplier, eyeballer_timeline_left_offset, etas_full_paths, progress_contribution, progress_screen, logger)                           
             is_extraction_go= true;            
             if perform_eyeballing
                 raw_eye_data_for_eyeballer= cell(1, obj.subjects_nr);
@@ -207,16 +207,18 @@ classdef SaccadesExtractor < handle
                                 [sacr, ~] = SaccadesExtractor.engbertAlgorithm(obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).right_eye.eye_vels, ...
                                                                                curr_requested_vel_threshold, ...
                                                                                max(ceil(curr_requested_saccade_dur_min*obj.sampling_rates(subject_i)/1000), 2));
-                            catch exception
-                                progress_screen.displayMessage(['<<Error>> on condition ', curr_cond_name, ' trial #', num2str(trial_i), ': ', exception.message]);
+                            catch exception                                
                                 exception_identifier= strsplit(exception.identifier,':');
                                 exception_identifier= exception_identifier{2};
                                 if strcmp(exception_identifier, 'msdxZero') || strcmp(exception_identifier, 'msdyZero')
-                                    fillSaccadesStructWithVal([]);
-                                    continue;
+                                    logger.logi(['On condition ', curr_cond_name, ' trial #', num2str(trial_i), ': ', exception.message]);
+                                    fillSaccadesStructWithVal([]);                                    
                                 else
-                                    rethrow(exception);
+                                    logger.loge(['On condition ', curr_cond_name, ' trial #', num2str(trial_i), ': ', exception.message]);
+                                    progress_screen.displayMessage('<<ERROR: see log file>>');                                    
                                 end
+                                
+                                continue;
                             end
                             
                             if isempty(sacl) || isempty(sacr)

@@ -15,10 +15,11 @@ classdef DualBarProgressScreen < handle
         names_of_stages= [];
         curr_stage_i= 1;
         is_completed= false;
+        logger;
     end
     
     methods
-        function obj= DualBarProgressScreen(figure_title, figure_color, width_proportion, height_proportion, progress_amounts_of_stages, names_of_stages, parent_close_btn_callback, parent_close_btn_callback_args)
+        function obj= DualBarProgressScreen(figure_title, figure_color, width_proportion, height_proportion, progress_amounts_of_stages, names_of_stages, parent_close_btn_callback, parent_close_btn_callback_args, logger)
             if nargin<8            
                 parent_close_btn_callback_args= [];
                 if nargin<7
@@ -68,6 +69,7 @@ classdef DualBarProgressScreen < handle
             obj.parent_close_btn_callback_args= parent_close_btn_callback_args;
             obj.progress_amounts_of_stages= progress_amounts_of_stages;
             obj.names_of_stages= names_of_stages;
+            obj.logger = logger;
         end                
         
         function updateProgress(obj, progress)
@@ -134,13 +136,13 @@ classdef DualBarProgressScreen < handle
             set(obj.messages_pane,'string',messages_pane_string);
             displayed_msg_len= obj.message_pane_java_internal_edit_control.getDocument.getLength;
             pause(0.1*(floor(displayed_msg_len/3000)+1));
-            set(obj.message_pane_java_internal_edit_control,'Editable',1);
+            set(obj.message_pane_java_internal_edit_control, 'Editable',1);
             try
                 obj.message_pane_java_internal_edit_control.setCaretPosition(displayed_msg_len);            
             catch e
-                disp(e.message);
+                obj.logger.loge(e.message);
             end
-            set(obj.message_pane_java_internal_edit_control,'Editable',0);
+            set(obj.message_pane_java_internal_edit_control, 'Editable',0);
             drawnow;
         end    
         

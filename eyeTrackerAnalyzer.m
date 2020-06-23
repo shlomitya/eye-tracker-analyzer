@@ -57,6 +57,7 @@ CURR_FILE_LOAD_FOLDER= pwd;
 MICROSACCADES_PARAMETERS_FIG= [];
 BLINKS_PARAMETERS_FIG= [];
 TRIGGERS_XML_DELIMITER = '&%$#';
+LOGGER_FILE_NAME_EXTENDED = 'error_log.txt';
 
 %ERROR MESSAGES
 ERROR_MSG_NO_TRIGGERS= 'Please specify trial start triggers';
@@ -71,6 +72,7 @@ ERROR_MSG_NO_VEL_THRESHOLD= 'Please specify microsaccade''s velocity threshold';
 ERROR_MSG_NO_AMP_LIM= 'Please specify microsaccade''s amplitude limit';
 ERROR_MSG_MISSING_ETA_SAVE_FILE_NAMES= 'Please choose save names for all .ETA files';
 
+% ALGORITHMS DEFAULT PARAMETERS VALUES
 MICROSACCADES_ANALYSIS_PARAMETERS.rate= 1;
 MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes= 1;
 MICROSACCADES_ANALYSIS_PARAMETERS.directions= 1;
@@ -1238,13 +1240,14 @@ set(gui, 'Visible', 'on');
             cd(get(gui,'userdata'));
         end
         
-        %profile on                                                
+        %profile on          
+        logger = Logger(fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, LOGGER_FILE_NAME_EXTENDED));
         progress_amounts_of_stages= [0.8362, 0.0660, 0.0978];
         stages_names= {'loading data structures', progress_screen_message_during_analysis, 'saving figures'};
-        progress_screen= DualBarProgressScreen('Analysis Progress', [0.8, 0.8, 0.8], 0.4, 0.4, progress_amounts_of_stages, stages_names);                         
+        progress_screen= DualBarProgressScreen('Analysis Progress', [0.8, 0.8, 0.8], 0.4, 0.4, progress_amounts_of_stages, stages_names, [], [], logger);                         
         %try
             etas = loadEtasSegmentized(progress_screen);             
-            [subjects_figs, statistisized_figs, analysis_struct]= analysis_func(etas, progress_screen);
+            [subjects_figs, statistisized_figs, analysis_struct]= analysis_func(etas, progress_screen, logger);
             
             if isempty(analysis_struct)
                 progress_screen.addProgress(1);  
@@ -1334,6 +1337,7 @@ set(gui, 'Visible', 'on');
             
             %profile viewer;
             progress_screen.displayMessage('Done.');
+            delete(logger);
 %         catch exception
 %             exception_identifier= strsplit(exception.identifier,':');
 %             exception_identifier= exception_identifier{2};
@@ -1501,7 +1505,7 @@ set(gui, 'Visible', 'on');
         end
     end
 
-    function [subjects_figs, statistisized_figs, analysis_struct_with_results]= analyzeMicrosaccades(subjects_etas, progress_screen)        
+    function [subjects_figs, statistisized_figs, analysis_struct_with_results]= analyzeMicrosaccades(subjects_etas, progress_screen, logger)        
         saccades_extractor= SaccadesExtractor(subjects_etas);        
         progress_screen.displayMessage('extracting saccades');
         [eye_data_structs, saccades_analysis_structs, eyeballing_stats]= saccades_extractor.extractSaccadesByEngbert( ...
@@ -1513,7 +1517,7 @@ set(gui, 'Visible', 'on');
             ENGBERT_ALGORITHM_DEFAULTS.frequency_max, ...
             ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass, ...
             PERFORM_EYEBALLING, EYEBALLER_DISPLAY_RANGE, BASELINE, ...
-            get(load_etas_for_analysis_display_pane, 'string'), 0.5, progress_screen);                   
+            get(load_etas_for_analysis_display_pane, 'string'), 0.5, progress_screen, logger);                   
         was_trigger_ever_found_for_any_subject = false;
         for subject_idx = 1:numel(saccades_analysis_structs)
             if ~isempty(saccades_analysis_structs{subject_idx})
@@ -2357,7 +2361,7 @@ set(gui, 'Visible', 'on');
         end
     end
 
-    function [subjects_figs, statistisized_figs, analysis_struct]= analyzePupilsSz(subjects_etas, progress_screen)  
+    function [subjects_figs, statistisized_figs, analysis_struct]= analyzePupilsSz(subjects_etas, progress_screen, logger)  
         %===============%
         %=== analyze ===%
         %===============%         
@@ -2387,7 +2391,7 @@ set(gui, 'Visible', 'on');
                     curr_cond= conds_names{cond_i};                                                                
                     curr_cond_trials_nr= numel(curr_subject_data_struct.(curr_cond));                            
                     analysis_struct.single_subject_analyses{subject_i}.(curr_cond).right_eye = NaN(curr_cond_trials_nr, TRIAL_DURATION);
-                    nalysis_struct.single_subject_analyses{subject_i}.(curr_cond).left_eye = NaN(curr_cond_trials_nr, TRIAL_DURATION);
+                    analysis_struct.single_subject_analyses{subject_i}.(curr_cond).left_eye = NaN(curr_cond_trials_nr, TRIAL_DURATION);
                     for trial_i= 1:curr_cond_trials_nr
                         if isempty(curr_subject_data_struct.(curr_cond)(trial_i).gazeRight)                
                             continue;
