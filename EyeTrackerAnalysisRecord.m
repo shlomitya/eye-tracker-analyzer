@@ -1,6 +1,10 @@
 classdef EyeTrackerAnalysisRecord < handle
     properties (Access= public, Constant)
         CONDS_NAMES_PREFIX= 'C';
+        
+        ENUM_DETECTION_BINOCULAR = 0;
+        ENUM_DETECTION_MONOCULAR_L = 1;
+        ENUM_DETECTION_MONOCULAR_R = 2;
     end
     
     properties (Access= private, Constant)
@@ -8,7 +12,7 @@ classdef EyeTrackerAnalysisRecord < handle
         PUPILS_BASED_BLINKS_DETECTION_STD = 2.5;
         PUPILS_BASED_BLINKS_DETECTION_CONSECUTIVE_SAMPLES = 3;
         PUPILS_BASED_BLINKS_DETECTION_TOLERANCE = 3;
-        PUPILS_BASED_BLINKS_DETECTION_MAX_SEG_TIME = 10;
+        PUPILS_BASED_BLINKS_DETECTION_MAX_SEG_TIME = 10;                
     end
     
     properties (Access= private)          
@@ -161,7 +165,7 @@ classdef EyeTrackerAnalysisRecord < handle
                     pupils_based_blinks_vec = zeros(1, length(curr_session_eye_tracker_data_struct.gazeRight.time));
                     progress_screen.addProgress(0.4*progress_contribution/sessions_nr);
                 end
-                obj.segmentization_vecs{segmentizations_nr+1}(session_i).blinks= eyelink_based_blinks_vec | pupils_based_blinks_vec;                
+                obj.segmentization_vecs{segmentizations_nr+1}(session_i).blinks= eyelink_based_blinks_vec | pupils_based_blinks_vec;
                 obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_start_times = [];
                 obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_end_times = [];
                 triggers_nr= numel(trial_onset_triggers);                
@@ -348,7 +352,7 @@ classdef EyeTrackerAnalysisRecord < handle
             end                                
         end
         
-        function segmentized_data= getSegmentizedData(obj, progress_screen, progress_contribution, filter_bandpass)
+        function [segmentized_data, detection_done]= getSegmentizedData(obj, detection_requested, progress_screen, progress_contribution, filter_bandpass)
             segmentized_data = [];
             if obj.chosen_segmentization_i==0
                 error('EyeTrackerAnalysisRecord:noSegmentizationChosen', 'must call segmentizeData() prior to getSegmentizedData() so segmentized data would be chosen/created');                
@@ -389,13 +393,31 @@ classdef EyeTrackerAnalysisRecord < handle
                             segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).samples_nr= indEnd - indStart + 1;
                             segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).blinks= curr_session_segmentization_vecs_struct.blinks(indStart:indEnd);                             
                                                
-                            was_left_eye_recorded = ~isempty(find(abs(obj.eye_tracker_data_structs{session_i}.gazeLeft.x + 2^15) > 10^-5, 1));
-                            was_right_eye_recorded = ~isempty(find(abs(obj.eye_tracker_data_structs{session_i}.gazeRight.x + 2^15) > 10^-5, 1));                            
-                            if ~was_left_eye_recorded || ~was_right_eye_recorded
-                                if was_left_eye_recorded
-                                    gaze= curr_session_eye_tracker_data_struct.gazeLeft;
-                                else
+                            was_left_eye_recorded = obj.wasLeftEyeRecorded(session_i);
+                            was_right_eye_recorded = obj.wasRightEyeRecorded(session_i);
+                            if detection_requested ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_BINOCULAR || ~was_left_eye_recorded || ~was_right_eye_recorded
+                                if ~was_left_eye_recorded || (detection_requested == EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R && was_right_eye_recorded)
                                     gaze= curr_session_eye_tracker_data_struct.gazeRight;
+                                    detection_done = EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R;
+                                    if detection_requested ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R
+                                        if detection_requested == EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L
+                                            detection_str = 'Monocular (L)';
+                                        else
+                                            detection_str = 'Binocular';
+                                        end
+                                        progress_screen.displayMessage(['<<WARNING (on session #', num2str(session_i), '): ', detection_str, ' detection was requested, but no data for left eye was found. proceeding with Monocular (R) detection>>']); 
+                                    end
+                                else
+                                    gaze= curr_session_eye_tracker_data_struct.gazeLeft;    
+                                    detection_done = EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L;
+                                    if detection_requested ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L
+                                        if detection_requested == EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R
+                                            detection_str = 'Monocular (R)';
+                                        else
+                                            detection_str = 'Binocular';
+                                        end
+                                        progress_screen.displayMessage(['<<WARNING (on session #', num2str(session_i), '): ', detection_str, ' detection was requested, but no data for right eye was found. proceeding with Monocular (L) detection>>']); 
+                                    end
                                 end
                                                                 
                                 segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).gazeRight.x= gaze.x(indStart:indEnd);
@@ -404,7 +426,8 @@ classdef EyeTrackerAnalysisRecord < handle
                                 segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).gazeLeft.x= segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).gazeRight.x;
                                 segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).gazeLeft.y= segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).gazeRight.y;
                                 segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).gazeLeft.pupil= segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).gazeRight.pupil;
-                            else                                                            
+                            else       
+                                detection_done = EyeTrackerAnalysisRecord.ENUM_DETECTION_BINOCULAR;
                                 segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).gazeLeft.x= curr_session_eye_tracker_data_struct.gazeLeft.x(indStart:indEnd);
                                 segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).gazeLeft.y= curr_session_eye_tracker_data_struct.gazeLeft.y(indStart:indEnd);
                                 segmentized_data_unmerged{session_i}.(curr_cond_name)(trial_i).gazeLeft.pupil= curr_session_eye_tracker_data_struct.gazeLeft.pupil(indStart:indEnd);
@@ -491,6 +514,16 @@ classdef EyeTrackerAnalysisRecord < handle
         function is_eeg_involved= isEegInvolved(obj)
             is_eeg_involved= obj.is_eeg_involved;
         end
+    end
+    
+    methods (Access=private)
+        function res = wasLeftEyeRecorded(obj, session_i)
+            res = EyeTrackerAnalysisRecord.doesEyePosVecContainData(obj.eye_tracker_data_structs{session_i}.gazeLeft.x);
+        end
+        
+        function res = wasRightEyeRecorded(obj, session_i)
+            res = EyeTrackerAnalysisRecord.doesEyePosVecContainData(obj.eye_tracker_data_structs{session_i}.gazeRight.x);
+        end                
     end
     
     methods (Access= private, Static)                    
@@ -813,7 +846,7 @@ classdef EyeTrackerAnalysisRecord < handle
             %this code runs over the nan values and marks as nan every segment that
             %is too short (10 samples atm) and has a nan value before and after it.            
             valid_cnt=0;
-            for i=2:length(temp_pupildata)-1;
+            for i=2:length(temp_pupildata)-1
                 if temp_pupildata(i)==0
                     valid_cnt=valid_cnt+1;
                 else
@@ -850,7 +883,7 @@ classdef EyeTrackerAnalysisRecord < handle
                         if ismember(suspect_onsets_indexes(i),cur_index:cur_index+tolerance)
                             cnt=cnt+1;
                             cur_index=suspect_onsets_indexes(i);
-                        elseif cnt>=consq_samples;
+                        elseif cnt>=consq_samples
                             
                             real_onsets=[real_onsets,suspect_onsets_indexes(i-1)-cnt];
                             cnt=0;
@@ -892,11 +925,11 @@ classdef EyeTrackerAnalysisRecord < handle
                     cur_index=suspect_offsets_indexes(1);
                     cnt=1;
                     
-                    for i=2:length(suspect_offsets_indexes);
+                    for i=2:length(suspect_offsets_indexes)
                         if ismember(suspect_offsets_indexes(i),cur_index:cur_index+5)
                             cnt=cnt+1;
                             cur_index=suspect_offsets_indexes(i);
-                        elseif cnt>=consq_samples;
+                        elseif cnt>=consq_samples
                             
                             real_offsets=[real_offsets,suspect_offsets_indexes(i-1)];
                             cnt=0;
@@ -927,7 +960,7 @@ classdef EyeTrackerAnalysisRecord < handle
                 %     plot(suspect_offsets_indexes,pupildata(suspect_offsets_indexes),'*g');
                 %     legend({'pupil','onsets','offsets'});
                 %     end                                
-                %% fix the onset timings (use ronen's method, of going backwards untill we find a non-negative slope
+                %  fix the onset timings (use ronen's method, of going backwards untill we find a non-negative slope
                 final_onsets=[];
                 %filter the raw pupil to have smooth curves:
                 filtered_pupil=EyeTrackerAnalysisRecord.lowPassFilter(10,pupildataclean,Fs);
@@ -937,7 +970,7 @@ classdef EyeTrackerAnalysisRecord < handle
                 slopes=diff(filtered_pupil);
                 
                 cur_onset=[];
-                for i=1:length(real_onsets);
+                for i=1:length(real_onsets)
                     stop=0;
                     cur_onset=real_onsets(i);
                     temp_onset=real_onsets(i);
@@ -951,7 +984,7 @@ classdef EyeTrackerAnalysisRecord < handle
                         end
                     end
                     
-                    if cur_onset==1;
+                    if cur_onset==1
                         final_onsets=[final_onsets,temp_onset];
                     end
 %                     progress_screen.addProgress(0.1/length(real_onsets)*progress_contribution);
@@ -962,7 +995,7 @@ classdef EyeTrackerAnalysisRecord < handle
                 slopes=diff(filtered_pupil);                
                 arraysize=length(slopes);                
                 cur_offset=[];
-                for i=1:length(real_offsets);
+                for i=1:length(real_offsets)
                     stop=0;
                     cur_offset=real_offsets(i);
                     temp_offset=real_offsets(i);
@@ -1013,7 +1046,7 @@ classdef EyeTrackerAnalysisRecord < handle
                         stop_fixing=1;
                     else   %there are consequtive events of the same type (either 2 onsets in a row or 2 offsets in a row)
                         curtype=sorted_types(current_bad_sample);                        
-                        if curtype==0; %if its an onset, find an offset                            
+                        if curtype==0 %if its an onset, find an offset                            
                             curtime=sorted_timing(current_bad_sample);
                             next_event_time=sorted_timing(current_bad_sample+1);                            
                             cur_relevant_segment=filtered_pupil_extrapolated(curtime:next_event_time-1);
@@ -1036,7 +1069,7 @@ classdef EyeTrackerAnalysisRecord < handle
                             end
                                                         
                             cur_offset=curtime+first_neg+first_pos+offset_sample-1;                            
-                            if isnan(filtered_pupil(cur_offset)); %if the found offset/onset is an extrapolated filtered sample it might be distroted by the filter
+                            if isnan(filtered_pupil(cur_offset)) %if the found offset/onset is an extrapolated filtered sample it might be distroted by the filter
                                 %thus i will go further forward untill i find the first non nan sample:
                                 valid_offset_time=find(~isnan(filtered_pupil(cur_offset:next_event_time-1)),1,'first');
                                 if isempty(valid_offset_time) %if none was found, remove the onset from the array
@@ -1080,7 +1113,7 @@ classdef EyeTrackerAnalysisRecord < handle
                             end
                             
                             cur_onset=curtime-1*(first_neg+first_pos+offset_sample);                                                        
-                            if isnan(filtered_pupil(cur_onset)); %if the found offset/onset is an extrapolated filtered sample it might be distroted by the filter
+                            if isnan(filtered_pupil(cur_onset)) %if the found offset/onset is an extrapolated filtered sample it might be distroted by the filter
                                 %thus i will go further forward untill i find the first non nan sample:
                                 valid_onset_time=find(~isnan(filtered_pupil(cur_onset-1:-1:1)),1,'first');
                                 if isempty(valid_onset_time) %if none was found, remove the onset from the array
@@ -1258,6 +1291,10 @@ classdef EyeTrackerAnalysisRecord < handle
         function res = doesTriggerMatchRegexp(trigger, regex)
             [match_start_idx, match_end_idx] = regexp(trigger, regex, 'ONCE');
             res = ~isempty(match_start_idx) && match_start_idx == 1 && match_end_idx == numel(trigger);
+        end
+        
+        function res = doesEyePosVecContainData(vec)
+            res = ~isempty(find(abs(vec + 2^15) > 10^-5, 1));
         end
     end
     

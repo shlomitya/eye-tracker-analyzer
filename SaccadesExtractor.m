@@ -40,7 +40,7 @@ classdef SaccadesExtractor < handle
             obj.eyeballer_main_gui_pos= round([0.2*screen_size(3), -0.2*screen_size(4), 0.6*screen_size(3), 0.8*screen_size(4)]);
         end
         
-        function [eye_data_struct, saccades_struct, eyeballing_stats]= extractSaccadesByEngbert(obj, vel_calc_type, vel_threshold, amp_lim, amp_low_lim, saccade_dur_min, frequency_max, filter_bandpass, perform_eyeballing, eyeballer_display_range_multiplier, eyeballer_timeline_left_offset, etas_full_paths, progress_contribution, progress_screen, logger)                           
+        function [eye_data_struct, saccades_struct, eyeballing_stats]= extractSaccadesByEngbert(obj, detection_requested, vel_calc_type, vel_threshold, amp_lim, amp_low_lim, saccade_dur_min, frequency_max, filter_bandpass, perform_eyeballing, eyeballer_display_range_multiplier, eyeballer_timeline_left_offset, etas_full_paths, progress_contribution, progress_screen, logger)                           
             is_extraction_go= true;            
             if perform_eyeballing
                 raw_eye_data_for_eyeballer= cell(1, obj.subjects_nr);
@@ -63,7 +63,7 @@ classdef SaccadesExtractor < handle
                 %preliminary .eta work
                 progress_screen.updateProgress(0);
                 for subject_i= 1:obj.subjects_nr
-                    subjects_data_structs{subject_i}= obj.subjects_etas{subject_i}.getSegmentizedData(progress_screen, 0.8*progress_contribution/obj.subjects_nr, curr_requested_low_pass_filter);                
+                    [subjects_data_structs{subject_i}, detection_done]= obj.subjects_etas{subject_i}.getSegmentizedData(detection_requested, progress_screen, 0.8*progress_contribution/obj.subjects_nr, curr_requested_low_pass_filter);                
                     previous_saccades_analysis= obj.subjects_etas{subject_i}.loadSaccadesAnalysis();
                     if ~isempty(previous_saccades_analysis)
                         if perform_eyeballing
@@ -364,7 +364,7 @@ classdef SaccadesExtractor < handle
                     manual_saccade_search_params.saccades_detecetion_algorithm_params.saccade_dur_min = curr_requested_saccade_dur_min;
                     manual_saccade_search_params.saccades_detecetion_algorithm_params.frequency_max = curr_requested_frequency_max;
                     manual_saccade_search_params.saccades_detecetion_algorithm_params.low_pass_filter = curr_requested_low_pass_filter;
-                    eyeballer= Eyeballer(@eyeballer_save_func, raw_eye_data_for_eyeballer, eyeballer_timeline_left_offset, obj.sampling_rates, ...
+                    eyeballer= Eyeballer(@eyeballer_save_func, raw_eye_data_for_eyeballer, detection_done, eyeballer_timeline_left_offset, obj.sampling_rates, ...
                                          manual_saccade_search_params, saccades_struct, eyeballer_display_range_multiplier, ...
                                          obj.eyeballer_main_gui_pos, obj.EYEBALLER_MAIN_GUI_BACKGROUND_COLOR);
                     [was_new_extraction_requested_by_eyeballer, new_extraction_params]= eyeballer.run();                    

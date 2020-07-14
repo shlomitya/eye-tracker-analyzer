@@ -6,7 +6,7 @@
 %   n-> number of trials),  amplitudes (under construction), directions
 %   (current structure -> just a simple array of the saccades directions
 % //////////////////////////////////////////////////////////////////////////
-function [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(analysis_struct, exe_plot_curves, analyses_flags, baseline, smoothing_window_len, trial_duration, progress_screen, progress_contribution)                        
+function [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(analysis_struct, analyses_flags, baseline, smoothing_window_len, trial_duration, progress_screen, progress_contribution)                        
     subjects_figs = [];
     statistisized_figs = [];
     analysis_struct_with_results = [];
@@ -37,13 +37,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     
     if ~were_ever_triggers_found_on_any_subject
         return;
-    end
-    
-    if exe_plot_curves
-        str_for_visible_prop= 'on';
-    else
-        str_for_visible_prop= 'off';
-    end
+    end        
     
     if analyses_flags(5)         
         subjects_figs= cell(2,8,subjects_nr);        
@@ -88,7 +82,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
            
             if analyses_flags(5)  
                 subjects_figs{1,1,subject_i}= 'microsaccades_rate';
-                subjects_figs{2,1,subject_i}= figure('name',['microsaccades_rate - subject #', num2str(subject_i)],'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+                subjects_figs{2,1,subject_i}= figure('name',['microsaccades_rate - subject #', num2str(subject_i)],'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
             end
             for cond_i= 1:conds_nr  
                 if  analyses_flags(5)  
@@ -102,16 +96,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 legend(conds_names);                        
                 xlabel('Time [ms]');
                 ylabel('Microsaccadic Rate [hz]');
-            end
-
-%             curr_created_plots_nr= curr_created_plots_nr + 1;
-%             subjects_figs{1,curr_created_plots_nr,subject_i}= ['microsaccades_number_',num2str(subject_i)];
-%             subjects_figs{2,curr_created_plots_nr,subject_i}= figure('name','microsaccades_number','NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
-%             for cond_i= 1:conds_nr                
-%                 stem(1:numel(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).number_of_saccades), analysis_struct{subject_i}.saccades.(conds_names{cond_i}).number_of_saccades', 'color', curves_colors(cond_i,:));                 
-%                 hold('on');
-%             end
-%             legend(conds_names);                        
+            end     
         end
     else
         progress_screen.addProgress(0.9*progress_contribution);
@@ -128,7 +113,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
 
                 data_filled_conds_logical_vec= logical(true(numel(conds_names),1));                
                 subjects_figs{1,2,subject_i}= 'amplitudes_by_condition';
-                subjects_figs{2,2,subject_i}= figure('name',['amplitudes by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+                subjects_figs{2,2,subject_i}= figure('name',['amplitudes by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
                 for cond_i= 1:conds_nr                
                     amplitudes= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
                     if isempty(amplitudes)
@@ -144,7 +129,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 end
            
                 subjects_figs{1,3,subject_i}= 'amplitudes';
-                subjects_figs{2,3,subject_i}= figure('name',['amplitudes - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);            
+                subjects_figs{2,3,subject_i}= figure('name',['amplitudes - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');            
                 amplitudes= [];
                 directions= [];
                 if any(data_filled_conds_logical_vec)
@@ -157,7 +142,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 end
             
                 subjects_figs{1,4,subject_i}= 'amplitudes_hist';
-                subjects_figs{2,4,subject_i}= figure('name',['amplitudes histogram - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);                   
+                subjects_figs{2,4,subject_i}= figure('name',['amplitudes histogram - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');                   
                 hist(amplitudes, 50);
                 progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
             end
@@ -174,7 +159,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 end
                 data_filled_conds_logical_vec= logical(true(numel(conds_names),1));                     
                 subjects_figs{1,5,subject_i}= 'directions_by_condition';
-                subjects_figs{2,5,subject_i}= figure('name',['directions by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+                subjects_figs{2,5,subject_i}= figure('name',['directions by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
                 polar(360,100);
                 for cond_i= 1:conds_nr                
                     directions= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
@@ -191,7 +176,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 end
              
                 subjects_figs{1,6,subject_i}= 'directions';
-                subjects_figs{2,6,subject_i}= figure('name',['directions - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+                subjects_figs{2,6,subject_i}= figure('name',['directions - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
                 polar(360,200);
                 directions= [];
                 if any(data_filled_conds_logical_vec)
@@ -217,7 +202,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 end
                 data_filled_conds_logical_vec= logical(true(numel(conds_names),1));                        
                 subjects_figs{1,7,subject_i}= 'main_sequence_by_condition';
-                subjects_figs{2,7,subject_i}= figure('name',['main sequence by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);            
+                subjects_figs{2,7,subject_i}= figure('name',['main sequence by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');            
                 for cond_i= 1:conds_nr                
                     amplitudes= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
                     velocities= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}];
@@ -234,7 +219,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 end
                 
                 subjects_figs{1,8,subject_i}= 'main_sequence';
-                subjects_figs{2,8,subject_i}= figure('name',['main sequence - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);            
+                subjects_figs{2,8,subject_i}= figure('name',['main sequence - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');            
                 if any(data_filled_conds_logical_vec)
                     velocities= [];
                     amplitudes = [];            
@@ -274,7 +259,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
 
             if analyses_flags(6)
                 statistisized_figs{1,1}= 'grand_average-microsaccades_rate';
-                statistisized_figs{2,1}= figure('name','grand average: microsaccades rate', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+                statistisized_figs{2,1}= figure('name','grand average: microsaccades rate', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
             end
             for cond_i= 1:conds_nr  
                 if analyses_flags(6)
@@ -312,7 +297,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             end
 
             statistisized_figs{1,2}= 'grand_average-amplitudes_by_condition';
-            statistisized_figs{2,2}= figure('name','grand average: amplitudes by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);        
+            statistisized_figs{2,2}= figure('name','grand average: amplitudes by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');        
             for cond_i= 1:conds_nr            
                 if isempty(grand_amplitudes{cond_i})
                    data_filled_conds_logical_vec(cond_i)= false;
@@ -327,7 +312,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             end            
 
             statistisized_figs{1,3}= 'grand_average-amplitudes';
-            statistisized_figs{2,3}= figure('name','grand average: amplitudes', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);        
+            statistisized_figs{2,3}= figure('name','grand average: amplitudes', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');        
             if any(data_filled_conds_logical_vec)                 
                 grand_amplitudes_over_conditions= [];
                 grand_directions_over_conditions= [];
@@ -339,7 +324,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             end
                                                 
             statistisized_figs{1,4}= 'grand_average-amplitudes_hist';
-            statistisized_figs{2,4}= figure('name', 'grand average: amplitudes histogram', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);                       
+            statistisized_figs{2,4}= figure('name', 'grand average: amplitudes histogram', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');                       
             hist(grand_amplitudes_over_conditions, 50);             
         end
 
@@ -358,7 +343,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             end
 
             statistisized_figs{1,5}= 'grand_average-directions_by_condition';
-            statistisized_figs{2,5}= figure('name','grand average: directions by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+            statistisized_figs{2,5}= figure('name','grand average: directions by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
             polar(360,200);
             for cond_i= 1:conds_nr            
                 if isempty(grand_directions{cond_i})
@@ -374,7 +359,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             end 
           
             statistisized_figs{1,6}= 'grand_average-directions';
-            statistisized_figs{2,6}= figure('name','grand average: directions ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);
+            statistisized_figs{2,6}= figure('name','grand average: directions ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
             polar(360,200);        
             if any(data_filled_conds_logical_vec)
                 grand_directions_over_conditions= [];
@@ -403,7 +388,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             end
 
             statistisized_figs{1,7}= 'grand_average-main_sequence_by_condition';
-            statistisized_figs{2,7}= figure('name','grand average: main sequence by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);        
+            statistisized_figs{2,7}= figure('name','grand average: main sequence by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');        
             for cond_i= 1:conds_nr            
                 if isempty(grand_velocities{cond_i}) || isempty(grand_amplitudes{cond_i})
                     data_filled_conds_logical_vec(cond_i)= false;
@@ -418,7 +403,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
             end 
          
             statistisized_figs{1,8}= 'grand_average-main_sequence';
-            statistisized_figs{2,8}= figure('name','grand average: main sequence', 'NumberTitle', 'off', 'position', figure_positions, 'visible', str_for_visible_prop);               
+            statistisized_figs{2,8}= figure('name','grand average: main sequence', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');               
             if any(data_filled_conds_logical_vec)
                 grand_velocities_over_conditions= [];
                 grand_amplitudes_over_conditions= [];
