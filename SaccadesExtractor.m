@@ -1,6 +1,6 @@
-%TODO: use the dpps and the sampling rates in a distributed way, instead of the singular right now
-%      used in the erased varialbes 'obj.dpp' and 'obj.sampling_rates'.
 classdef SaccadesExtractor < handle
+    % class for storing the parameterizations and variables relating to
+    % saccades extraction, and to perform the saccades extraction
     properties (Access= public, Constant)        
         EYEBALLER_MAIN_GUI_BACKGROUND_COLOR= [0.8, 0.8, 0.8];        
         ENUM_VEL_CALC_TYPE_1= 1;
@@ -14,12 +14,18 @@ classdef SaccadesExtractor < handle
         dpps;        
         sampling_rates;        
         engbert_algorithm_params;
+        % engbert_algorithm_interm_vars: caches intermediate variables computed by engbert's algorithm
+        % that are reused multiple times
         engbert_algorithm_interm_vars;       
         eyeballer_main_gui_pos;
     end
     
-    methods (Access= public)       
+    methods (Access= public)          
         function obj= SaccadesExtractor(subjects_etas)
+            % SaccadesExtractor ctr
+            % input:
+            %   subjects_etas -> cell array of EyeTrackerAnalysisRecord objects. 
+            
             if ~iscell(subjects_etas)
                 subjects_etas= {subjects_etas};
             end
@@ -41,31 +47,87 @@ classdef SaccadesExtractor < handle
         end
         
         function [eye_data_struct, saccades_struct, eyeballing_stats]= extractSaccadesByEngbert(obj, detection_requested, vel_calc_type, vel_threshold, amp_lim, amp_low_lim, saccade_dur_min, frequency_max, filter_bandpass, perform_eyeballing, eyeballer_display_range_multiplier, eyeballer_timeline_left_offset, etas_full_paths, progress_contribution, progress_screen, logger)                           
-            is_extraction_go= true;            
+            % perform the saccades extraction
+            % input:
+            %   * detection_requested -> monocular or binocular detection.
+            %   values according to the enumeration defined in EyeTrackerAnalysisRecord.
+            %   * vel_calc_type -> method to calculate the eyes velocity.
+            %   values according to the VEL_CALC enumeration defined above.
+            %   * vel_threshold -> threshold velocity for the ellipse
+            %   equation in engbert's algorithm test criterion.
+            %   * amp_lim -> maximum amplitude for a saccade above which
+            %   to discard the saccade.
+            %   * amp_low_lim -> minimum amplitude for a saccade below which
+            %   to discard the saccade.
+            %   * saccade_dur_min -> minimum duration for a saccade below which
+            %   to discard the saccade.
+            %   * frequency_max -> time interval after a detected saccade 
+            %   within which to discard later found saccades.
+            %   * filter_bandpass -> filter lowpass frequency to apply on
+            %   the eyes tracking data
+            %   * perform_eyeballing -> whether or not to perform a manual
+            %   analysis inspection
+            %   * eyeballer_display_range_multiplier [perform_eyeballing == true] -> 
+            %   define this as a factor in computing the eyes'
+            %   data plots Y axes ranges.
+            %   * eyeballer_timeline_left_offset [perform_eyeballing == true] -> 
+            %   offset to apply to the time axes in the eyeballer's eyes' data plots.
+            %   * etas_full_paths [perform_eyeballing == true] -> full file paths to
+            %   save the updated EyeTrackerAnalysisRecord files.
+            %   * progress_contribution -> factor to scale progress with
+            %   * progress_screen -> DualBarProgressScreen to add progress to
+            %   * logger -> Logger object with which to log messages.
+            %
+            % output:
+            %   * eye_data_struct 
+            %   * saccades_struct 
+            %   * eyeballing_stats
+                                    
             if perform_eyeballing
+                % eye positions data to pass to the eyeballer. this is the
+                % data the eyeballer plots.
                 raw_eye_data_for_eyeballer= cell(1, obj.subjects_nr);
+                % parameters to be passed by the eyeballer to the function
+                % performing a saccade search when an eye positions plot is
+                % clicked on in the eyeballer
                 manual_saccades_search_func_params_for_eyeballer= cell(1, obj.subjects_nr);
             end
             
+            % segmentized data per subject 
             subjects_data_structs= cell(1,obj.subjects_nr);
+            % output variable
             saccades_struct= cell(1, obj.subjects_nr);
+            % output variable
             eye_data_struct = cell(1, obj.subjects_nr);
+            % output variable
             eyeballing_stats= [];
+            % initializing the parameters for the saccades extraction.
+            % if the user requests a re-extraction in the eyeballer, these
+            % variables will be assigned with the re-extraction parameters
             curr_requested_vel_calc_type= vel_calc_type;
             curr_requested_vel_threshold= vel_threshold;
             curr_requested_amp_lim= amp_lim;
             curr_requested_amp_low_lim = amp_low_lim;
             curr_requested_saccade_dur_min= saccade_dur_min;
             curr_requested_frequency_max= frequency_max; 
-            curr_requested_low_pass_filter = filter_bandpass;                                                
+            curr_requested_low_pass_filter = filter_bandpass;  
+            
             was_new_extraction_requested_by_eyeballer= false;
+            is_extraction_go= true;
+            % the while condition runs every time the user requests a saccades 
+            % re-extraction in the eyeballer                       
             while is_extraction_go    
-                %preliminary .eta work
+                % segmentizing the data to conditions for all subjects.
                 progress_screen.updateProgress(0);
-                for subject_i= 1:obj.subjects_nr
-                    [subjects_data_structs{subject_i}, detection_done]= obj.subjects_etas{subject_i}.getSegmentizedData(detection_requested, progress_screen, 0.8*progress_contribution/obj.subjects_nr, curr_requested_low_pass_filter);                
-                    previous_saccades_analysis= obj.subjects_etas{subject_i}.loadSaccadesAnalysis();
+                for subject_i= 1:obj.subjects_nr                    
+                    [subjects_data_structs{subject_i}, detection_performed]= obj.subjects_etas{subject_i}.getSegmentizedData(detection_requested, progress_screen, 0.8*progress_contribution/obj.subjects_nr, curr_requested_low_pass_filter);                                    
+                    previous_saccades_analysis= obj.subjects_etas{subject_i}.loadSaccadesAnalysis();                                       
                     if ~isempty(previous_saccades_analysis)
+                        % if a previous analysis was saved via the eyeballer
+                        % for the segmentization defined by the current run
+                        % parameters, save the saccades data into the output
+                        % variables, and later skip the saccades extraction
+                        % code.
                         if perform_eyeballing
                             raw_eye_data_for_eyeballer{subject_i}= previous_saccades_analysis.raw_eye_data;
                             manual_saccades_search_func_params_for_eyeballer{subject_i}= previous_saccades_analysis.manual_saccades_search_func_params;                        
@@ -78,15 +140,20 @@ classdef SaccadesExtractor < handle
                 
                 for subject_i= 1:obj.subjects_nr                    
                     if ~was_new_extraction_requested_by_eyeballer && ~isempty(saccades_struct{subject_i})    
+                        % skip the saccades extraction for the current
+                        % subject if re-extraction was not requested in the
+                        % gui and if a previous extraction was found.
                         progress_screen.addProgress(0.2*progress_contribution/obj.subjects_nr);
                         continue;
                     end
                     
                     curr_subject_data_struct= subjects_data_structs{subject_i};
                     if isempty(curr_subject_data_struct)
+                        % if the segmentization produced no data segments.
                         progress_screen.addProgress(0.2*progress_contribution/obj.subjects_nr);
                         continue;
                     end
+                                        
                     conds_names= fieldnames(curr_subject_data_struct);                    
                     for cond_i= 1:numel(conds_names)                  
                         curr_cond_name= conds_names{cond_i};
@@ -94,12 +161,15 @@ classdef SaccadesExtractor < handle
                         eye_data_struct{subject_i}.(curr_cond_name) = [];
                         saccades_struct{subject_i}.(curr_cond_name) = [];                       
                         if perform_eyeballing
+                            % initialize data expected by the eyeballer
                             raw_eye_data_for_eyeballer{subject_i}.(curr_cond_name) = [];
                             manual_saccades_search_func_params_for_eyeballer{subject_i}.(curr_cond_name) = [];
                         end
                         for trial_i= 1:numel(curr_cond_struct)                                                               
                             blink= squeeze(curr_cond_struct(trial_i).blinks);                            
                             if isempty(blink) || all(blink)
+                                % no data was recorded during the entire trial's length. 
+                                % assign empty vectors to all output variables.
                                 if perform_eyeballing
                                     raw_eye_data_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).left_x= [];
                                     raw_eye_data_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).left_y= [];
@@ -125,54 +195,51 @@ classdef SaccadesExtractor < handle
                                                curr_cond_struct(trial_i).gazeLeft.x; ...
                                                curr_cond_struct(trial_i).gazeLeft.y]';
                                                                                     
-                            %non_nan_times_logical_vec holds 1s for none-nan data times and 0 for nan data times
+                            %non_nan_times_logical_vec holds 1s for non-nan data times and 0 for nan data times
                             non_nan_times_logical_vec= ~isnan(raw_eye_data_mat(:,2)) & ~isnan(raw_eye_data_mat(:,3)) & ~blink';    
                             eye_data_struct{subject_i}.(curr_cond_name)(trial_i).non_nan_times_logical_vec = non_nan_times_logical_vec;
-%                             if perform_eyeballing
-%                                 raw_eye_data_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).left_x= raw_eye_data_mat(:,4)';
-%                                 raw_eye_data_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).left_y= raw_eye_data_mat(:,5)';
-%                                 raw_eye_data_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).right_x= raw_eye_data_mat(:,2)';
-%                                 raw_eye_data_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).right_y= raw_eye_data_mat(:,3)';
-%                                 raw_eye_data_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).non_nan_times_logical_vec= non_nan_times_logical_vec';
-%                             end
                             
                             %now raw_eye_data_mat should contain only non-null data points
                             raw_eye_data_mat= raw_eye_data_mat(non_nan_times_logical_vec,:);                            
+                                                        
+                            % baseline-correct the eyes data
+                            % xr - right eye positions. xl - left eye positions
+                            % xr(:,1), xl(:,1) - eye positions x coordinates
+                            % xr(:,2), xl(:,2) - eye positions y coordinates
+                            xr = obj.dpps(subject_i)*raw_eye_data_mat(:,2:3);
+                            xr(:,1) = xr(:,1) - mean(xr(:,1));
+                            xr(:,2) = xr(:,2) - mean(xr(:,2));
+                            obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).right_eye.baseline_corrected_eye_data= xr;
+                            xl = obj.dpps(subject_i)*raw_eye_data_mat(:,4:5);
+                            xl(:,1) = xl(:,1) - mean(xl(:,1));
+                            xl(:,2) = xl(:,2) - mean(xl(:,2));
+                            obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).left_eye.baseline_corrected_eye_data= xl;
+                            eye_data_struct{subject_i}.(curr_cond_name)(trial_i).vergence =  NaN(curr_cond_struct(trial_i).samples_nr,2);                           
+                            eye_data_struct{subject_i}.(curr_cond_name)(trial_i).vergence(non_nan_times_logical_vec, :) = [xr(:,1) - xl(:,1), xr(:,2) - xl(:,2)];
+                            eye_data_struct{subject_i}.(curr_cond_name)(trial_i).raw_eye_data.right_eye = [curr_cond_struct(trial_i).gazeRight.x; curr_cond_struct(trial_i).gazeRight.y]';                                
+                            eye_data_struct{subject_i}.(curr_cond_name)(trial_i).raw_eye_data.left_eye = [curr_cond_struct(trial_i).gazeLeft.x; curr_cond_struct(trial_i).gazeLeft.y]';                            
                             
-                            %if ~isfield(obj.engbert_algorithm_interm_vars, 'baseline_corrected_left_eye_data')                                
-                                xr = obj.dpps(subject_i)*raw_eye_data_mat(:,2:3);
-                                xr(:,1) = xr(:,1) - mean(xr(:,1));
-                                xr(:,2) = xr(:,2) - mean(xr(:,2));
-                                obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).right_eye.baseline_corrected_eye_data= xr;
-                                xl = obj.dpps(subject_i)*raw_eye_data_mat(:,4:5);
-                                xl(:,1) = xl(:,1) - mean(xl(:,1));
-                                xl(:,2) = xl(:,2) - mean(xl(:,2));
-                                obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).left_eye.baseline_corrected_eye_data= xl;
-                                eye_data_struct{subject_i}.(curr_cond_name)(trial_i).vergence =  NaN(curr_cond_struct(trial_i).samples_nr,2);                           
-                                eye_data_struct{subject_i}.(curr_cond_name)(trial_i).vergence(non_nan_times_logical_vec, :) = [xr(:,1) - xl(:,1), xr(:,2) - xl(:,2)];
-                                eye_data_struct{subject_i}.(curr_cond_name)(trial_i).raw_eye_data.right_eye = [curr_cond_struct(trial_i).gazeRight.x; curr_cond_struct(trial_i).gazeRight.y]';                                
-                                eye_data_struct{subject_i}.(curr_cond_name)(trial_i).raw_eye_data.left_eye = [curr_cond_struct(trial_i).gazeLeft.x; curr_cond_struct(trial_i).gazeLeft.y]';
-                            
-                            %end                                                        
                             
                             % Compute 2D velocity vectors
-                            %if ~isfield(obj.engbert_algorithm_params, 'vel_calc_type') || obj.engbert_algorithm_params.vel_calc_type~=curr_requested_vel_calc_type                            
-                                obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).left_eye.eye_vels = ...
-                                    SaccadesExtractor.vecvel(obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).left_eye.baseline_corrected_eye_data, ...
-                                                             curr_requested_vel_calc_type, ...
-                                                             obj.sampling_rates(subject_i));
-                                obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).right_eye.eye_vels = ...
-                                    SaccadesExtractor.vecvel(obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).right_eye.baseline_corrected_eye_data, ...
-                                                             curr_requested_vel_calc_type, ...
-                                                             obj.sampling_rates(subject_i));
-                                obj.engbert_algorithm_params.vel_calc_type= curr_requested_vel_calc_type;
-                            %end
+                            obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).left_eye.eye_vels = ...
+                                SaccadesExtractor.vecvel(obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).left_eye.baseline_corrected_eye_data, ...
+                                                         curr_requested_vel_calc_type, ...
+                                                         obj.sampling_rates(subject_i));
+                            obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).right_eye.eye_vels = ...
+                                SaccadesExtractor.vecvel(obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).right_eye.baseline_corrected_eye_data, ...
+                                                         curr_requested_vel_calc_type, ...
+                                                         obj.sampling_rates(subject_i));
+                            obj.engbert_algorithm_params.vel_calc_type= curr_requested_vel_calc_type;
                             
-                            if perform_eyeballing                                                                
+                            if perform_eyeballing            
+                                % cache variables to be used by the saccade search function 
+                                % that is run when the user requests to find a saccade in the 
+                                % insepector on a specific time.
                                 manual_saccades_search_func_params_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).left_eye.eye_vels= ...
                                     NaN(numel(raw_eye_data_mat(:,1)), 2);
                                 manual_saccades_search_func_params_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).left_eye.eye_vels(non_nan_times_logical_vec,:)= ...
                                     obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).left_eye.eye_vels;                                
+                                
                                 manual_saccades_search_func_params_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).right_eye.eye_vels= ...
                                     NaN(numel(raw_eye_data_mat(:,1)), 2);
                                 manual_saccades_search_func_params_for_eyeballer{subject_i}.(curr_cond_name)(trial_i).right_eye.eye_vels(non_nan_times_logical_vec,:)= ...
@@ -226,24 +293,35 @@ classdef SaccadesExtractor < handle
                                 continue;
                             end
                             
+                            % Calculate 1d saccades displacements
                             ampsl= SaccadesExtractor.calcSaccadesAmplitudes(obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).left_eye.baseline_corrected_eye_data, ...
                                                                             sacl(:,1), sacl(:,2));
                             ampsr= SaccadesExtractor.calcSaccadesAmplitudes(obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).right_eye.baseline_corrected_eye_data, ...
-                                                                            sacr(:,1), sacr(:,2));                                                       
+                                                                            sacr(:,1), sacr(:,2));  
+                                                                        
                             % Testing for binocular saccades via temporal overlap
                             [sacl, sacr, ~, ~, kept_left_is, kept_right_is] = SaccadesExtractor.binsacc(sacl, sacr, ampsl, ampsr);                            
                             if isempty(sacl) || isempty(sacr)
                                 fillSaccadesStructWithVal([]);
                                 continue;
-                            end                            
+                            end                     
+                            % keeping only saccades displacements corresponding to the binsacc 
+                            % kept saccades 
                             ampsl= ampsl(kept_left_is,:);                            
-                            ampsr= ampsr(kept_right_is,:);                                                                                                                       
-                            amplitudes = (sqrt(ampsr(:,1).^2+ampsr(:,2).^2)+sqrt(ampsl(:,1).^2+ampsl(:,2).^2))/2;
+                            ampsr= ampsr(kept_right_is,:); 
+                            % calculate saccades amplitudes averaged over both eyes
+                            amplitudes = (sqrt(ampsr(:,1).^2 + ampsr(:,2).^2) + sqrt(ampsl(:,1).^2 + ampsl(:,2).^2)) / 2;
                             
                             non_nan_times= find(non_nan_times_logical_vec);                                                        
+                            % find saccades onsets as the earliest non-nan samples between 
+                            % left and right found saccades
                             curr_trial_onsets = non_nan_times(min([sacr(:,1)'; sacl(:,1)'])');                            
+                            % find saccades offsets as the latest non-nan samples between 
+                            % left and right found saccades
                             curr_trial_offsets = non_nan_times(max([sacr(:,2)'; sacl(:,2)'])');
                             
+                            % keep saccades that occur on time inervals during which 
+                            % all samples are non-nan
                             saccades_on_non_nan_times_idxs = [];
                             for saccade_idx = 1:numel(curr_trial_onsets)
                                 if all(non_nan_times_logical_vec(curr_trial_onsets(saccade_idx):curr_trial_offsets(saccade_idx)))
@@ -293,7 +371,8 @@ classdef SaccadesExtractor < handle
                                 curr_trial_onsets= curr_trial_onsets(inds);
                                 curr_trial_offsets = curr_trial_offsets(inds);
                             end
-                                                                                                                
+                                     
+                            % keep saccades whose amplitude is within the range specified by the user
                             amplitudes_inside_limits_is= curr_requested_amp_low_lim < amplitudes & amplitudes < curr_requested_amp_lim;                            
                             if ~any(amplitudes_inside_limits_is)
                                 fillSaccadesStructWithVal([]);
@@ -307,14 +386,18 @@ classdef SaccadesExtractor < handle
                             curr_trial_onsets= curr_trial_onsets(amplitudes_inside_limits_is);                                                        
                             curr_trial_offsets = curr_trial_offsets(amplitudes_inside_limits_is);
                             
+                            % calculate durations for the kept saccades
                             DR = (sacr(:,2)-sacr(:,1)+1)*1000/obj.sampling_rates(subject_i);
                             DL = (sacl(:,2)-sacl(:,1)+1)*1000/obj.sampling_rates(subject_i);
                             curr_trial_saccades_durs= (DR+DL)/2;
                             
+                            % calculate delays between eyes for the kept saccades
                             curr_trial_delays_between_eyes= (sacr(:,1) - sacl(:,1))*1000/obj.sampling_rates(subject_i);
                             
+                            % calculate directions for the kept saccades
                             curr_trial_directions = atan2((ampsr(:,2)+ampsl(:,2))/2,(ampsr(:,1)+ampsl(:,1))/2);
-                                                      
+                               
+                            % calculate mean speed and peak speed for the kept saccades
                             curr_trial_saccades_nr= numel(curr_trial_onsets);
                             curr_trial_peak_vels= zeros(curr_trial_saccades_nr, 1);
                             vels = zeros(curr_trial_saccades_nr, 1);
@@ -332,7 +415,8 @@ classdef SaccadesExtractor < handle
                                 right_eye_peak_vel= max(right_eye_vels_on_saccade_szs);                                
                                 curr_trial_peak_vels(saccade_i)= (left_eye_peak_vel + right_eye_peak_vel)/2;                                      
                             end                            
-                                                                                    
+                            
+                            % save all calculated variables in the output struct
                             saccades_struct{subject_i}.(curr_cond_name)(trial_i).onsets= curr_trial_onsets;
                             saccades_struct{subject_i}.(curr_cond_name)(trial_i).offsets= curr_trial_offsets;
                             saccades_struct{subject_i}.(curr_cond_name)(trial_i).durations = curr_trial_saccades_durs;
@@ -347,6 +431,7 @@ classdef SaccadesExtractor < handle
                     progress_screen.addProgress(0.2*progress_contribution/obj.subjects_nr);
                 end                                                                                                
                      
+                % check if any of the triggers requested was found for any of the subjects
                 was_any_trigger_ever_found = false;
                 for subject_i = 1:obj.subjects_nr
                     if ~isempty(saccades_struct{subject_i})
@@ -355,7 +440,9 @@ classdef SaccadesExtractor < handle
                     end
                 end
 
+                % if none of the triggers requested was found for any of the subjects, skip the data inspection
                 if perform_eyeballing && was_any_trigger_ever_found    
+                    % aggregate saccades extraction parameters to a structure for the Eyeballer ctor
                     manual_saccade_search_params.manual_saccade_search_func = @SaccadesExtractor.findSaccadeForcefullyOnDefinedTimesByEngbert;
                     manual_saccade_search_params.manual_saccade_search_func_input = manual_saccades_search_func_params_for_eyeballer;
                     manual_saccade_search_params.saccades_detecetion_algorithm_params.amp_lim = curr_requested_amp_lim;
@@ -364,29 +451,15 @@ classdef SaccadesExtractor < handle
                     manual_saccade_search_params.saccades_detecetion_algorithm_params.saccade_dur_min = curr_requested_saccade_dur_min;
                     manual_saccade_search_params.saccades_detecetion_algorithm_params.frequency_max = curr_requested_frequency_max;
                     manual_saccade_search_params.saccades_detecetion_algorithm_params.low_pass_filter = curr_requested_low_pass_filter;
-                    eyeballer= Eyeballer(@eyeballer_save_func, raw_eye_data_for_eyeballer, detection_done, eyeballer_timeline_left_offset, obj.sampling_rates, ...
+                    % create an Eyeballer
+                    eyeballer= Eyeballer(@eyeballer_save_func, raw_eye_data_for_eyeballer, detection_performed, eyeballer_timeline_left_offset, obj.sampling_rates, ...
                                          manual_saccade_search_params, saccades_struct, eyeballer_display_range_multiplier, ...
                                          obj.eyeballer_main_gui_pos, obj.EYEBALLER_MAIN_GUI_BACKGROUND_COLOR);
+                    % run the data inspection
                     [was_new_extraction_requested_by_eyeballer, new_extraction_params]= eyeballer.run();                    
                     if ~was_new_extraction_requested_by_eyeballer
                         is_extraction_go= false;                        
                         [saccades_struct, eyeballing_stats]= eyeballer.getSaccadesStruct();   
-%                         for subject_idx= 1:numel(saccades_struct)    
-%                             curr_subject_conds_names = fieldnames(saccades_struct{subject_idx});                                                                                     
-%                             curr_subject_conds_nr= numel(curr_subject_conds_names);                             
-%                             for cond_idx= 1:curr_subject_conds_nr                                                                                                 
-%                                 for trial_idx = 1:numel(saccades_struct{subject_idx}.(curr_subject_conds_names{cond_idx}))
-%                                     if ~saccades_struct{subject_idx}.(curr_subject_conds_names{cond_idx})(trial_idx).is_trial_accepted
-%                                         saccades_struct_fieldnames = fieldnames(saccades_struct{subject_idx}.(curr_subject_conds_names{cond_idx}));                                    
-%                                         for field_idx = 1:numel(saccades_struct_fieldnames) 
-%                                             if ~strcmp(saccades_struct_fieldnames{field_idx}, 'is_trial_accepted')                                                                                           
-%                                                 saccades_struct{subject_idx}.(curr_subject_conds_names{cond_idx})(trial_idx).(saccades_struct_fieldnames{field_idx})= NaN;
-%                                             end
-%                                         end                                               
-%                                     end
-%                                 end                                                               
-%                             end
-%                         end
                     else
                         curr_requested_amp_lim= new_extraction_params.amp_lim;
                         curr_requested_amp_low_lim= new_extraction_params.amp_low_lim;
@@ -402,8 +475,7 @@ classdef SaccadesExtractor < handle
                 end                                
             end 
             
-            %add a field for the saccades' onsets relative to the start
-            %of the session.
+            %add a field for the saccades' onsets relative to the start of the session.
             for subject_i= 1:obj.subjects_nr   
                 if isempty(saccades_struct{subject_i})
                     continue;
@@ -418,8 +490,12 @@ classdef SaccadesExtractor < handle
                     end
                 end
             end
-            
+                        
             function fillSaccadesStructWithVal(val)
+                % fills a saccades data structure with a specific value for the currently iterated
+                % subject-condition-trial combination.
+                % input:
+                %   * val -> the value to fill the saccades data structure with
                 saccades_struct{subject_i}.(curr_cond_name)(trial_i).onsets= val;
                 saccades_struct{subject_i}.(curr_cond_name)(trial_i).offsets= val;
                 saccades_struct{subject_i}.(curr_cond_name)(trial_i).durations = val;
@@ -431,6 +507,9 @@ classdef SaccadesExtractor < handle
             end   
             
             function eyeballer_save_func(saccades_struct)
+                % saves the data handled by an eyeballer session for each subject
+                % input:
+                %   * saccades_struct -> the saccades data generated with the eyeballer
                 for saved_subject_i= 1:numel(obj.subjects_etas)                                                       
                     curr_saccades_analysis_struct.raw_eye_data= raw_eye_data_for_eyeballer{saved_subject_i};
                     curr_saccades_analysis_struct.manual_saccades_search_func_params= manual_saccades_search_func_params_for_eyeballer{saved_subject_i};
@@ -443,8 +522,19 @@ classdef SaccadesExtractor < handle
         end                
     end                
     
-    methods (Access= private, Static)        
+    methods (Access= private, Static)         
         function v = vecvel(xx, type, sampling_rate)
+            % calculate eyes velocities per sample
+            % input:
+            %   * xx -> matrix of eye positions.
+            %           xx(:,1) - x coordinates. xx(:,2) - y coordinates.
+            %   * type -> int representing the algorithm to calculate the velocities with.
+            %   * sampling_rate -> the sampling rate of the recording
+            %
+            % output:
+            %   * v -> matrix of velocities
+            %          v(:,1) - x axis velocities. v(:,2) - y axis velocities.
+            
             N = length(xx); % length of the time series
             %v = zeros(N,2);
             v = zeros(size(xx));            

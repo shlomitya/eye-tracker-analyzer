@@ -81,48 +81,7 @@ classdef EyeTrackerAnalysisRecord < handle
                             error('EyeTrackerAnalysisRecord:InvalidMat', [eye_tracker_file_name, 'contains data with different sampling rate (', num2str(curr_session_sampling_rate), ' Hz) than does the first session file (', num2str(obj.sampling_rate), ' Hz) - sessions with different sampling rates are not supported.']);                    
                         end
                     end
-                end
-                
-                % reformat messages and inputs structure arrays
-%                 extracted_structs_nr = numel(extracted_structs);
-%                 for struct_i = 1:extracted_structs_nr
-%                     extracted_structs{struct_i}.messages_orig = extracted_structs{struct_i}.messages;
-%                     extracted_structs{struct_i}.messages = [];
-%                     extracted_structs{struct_i}.messages.message = {};
-%                     extracted_structs{struct_i}.messages.time = [];
-%                     msgs_nr = numel(extracted_structs{struct_i}.messages_orig);
-%                     msgs_nr_per_progress_interval = min(200, msgs_nr);
-%                     progress_intervals_nr = floor(msgs_nr/msgs_nr_per_progress_interval);
-%                     for msg_i = 1:msgs_nr
-%                         extracted_structs{struct_i}.messages.message = ...
-%                             [extracted_structs{struct_i}.messages.message, extracted_structs{struct_i}.messages_orig(msg_i).message];
-%                         extracted_structs{struct_i}.messages.time = ...
-%                             [extracted_structs{struct_i}.messages.time, extracted_structs{struct_i}.messages_orig(msg_i).time];
-%                         if mod(msg_i, msgs_nr_per_progress_interval) == 0
-%                             progress_screen.addProgress(0.5*progress_contribution/(eye_tracker_files_nr*extracted_structs_nr*progress_intervals_nr));
-%                         end
-%                     end                    
-%                     extracted_structs{struct_i} = rmfield(extracted_structs{struct_i}, 'messages_orig');
-%                     
-%                     extracted_structs{struct_i}.inputs_orig = extracted_structs{struct_i}.inputs;
-%                     extracted_structs{struct_i}.inputs = [];
-%                     extracted_structs{struct_i}.inputs.input = [];
-%                     extracted_structs{struct_i}.inputs.time = [];
-%                     inputs_nr = numel(extracted_structs{struct_i}.inputs_orig);
-%                     inputs_nr_per_progress_interval = min(200, inputs_nr);
-%                     progress_intervals_nr = floor(inputs_nr/inputs_nr_per_progress_interval);
-%                     for input_i = 1:inputs_nr
-%                         extracted_structs{struct_i}.inputs.input = ...
-%                             [extracted_structs{struct_i}.inputs.input, extracted_structs{struct_i}.inputs_orig(input_i).input];
-%                         extracted_structs{struct_i}.inputs.time = ...
-%                             [extracted_structs{struct_i}.inputs.time, extracted_structs{struct_i}.inputs_orig(input_i).time];
-%                         
-%                         if mod(input_i, msgs_nr_per_progress_interval) == 0
-%                             progress_screen.addProgress(0.5*progress_contribution/(eye_tracker_files_nr*extracted_structs_nr*progress_intervals_nr));
-%                         end
-%                     end
-%                     extracted_structs{struct_i} = rmfield(extracted_structs{struct_i}, 'inputs_orig');                     
-%                 end                
+                end                          
 
                 progress_screen.addProgress(progress_contribution/eye_tracker_files_nr);
                 obj.eye_tracker_data_structs= [obj.eye_tracker_data_structs, extracted_structs];                  
@@ -354,6 +313,7 @@ classdef EyeTrackerAnalysisRecord < handle
         
         function [segmentized_data, detection_done]= getSegmentizedData(obj, detection_requested, progress_screen, progress_contribution, filter_bandpass)
             segmentized_data = [];
+            detection_done = [];
             if obj.chosen_segmentization_i==0
                 error('EyeTrackerAnalysisRecord:noSegmentizationChosen', 'must call segmentizeData() prior to getSegmentizedData() so segmentized data would be chosen/created');                
             end
@@ -1178,7 +1138,7 @@ classdef EyeTrackerAnalysisRecord < handle
                     end
                                         
                     %deal with trials that started with an offset:
-                    if sorted_types(1)==1; %try to find an onset on the beggining of the trial:
+                    if sorted_types(1)==1 %try to find an onset on the beggining of the trial:
                         first_neg=[];
                         first_pos=[];
                         offset_sample=[];

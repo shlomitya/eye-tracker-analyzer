@@ -1,4 +1,46 @@
 function fix_struct = getFixationsFromSaccadesDetection(d, onsets ,offsets ,amplitudes, toocloseThresh, blink_padding, to_plot)
+% extract fixations data from eye tracking data as the segments between
+% previously detected saccades segments
+%
+% input:
+%   * d -> matrix:
+%       ** d(:,1) -> running sequence - 1,2,3, ...
+%       ** d(:,2) -> right eye x positions
+%       ** d(:,3) -> right eye y positions
+%       ** d(:,4) -> left eye x positions
+%       ** d(:,5) -> left eye y positions
+%       ** d(:,6) -> 0 for NaN sample, 1 otherwise
+%   * onsets -> vector holding the previously found saccades onsets 
+%   * offsets -> vector holding the previously found saccades offsets
+%   * amplitudes -> vector holding the previously found saccades amplitudes
+%   * toocloseThresh -> is the minimum duration required between saccade end and
+%     saccade start (default is 20ms).
+%   * blink_padding -> what was the parmater used to padd blinks (so it can be
+%     reduced to find the correct onset and offset of the blinks).
+%   * to_plot -> whether to generate a plot of the saccades and fixations segments
+% 
+% output:
+%   * fix_struct -> structure:
+%       ** onsets -> fixations onsets
+%       ** offsets -> fixations offsets
+%       ** Hpos -> fixations horizontal positions
+%       ** Vpos -> fixations vertical positions
+%       ** onset_types -> fixations onset type codes:
+%           *** 2 - fixation started with the end of the saccade
+%           *** 4 - fixation started with the end of a blink 
+%           *** 6 - fixation started with segment start.
+%       ** offset_types -> fixations offset type codes:
+%           *** 1 - fixation ended with a start of a saccade
+%           *** 3 - fixation ended with the start of a blink 
+%           *** 5 - fixation ended with segment end.
+%       ** disperity_V -> vertical distance between left and right eye
+%          positions during a fixation
+%       ** disperity_V -> vertical distance between left and right eye
+%          positions during a fixation
+%       ** disperity_H -> horizontal distance between left and right eye
+%          positions during a fixation
+%       ** has_fixation_started_with_a_blink -> logical vector with true
+%          for fixations that onseted on a blink offset
 if nargin == 0
     fix_struct.onsets=[];
     fix_struct.offsets=[];

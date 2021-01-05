@@ -1,11 +1,14 @@
 %TODO: nest this class inside SaccadesExtractor somehow. 
 classdef Eyeballer < handle
     properties (Access= public, Constant)
+        % items identification codes
         ENUM_NO_SACCADE_CODE= 0;
         ENUM_ALGORITHM_GENERATED_SACCADE_CODE= 1;
         ENUM_REJECTED_SACCADE_CODE= 2;
         ENUM_USER_GENERATED_SACCADE_CODE= 3;
-        ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE = 4;                
+        ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE = 4;
+        ENUM_NO_MANUAL_BLINK_CODE = 5;
+        ENUM_MANUAL_BLINK_CODE = 6;        
     end
     
     properties (Access= private, Constant)
@@ -746,12 +749,21 @@ classdef Eyeballer < handle
                 end                                
                 
                 set(obj.fig, 'Pointer', 'arrow');        
-                if strcmp(get(obj.fig, 'SelectionType'), 'normal')                                       
-                    obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(blinked_out_start_t:blinked_out_end_t) = -abs(obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(blinked_out_start_t:blinked_out_end_t));
+                if strcmp(get(obj.fig, 'SelectionType'), 'normal')   
+                    % manual blink inaterval requested
+                    
+                    % replace 1 values in non_nan_times_logical_vec with -1 (indicating manual blink samples)
+                    non_nan_times_logical_vec = obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(blinked_out_start_t:blinked_out_end_t) == 1;
+                    obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(non_nan_times_logical_vec) = -1;
                     curr_subject_trial_saccades_data = obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial);
+                    % generate a logical vector for the current trial saccades.
+                    % blinked_out_saccades_logical_vec(i) == 1 -> iff the saccade stretched on samples that were marked as blinks 
                     blinked_out_saccades_logical_vec = curr_subject_trial_saccades_data.onsets < blinked_out_end_t & blinked_out_start_t < curr_subject_trial_saccades_data.offsets;
-                    saccades_user_codes = obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes; 
+                    saccades_user_codes = obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes;
+                    % for algorithm-generated saccades: assign an ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE
+                    %  for them in the user_codes output field                    
                     obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes(blinked_out_saccades_logical_vec & (saccades_user_codes == obj.ENUM_ALGORITHM_GENERATED_SACCADE_CODE | saccades_user_codes == obj.ENUM_REJECTED_SACCADE_CODE))= obj.ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE;
+                    % for user-generated saccades: remove the saccades completely from the output structure
                     blinked_out_user_saccades_logical_vec = blinked_out_saccades_logical_vec & obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes == obj.ENUM_USER_GENERATED_SACCADE_CODE;                    
                     if any(blinked_out_user_saccades_logical_vec)
                         Eyeballer.clearSaccadePlots([obj.curr_trial_saccades_plots_hs{blinked_out_user_saccades_logical_vec}]);
@@ -762,13 +774,26 @@ classdef Eyeballer < handle
                         obj.curr_trial_saccades_plots_hs(blinked_out_user_saccades_logical_vec)= [];
                         cleared_data= obj.clearSaccadeData(blinked_out_user_saccades_logical_vec);                                                                                   
                     end
+                    
+%                     obj.user_undo_stack= [obj.user_undo_stack, {[obj.ENUM_NO_MANUAL_BLINK_CODE, obj.curr_subject, obj.curr_trial, ...
+%                         blinked_out_start_t, blinked_out_end_t, non_nan_times_logical_vec, ...
+%                         numel(saccades_user_codes), saccades_user_codes]}];
                 else
+                    % original data restoration requested
+                    
+                    % replace non-0 values in non_nan_times_logical_vec with 1
                     obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(blinked_out_start_t:blinked_out_end_t) = abs(obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec(blinked_out_start_t:blinked_out_end_t));
                     curr_subject_trial_saccades_data = obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial);
+                    % assign an ENUM_ALGORITHM_GENERATED_SACCADE_CODE in the user_codes output field 
+                    % for saccades that were previously marked with ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE
                     obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).user_codes(blinked_out_start_t < curr_subject_trial_saccades_data.onsets & curr_subject_trial_saccades_data.offsets < blinked_out_end_t & curr_subject_trial_saccades_data.user_codes == obj.ENUM_MANUAL_BLINK_REJECTED_SACCADE_CODE)= obj.ENUM_ALGORITHM_GENERATED_SACCADE_CODE;
+                    
+%                     obj.user_undo_stack= [obj.user_undo_stack, {[obj.ENUM_NO_MANUAL_BLINK_CODE, obj.curr_subject, obj.curr_trial, ...
+%                         blinked_out_start_t, blinked_out_end_t, ...
+%                         numel(saccades_user_codes), saccades_user_codes]}];
                 end                
                 obj.is_blink_being_drawn_on_x_axes = false;
-                obj.plotCurrTrialSaccades(false);
+                obj.plotCurrTrialSaccades(false);                                                
             else
                 if obj.is_blink_being_drawn_on_y_axes
                     delete(obj.blink_curr_marker_h);
@@ -856,7 +881,7 @@ classdef Eyeballer < handle
             saccade_search_times= ...
                 max( 1, curr_mouse_pos_x - obj.HALF_TIME_WINDOW_FOR_MANUAL_SACCADE_SEARCH ) : ...
                 min( length(obj.eye_data{obj.curr_subject}(obj.curr_trial).left_x), curr_mouse_pos_x + obj.HALF_TIME_WINDOW_FOR_MANUAL_SACCADE_SEARCH);                             
-            saccade_data= obj.manual_saccade_search_func(obj.manual_saccade_search_func_input{obj.curr_subject}(obj.curr_trial), saccade_search_times);  %TODO: must improve this mechanism                                                                     
+            saccade_data= obj.manual_saccade_search_func(obj.manual_saccade_search_func_input{obj.curr_subject}(obj.curr_trial), saccade_search_times);
             if ~isempty(saccade_data)   
                 if ismember(saccade_data.onset, obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).onsets)
                     return;

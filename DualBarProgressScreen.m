@@ -157,6 +157,10 @@ classdef DualBarProgressScreen < handle
             
             figure(obj.fig);
         end
+        
+        function forceClose(obj)
+            close(obj.fig);
+        end
     end 
     
     methods (Access= private)

@@ -81,7 +81,13 @@ ERROR_MSG_NO_BLINKS_DELTA= 'Please specify blinks''s delta';
 ERROR_MSG_NO_VEL_THRESHOLD= 'Please specify microsaccade''s velocity threshold';
 ERROR_MSG_NO_AMP_LIM= 'Please specify microsaccade''s amplitude limit';
 ERROR_MSG_MISSING_ETA_SAVE_FILE_NAMES= 'Please choose save names for all .ETA files';
-
+ERROR_MSG_DEFAULT_FILES_NOT_FOUND = 'Could not find a single file requested for processing.\nPlease verify that the spcified files'' paths have not changed.';
+ERROR_MSG_DEFAULT_PROMPT_MSG = 'The following files could not be found:\n';
+ERROR_MSG_NO_ETAS_FOUND_FOR_CONVERSION = 'Could not find any .ETA requested for .Mat extraction. \nPlease verify that the spcified files'' paths have not changed.';
+ERROR_MSG_NOT_ALL_ETAS_FOUND_FOR_CONVERSION = 'The following ETAs requested .Mat extraction could not be found:\n';
+ERROR_MSG_NO_EDFS_FOUND_FOR_CONVERSION = 'Could not find any .EDF requested for .Mat extraction. \nPlease verify that the spcified files'' paths have not changed.';
+ERROR_MSG_NOT_ALL_EDFS_FOUND_FOR_CONVERSION = 'The following EDFs requested .Mat extraction could not be found:\n';
+        
 % algorithms' default parameters values
 MICROSACCADES_ANALYSIS_PARAMETERS.rate= 1;
 MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes= 1;
@@ -333,7 +339,7 @@ post_offset_trigger_segment_edit_uicontrol = uicontrol(segmentation_panel, 'Styl
 % analysis segment duration control title
 analysis_segment_dur_txt_uicontrol = uicontrol(segmentation_panel, 'Style', 'text', 'tag', 'c10', 'units', 'normalized', ...
     'String', 'Analysis segment duration (ms)', ...
-    'Position', [0.8534    0.5947    0.0896    0.2158], ...
+    'Position', [0.8534, 0.5066, 0.0896, 0.3038], ...
     'FontSize', 10.0, ...
     'BackgroundColor', GUI_BACKGROUND_COLOR);
 
@@ -816,6 +822,12 @@ set(gui, 'Visible', 'on');
         progress_screen= SingleBarProgressScreen('Creating .ETAs', [0.8, 0.8, 0.8], 0.4, 0.4);
         for requested_eta_i= 1:requested_etas_nr
             curr_subject_eye_tracker_files_list_box= load_data_files_uicontrols{requested_eta_i,1};
+            
+            is_filtered_files_list_accepted = promptUserOfUnfoundFiles(curr_subject_eye_tracker_files_list_box);
+            if ~is_filtered_files_list_accepted
+                break;
+            end
+            
             curr_subject_eye_tracker_files_list= get(curr_subject_eye_tracker_files_list_box, 'string');
             curr_subject_eta_save_file_etext= load_data_files_uicontrols{requested_eta_i,2};
             [~, curr_subject_eta_save_file_name, ~]= fileparts(get(curr_subject_eta_save_file_etext, 'string'));
@@ -832,11 +844,15 @@ set(gui, 'Visible', 'on');
             progress_screen.addProgress(0.1/requested_etas_nr);
         end
         
-        if ~progress_screen.isCompleted();
-            progress_screen.updateProgress(1);
+        if is_filtered_files_list_accepted
+            if ~progress_screen.isCompleted()
+                progress_screen.updateProgress(1);
+            end
+
+            progress_screen.displayMessage('Done.');
+        else
+            progress_screen.forceClose();
         end
-        
-        progress_screen.displayMessage('Done.');
         
         function res= areAllEtaSaveFileNameEtextsFilled()            
             for uicontrol_group_i= 1:requested_etas_nr
@@ -972,7 +988,11 @@ set(gui, 'Visible', 'on');
         set(etas_creation_single_sessioned_folder_etext, 'string', ETAS_CREATION_SINGLE_SESSIONED_SAVE_DESTINATION);
     end
 
-    function createEtasSingleSessionedFromEyeTrackerFilesBtnCallback(~,~)        
+    function createEtasSingleSessionedFromEyeTrackerFilesBtnCallback(~,~)                
+        if ~promptUserOfUnfoundFiles(load_files_for_etas_creation_single_sessioned_display_pane);
+            return;
+        end
+        
         progress_screen= SingleBarProgressScreen('Creating .ETAs', [0.8, 0.8, 0.8], 0.4, 0.4);       
         files_list= get(load_files_for_etas_creation_single_sessioned_display_pane, 'string');                                                                     
         requested_etas_single_sessioned_nr = numel(files_list);  
@@ -1311,13 +1331,18 @@ set(gui, 'Visible', 'on');
         if ~createOutputFolders()
             return;
         end                                                                     
+                
+        if promptUserOfUnfoundFiles(load_etas_for_analysis_display_pane)
+            subjects_nr = numel(get(load_etas_for_analysis_display_pane, 'string'));
+        else
+            return;
+        end
         
+        cd(get(gui,'userdata'));
         analysis_go= analysisParametersFigCreator();        
         if ~analysis_go    
-            return;
-        else
-            cd(get(gui,'userdata'));
-        end
+            return;        
+        end               
         
         %profile on          
         logger = Logger(fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, LOGGER_FILE_NAME_EXTENDED));
@@ -1491,11 +1516,18 @@ set(gui, 'Visible', 'on');
         edf_listbox_string= get(convert_edf_listbox, 'string');
         if isempty(eta_listbox_string) && isempty(edf_listbox_string)
             return;
-        else
-            progress_screen= SingleBarProgressScreen('EDF Conversion Progress', [0.8, 0.8, 0.8], 0.4, 0.4); 
-        end                
-        
+        end
+                                        
+        progress_screen= SingleBarProgressScreen('EDF Conversion Progress', [0.8, 0.8, 0.8], 0.4, 0.4); 
+                
         if ~isempty(eta_listbox_string)
+            if ~promptUserOfUnfoundFiles(convert_eta_listbox, ERROR_MSG_NO_ETAS_FOUND_FOR_CONVERSION, ERROR_MSG_NOT_ALL_ETAS_FOUND_FOR_CONVERSION)
+                progress_screen.forceClose();
+                return;
+            else
+                eta_listbox_string = get(convert_eta_listbox, 'string');
+            end
+        
             if ischar(eta_listbox_string)
                 eta_listbox_string= {eta_listbox_string};
             end
@@ -1505,7 +1537,14 @@ set(gui, 'Visible', 'on');
             eta_files_nr= 0;
         end
         
-        if ~isempty(edf_listbox_string)
+        if ~isempty(edf_listbox_string)            
+            if ~promptUserOfUnfoundFiles(convert_edf_listbox, ERROR_MSG_NO_EDFS_FOUND_FOR_CONVERSION, ERROR_MSG_NOT_ALL_EDFS_FOUND_FOR_CONVERSION)
+                progress_screen.forceClose();
+                return;
+            else
+                edf_listbox_string = get(convert_edf_listbox, 'string');
+            end
+            
             if ischar(edf_listbox_string)
                 edf_listbox_string= {edf_listbox_string};
             end
@@ -1542,7 +1581,7 @@ set(gui, 'Visible', 'on');
             end
         end
         
-        if ~progress_screen.isCompleted();
+        if ~progress_screen.isCompleted()
             progress_screen.updateProgress(1);
         end
         
@@ -1586,9 +1625,11 @@ set(gui, 'Visible', 'on');
 
     % TODO: change shared-with-sub-functions variables inside analyzeMicrosaccades to be passed as
     % arguments to the sub-functions
-    function [subjects_figs, statistisized_figs, analysis_struct_with_results]= analyzeMicrosaccades(subjects_etas, progress_screen, logger)        
+    function [subjects_figs, statistisized_figs, analysis_struct_with_results]= analyzeMicrosaccades(subjects_etas, progress_screen, logger)                
+        % construct a saccades extractor
         saccades_extractor= SaccadesExtractor(subjects_etas);        
         progress_screen.displayMessage('extracting saccades');
+        % extract saccades data
         [eye_data_structs, saccades_analysis_structs, eyeballing_stats]= saccades_extractor.extractSaccadesByEngbert( ...
             ENGBERT_ALGORITHM_DEFAULTS.detection, ...
             ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type, ...
@@ -1600,6 +1641,8 @@ set(gui, 'Visible', 'on');
             ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass, ...
             PERFORM_EYEBALLING, EYEBALLER_DISPLAY_RANGE, BASELINE, ...
             get(load_etas_for_analysis_display_pane, 'string'), 0.99, progress_screen, logger);                   
+        
+        % test whether the segmentation produced any segments to analyze.
         was_trigger_ever_found_for_any_subject = false;
         for subject_idx = 1:numel(saccades_analysis_structs)
             if ~isempty(saccades_analysis_structs{subject_idx})
@@ -1607,6 +1650,7 @@ set(gui, 'Visible', 'on');
                 break;
             end
         end
+        % return empty if the segmentation produced no segments to analyze.
         if ~was_trigger_ever_found_for_any_subject
             subjects_figs = [];
             statistisized_figs = [];
@@ -1614,18 +1658,40 @@ set(gui, 'Visible', 'on');
             progress_screen.addProgress(0.0);
             return;
         end
-                               
+        
+        % extract fixations data                           
         fixations_analysis_struct = computeFixations(eye_data_structs, 0.0, progress_screen); 
         
         progress_screen.giveFocus();  
         progress_screen.displayMessage('saving updated eeg files');
+        % if EEG is involved, save analysis data as a channel in the EEG data struct
         saveUpdatedEegStructs(0.0, progress_screen);
         progress_screen.displayMessage('generating analyses plots');
-        reformated_analysis_structs= reformatAnalysisStruct(eye_data_structs);                    
+        % reformat the analysis struct to the format performMicrosaccadesAnalyses expects
+        reformated_analysis_structs= reformatAnalysisStruct(eye_data_structs);    
+        % generate figures etc.
         [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(reformated_analysis_structs, [MICROSACCADES_ANALYSIS_PARAMETERS.rate, MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence, MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs, MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs], BASELINE, MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len, TRIAL_DURATION, progress_screen, 0.01);                        
+        % add the analysis algorithm parameters to the output structure
         analysis_struct_with_results.saccades_analsysis_parameters = ENGBERT_ALGORITHM_DEFAULTS;        
                 
+        
         function fixations_analysis_struct = computeFixations(eye_data_structs, progress_contribution, progress_screen)
+            % extract fixations from eye data structs
+            % input:
+            %   * eye_data_structs -> cell array of eye_data_struct per
+            %     subject as generated by SaccadesExtractor
+            %   * progress_contribution -> factor to scale progress with
+            %   * progress_screen -> DualBarProgressScreen to add progress to
+            %
+            % output:
+            %   * fixations_analysis_struct -> cell array, with cell per subject.
+            %     each cell containts a structure:
+            %       ** total -> structure. holds accumulated fixations data
+            %       over all subjects and all conditions:
+            %           *** fixations_count -> total number of fixations detected
+            %           *** fixations_durations_mean -> mean fixation duration
+            %       ** [condition name] -> structure array. cell per trial.
+            %       each cell contains a fix_struct outputed by getFixationsFromSaccadesDetection                      
             progress_screen.displayMessage('computing fixations');
             fixations_analysis_struct = cell(1, subjects_nr);
             for subject_i = 1:subjects_nr                 
@@ -1644,12 +1710,16 @@ set(gui, 'Visible', 'on');
                     trials_nr = numel(eye_data_struct.(cond));
                     for trial_i = 1:trials_nr
                         if ~any(eye_data_struct.(cond)(trial_i).non_nan_times_logical_vec)
+                            % all samples for the current segment are NaN
                             % calling getFixationsFromSaccadesDetection with no arguments returns a structure with empty fields
                             fixations_analysis_struct{subject_i}.(cond)(trial_i) = getFixationsFromSaccadesDetection();
-                            %progress_screen.addProgress(progress_contribution/(trials_nr*conds_nr*subjects_nr));
+                            if mod(trial_i, 50) == 0
+                                progress_screen.addProgress(progress_contribution/((trials_nr/50)*conds_nr*subjects_nr));
+                            end
                             continue;
                         end
                         
+                        % construct the d variable for getFixationsFromSaccadesDetection
                         d = [(1:numel(eye_data_struct.(cond)(trial_i).non_nan_times_logical_vec))', ...
                             eye_data_struct.(cond)(trial_i).raw_eye_data.right_eye(:,1), ...
                             eye_data_struct.(cond)(trial_i).raw_eye_data.right_eye(:,2), ...
@@ -1657,6 +1727,7 @@ set(gui, 'Visible', 'on');
                             eye_data_struct.(cond)(trial_i).raw_eye_data.left_eye(:,2), ...
                             eye_data_struct.(cond)(trial_i).non_nan_times_logical_vec];
                         
+                        % extract the fixations
                         fixations_analysis_struct{subject_i}.(cond)(trial_i) = getFixationsFromSaccadesDetection(d, ...
                             saccades_analysis_structs{subject_i}.(cond)(trial_i).onsets', ...
                             saccades_analysis_structs{subject_i}.(cond)(trial_i).offsets', ...
@@ -1664,14 +1735,10 @@ set(gui, 'Visible', 'on');
                             20, MICROSACCADES_ANALYSIS_PARAMETERS.blinks_delta, false);
                         
                         fixations_nr = numel(fixations_analysis_struct{subject_i}.(cond)(trial_i).onsets);
+                        % accumulate results to the 'total' structure
                         fixations_analysis_struct{subject_i}.total.fixations_count = fixations_analysis_struct{subject_i}.total.fixations_count + fixations_nr;
-%                         fixations_durs_ratios = min(fixations_struct.durations/TRIAL_DURATION,1);
                         fixations_analysis_struct{subject_i}.total.fixations_durations_mean = ...
-                            [fixations_analysis_struct{subject_i}.total.fixations_durations_mean, mean(fixations_analysis_struct{subject_i}.(cond)(trial_i).durations)];
-%                     f = figure('name', [fig_title, ' - trial #', num2str(trial_i)], 'MenuBar', 'none', 'numbertitle', 'off', 'units', 'pixels');
-%                     for fixation_i = 1:fixations_nr
-%                         plot(fixations_coords(fixation_i,1),fixations_coords(fixation_i,2),'.','color',MAX_FIXATION_DUR_COLOR*fixations_durs_ratios(fixation_i),'markersize',20);
-%                     end       
+                            [fixations_analysis_struct{subject_i}.total.fixations_durations_mean, mean(fixations_analysis_struct{subject_i}.(cond)(trial_i).durations)];    
                         if mod(trial_i, 50) == 0
                             progress_screen.addProgress(progress_contribution/((trials_nr/50)*conds_nr*subjects_nr));
                         end
@@ -1681,9 +1748,7 @@ set(gui, 'Visible', 'on');
                         progress_screen.addProgress(progress_contribution * mod(trials_nr, 50) / (trials_nr*conds_nr*subjects_nr));
                     else
                         progress_screen.addProgress(progress_contribution/(conds_nr*subjects_nr));
-                    end
-                    %                 savefig(f, fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, ['sub',num2str(subject_i),cond]));
-                    %                 set(f,'visible','off');
+                    end                   
                 end
             end
         end
@@ -2475,7 +2540,49 @@ set(gui, 'Visible', 'on');
         end
     end
  
-    %TODO: check file existance    
+    function is_filtered_files_list_accepted = promptUserOfUnfoundFiles(files_list_pane, no_files_found_msg, propmt_msg)
+        if nargin < 3
+            propmt_msg = ERROR_MSG_DEFAULT_PROMPT_MSG;
+        end
+        if nargin < 2
+            no_files_found_msg =  ERROR_MSG_DEFAULT_FILES_NOT_FOUND;           
+        end
+                    
+        files_full_paths = get(files_list_pane, 'string');
+        files_existence_logical_vec = verifyFilesExistence(files_full_paths);
+        if ~any(files_existence_logical_vec)
+            errordlg(sprintf(no_files_found_msg));
+            is_filtered_files_list_accepted = false;
+        elseif ~all(files_existence_logical_vec)
+            questdlg_txt = propmt_msg;
+            unfound_files = files_full_paths(~files_existence_logical_vec);
+            for unfound_file_idx = 1:numel(unfound_files)
+                unfound_files{unfound_file_idx} = strrep(unfound_files{unfound_file_idx}, '\', '\\');
+                questdlg_txt = [questdlg_txt, '(*) ', unfound_files{unfound_file_idx}, '\n']; %#ok<AGROW>
+            end
+            questdlg_txt = [questdlg_txt, 'Would you like to continue without them?'];
+            user_response = questdlg(sprintf(questdlg_txt), 'Confirm unfound files exclusion', 'Yes', 'No','No');
+            if strcmp(user_response, 'Yes')
+                set(files_list_pane, 'string', files_full_paths(files_existence_logical_vec));               
+                is_filtered_files_list_accepted = true;
+            else
+                is_filtered_files_list_accepted = false;
+                return;
+            end
+        else
+            is_filtered_files_list_accepted = true;
+        end
+    end
+    
+
+    function files_existence_logical_vec = verifyFilesExistence(files_list)
+        files_nr = numel(files_list);
+        files_existence_logical_vec = false(1, files_nr);
+        for file_idx = 1:files_nr
+            files_existence_logical_vec(file_idx) = isfile(files_list{file_idx});
+        end
+    end
+        
     function etas= loadEtasSegmentized(progress_screen)     
         etas= cell(1,subjects_nr); 
         etas_files_list= get(load_etas_for_analysis_display_pane, 'string');          
