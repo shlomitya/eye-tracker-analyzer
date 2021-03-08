@@ -1,4 +1,13 @@
-classdef EyeTrackerAnalysisRecord < handle
+classdef EyeTrackerAnalysisRecord < handle         
+%% class EyeTrackerAnalysisRecord
+%   Constitutes an .ETA file.
+%   Saves:
+%   *   eye tracking raw data.
+%   *   previous segmentizations results.
+%   *   blinks logical vector (a vector with length equal to the number of samples, where
+%           vector(i) = 1 iff sample i is within a blink and vector(i) = 0 otherwise.
+%   *   eyeballing data.
+
     properties (Access= public, Constant)
         CONDS_NAMES_PREFIX= 'C';
         
@@ -8,27 +17,51 @@ classdef EyeTrackerAnalysisRecord < handle
     end
     
     properties (Access= private, Constant)
+        % relative path of readEDF.mexw64 file with which .edf files are read into 
+        % a MATLAB struct
         READ_EDF_PATH= fullfile('readEDF'); 
+        % parameters for the pupils based blinks detection algorithm
         PUPILS_BASED_BLINKS_DETECTION_STD = 2.5;
         PUPILS_BASED_BLINKS_DETECTION_CONSECUTIVE_SAMPLES = 3;
         PUPILS_BASED_BLINKS_DETECTION_TOLERANCE = 3;
         PUPILS_BASED_BLINKS_DETECTION_MAX_SEG_TIME = 10;                
     end
     
-    properties (Access= private)          
+    properties (Access= private)  
+        % a string given in the constructor. can be used to identify this analysis record.
         analysis_tag;
+        % raw eye tracking data
         eye_tracker_data_structs;
+        % boolean indicating eeg data is present
         is_eeg_involved;
+        % cell array of structs holding the parameters for the corresponding segmentizations 
+        % data stored in segmentization_vecs. serves as a lookup index to restore previously
+        % performed segmentizations stored in segmentization_vecs.
         segmentization_vecs_index= {};
+        % cell array of structs holding event timings. An event is either a blink or a message
+        % sent during the eye racking recording session.
         segmentization_vecs= {};
+        % cell array of structs holding eyeballing data for the corresponding segmentizations 
+        % data stored in segmentization_vecs.
         saccades_extractors_data= {};
-        chosen_segmentization_i= 0;       
+        % the index in the above cell arrays of the chosen segmentization.
+        chosen_segmentization_i= 0;  
+        % degrees per pixels of the eye tracking recording.
         dpp = [];
+        % sampling rate of the eye tracking recording.
         sampling_rate = [];
     end
     
     methods (Access= public)
         function obj= EyeTrackerAnalysisRecord(progress_screen, progress_contribution, analysis_tag, eye_tracker_files, dpp)             
+            % EyeTrackerAnalysisRecord ctor.            
+            % Input:
+            % * progress_screen -> handle to a DualBarProgressScreen object.
+            % * progress_contribution -> factor to scale progress with.
+            % * analysis_tag -> A string that can be used to identify this analysis record.
+            % * eye_tracker_files -> cell array of the full paths for the eye tracking data files.
+            % * dpp -> degrees per pixels of the eye tracking recording.
+            
             obj.analysis_tag= analysis_tag; 
             obj.dpp = dpp;                    
             if ~iscell(eye_tracker_files)
@@ -40,10 +73,12 @@ classdef EyeTrackerAnalysisRecord < handle
             for eye_tracker_file_i= 1:eye_tracker_files_nr                 
                 curr_eye_tracker_full_file_name= eye_tracker_files{eye_tracker_file_i};
                 [~, eye_tracker_file_name, eye_tracker_file_ext]= fileparts(curr_eye_tracker_full_file_name);                                    
-                if strcmp(eye_tracker_file_ext, '.edf')                    
+                if strcmp(eye_tracker_file_ext, '.edf')
+                    % file is an eyelink eye tracking data
                     copyfile(curr_eye_tracker_full_file_name, EyeTrackerAnalysisRecord.READ_EDF_PATH);
                     progress_screen.displayMessage(['converting session #', num2str(eye_tracker_file_i), ' edf file']);
                     addpath(EyeTrackerAnalysisRecord.READ_EDF_PATH);
+                    % read the eye tracking data with readEDF.mexw64
                     extracted_struct = readEDF(fullfile(EyeTrackerAnalysisRecord.READ_EDF_PATH, [eye_tracker_file_name, '.edf']));
                     extracted_struct = rmfield(extracted_struct, 'fixations');
                     extracted_struct = rmfield(extracted_struct, 'saccades');
@@ -61,13 +96,15 @@ classdef EyeTrackerAnalysisRecord < handle
                     delete(fullfile(EyeTrackerAnalysisRecord.READ_EDF_PATH, [eye_tracker_file_name, '.edf']));
                     rmpath(EyeTrackerAnalysisRecord.READ_EDF_PATH);                  
                 elseif strcmp(eye_tracker_file_ext, '.mat')
+                    % file is a previously generated eye tracking data struct 
                     progress_screen.displayMessage(['loading session #', num2str(eye_tracker_file_i), ' mat file']);
                     loaded_mat= load(curr_eye_tracker_full_file_name);
                     extracted_structs = EyeTrackerAnalysisRecord.extractEyeTrackerStructsFromLoadedMatStructs(loaded_mat);                    
                     if isempty(extracted_structs)                        
                         error('EyeTrackerAnalysisRecord:InvalidMat', [eye_tracker_file_name, '.mat does not contain an eyelink data struct.']);                                    
                     end                    
-                elseif strcmp(eye_tracker_file_ext, '.set')                    
+                elseif strcmp(eye_tracker_file_ext, '.set')      
+                    % file is an EEGLAB data
                     extracted_structs = {EyeTrackerAnalysisRecord.addEtaFieldsToEegStruct(pop_loadset(curr_eye_tracker_full_file_name))};                    
                     obj.is_eeg_involved= true;
                 end                                
