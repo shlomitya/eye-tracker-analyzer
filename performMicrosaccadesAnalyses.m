@@ -23,21 +23,29 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     screen_size= screen_size(1,:);
     figure_positions= round([0.1*screen_size(3), 0.1*screen_size(4), 0.8*screen_size(3), 0.8*screen_size(4)]);
             
-    subjects_nr= numel(analysis_struct);
-    were_ever_triggers_found_on_any_subject = false;
+    subjects_nr= numel(analysis_struct);    
+    conds_names = {};
+    conds_names_aggregated = {};
+    do_subjects_differ_in_conds_names = false;
+    conds_nr_max = 0;
     for subject_i= 1:subjects_nr      
         if ~isempty(analysis_struct{subject_i}.saccades)
-            conds_names= fieldnames(analysis_struct{subject_i}.saccades);
-            conds_nr= numel(conds_names);
-            curves_colors = hsv2rgb([linspace(0, (conds_nr - 1)/conds_nr, conds_nr); ones(1,conds_nr); 0.5*ones(1,conds_nr)]');
-            were_ever_triggers_found_on_any_subject = true;
-            break;
+            conds_names= [conds_names, {fieldnames(analysis_struct{subject_i}.saccades)}]; %#ok<AGROW>
+            if numel(conds_names{end}) > conds_nr_max
+                conds_nr_max = numel(conds_names{end});
+            end
+            conds_names_aggregated = union(conds_names_aggregated, conds_names{end}); 
+            if ~do_subjects_differ_in_conds_names && ~isempty(setdiff(conds_names_aggregated, conds_names{end}))
+                do_subjects_differ_in_conds_names = true;
+            end
         end
     end
-    
-    if ~were_ever_triggers_found_on_any_subject
+
+    if conds_nr_max == 0
         return;
     end        
+    
+    curves_colors = hsv2rgb([linspace(0, (conds_nr_max - 1)/conds_nr_max, conds_nr_max); ones(1,conds_nr_max); 0.5*ones(1,conds_nr_max)]');    
     
     if analyses_flags(5)         
         subjects_figs= cell(2,8,subjects_nr);        
@@ -47,35 +55,34 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     analysis_struct_with_results.results_grand_total= [];  
     
     % saccadic rate
-    if analyses_flags(1)                  
-        max_trial_duration_per_cond = zeros(1, conds_nr);
-        original_microsaccadic_rate = cell(1, conds_nr);
-        smoothed_microsaccadic_rate = cell(1, conds_nr);
-        for cond_i= 1:conds_nr                        
-            for subject_i = 1:subjects_nr 
-                if isempty(analysis_struct{subject_i}.saccades) 
-                    continue;
-                end
-                if max_trial_duration_per_cond(cond_i) < size(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).logical_onsets_mat, 2);
-                   max_trial_duration_per_cond(cond_i) = size(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).logical_onsets_mat, 2);
-                end
-            end
-            original_microsaccadic_rate{cond_i} = NaN(subjects_nr, max_trial_duration_per_cond(cond_i));
-            smoothed_microsaccadic_rate{cond_i} = NaN(subjects_nr, max_trial_duration_per_cond(cond_i) - smoothing_window_len);
-        end
-                
-        for subject_i= 1:subjects_nr            
+    if analyses_flags(1)                          
+        for subject_i = 1:subjects_nr
             if isempty(analysis_struct{subject_i})
                 progress_screen.addProgress(0.9*progress_contribution/subjects_nr);
                 continue;
-            end           
+            end     
+            
+            conds_nr = numel(conds_names{subject_i});
+            max_trial_duration_per_cond = zeros(1, conds_nr);
+            original_microsaccadic_rate = cell(1, conds_nr);
+            smoothed_microsaccadic_rate = cell(1, conds_nr);
+            for cond_i= 1:conds_nr                        
+                if ~isempty(analysis_struct{subject_i}.saccades) && ...
+                    isfield(analysis_struct{subject_i}.saccades, conds_names{subject_i}{cond_i}) && ...
+                    max_trial_duration_per_cond(cond_i) < size(analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).logical_onsets_mat, 2)
+                       max_trial_duration_per_cond(cond_i) = size(analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).logical_onsets_mat, 2);                    
+                end
+
+                original_microsaccadic_rate{cond_i} = NaN(subjects_nr, max_trial_duration_per_cond(cond_i));
+                smoothed_microsaccadic_rate{cond_i} = NaN(subjects_nr, max_trial_duration_per_cond(cond_i) - smoothing_window_len);
+            end                              
            
             %smooth window            
             smoothing_edge_left= floor(smoothing_window_len/2);
             smoothing_edge_right= ceil(smoothing_window_len/2);
             for cond_i= 1:conds_nr
                 max_trial_duration = max_trial_duration_per_cond(cond_i);
-                original_microsaccadic_rate{cond_i}(subject_i, 1:size(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).logical_onsets_mat, 2)) = nanmean(analysis_struct{subject_i}.saccades.(conds_names{cond_i}).logical_onsets_mat);
+                original_microsaccadic_rate{cond_i}(subject_i, 1:size(analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).logical_onsets_mat, 2)) = nanmean(analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).logical_onsets_mat);
                 smoothed_microsaccadic_rate_with_tails = smoothy( original_microsaccadic_rate{cond_i}(subject_i, 1:max_trial_duration), smoothing_window_len, progress_screen, 0.9*progress_contribution/(conds_nr*subjects_nr) );
                 smoothed_microsaccadic_rate{cond_i}(subject_i, :) = smoothed_microsaccadic_rate_with_tails((smoothing_edge_left + 1):(max_trial_duration - smoothing_edge_right));
             end
@@ -85,18 +92,18 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 subjects_figs{2,1,subject_i}= figure('name',['microsaccades_rate - subject #', num2str(subject_i)],'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
             end
             for cond_i= 1:conds_nr  
-                if  analyses_flags(5)  
+                if analyses_flags(5)  
                     plot(((smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right)) - baseline, ...
                            smoothed_microsaccadic_rate{cond_i}(subject_i,:), 'color', curves_colors(cond_i,:));
                    hold('on');
                 end
-                analysis_struct_with_results.results_per_subject{subject_i}.saccades_analysis.saccadic_rate.(conds_names{cond_i})= smoothed_microsaccadic_rate{cond_i}(subject_i,:);                 
+                analysis_struct_with_results.results_per_subject{subject_i}.saccades_analysis.saccadic_rate.(conds_names{subject_i}{cond_i})= smoothed_microsaccadic_rate{cond_i}(subject_i,:);                 
             end
             if analyses_flags(5)  
-                legend(conds_names);                        
+                legend(conds_names{subject_i});                        
                 xlabel('Time [ms]');
                 ylabel('Microsaccadic Rate [hz]');
-            end     
+            end 
         end
     else
         progress_screen.addProgress(0.9*progress_contribution);
@@ -110,22 +117,23 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
                     continue;
                 end
-
-                data_filled_conds_logical_vec= logical(true(numel(conds_names),1));                
+                
+                conds_nr = numel(conds_names{subject_i});
+                data_filled_conds_logical_vec= logical(true(conds_nr,1));                
                 subjects_figs{1,2,subject_i}= 'amplitudes_by_condition';
-                subjects_figs{2,2,subject_i}= figure('name',['amplitudes by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
+                subjects_figs{2,2,subject_i}= figure('name',['amplitudes by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');                
                 for cond_i= 1:conds_nr                
-                    amplitudes= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
+                    amplitudes= [analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).amplitudes{:}];
                     if isempty(amplitudes)
                         data_filled_conds_logical_vec(cond_i)= false;
                         continue;
                     end
-                    polar_h= polar([analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}], amplitudes, '.');
+                    polar_h= polar([analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).directions{:}], amplitudes, '.');
                     set(polar_h, 'color', curves_colors(cond_i,:));
                     hold('on');
                 end
                 if any(data_filled_conds_logical_vec)
-                    legend(conds_names{data_filled_conds_logical_vec});
+                    legend(conds_names{subject_i}{data_filled_conds_logical_vec});
                 end
            
                 subjects_figs{1,3,subject_i}= 'amplitudes';
@@ -134,8 +142,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 directions= [];
                 if any(data_filled_conds_logical_vec)
                     for cond_i= 1:conds_nr
-                        amplitudes= [amplitudes, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}]; %#ok<AGROW>
-                        directions= [directions, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}]; %#ok<AGROW>
+                        amplitudes= [amplitudes, analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).amplitudes{:}]; %#ok<AGROW>
+                        directions= [directions, analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).directions{:}]; %#ok<AGROW>
                     end
 
                     polar(directions, amplitudes, '.');
@@ -157,12 +165,13 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
                     continue;
                 end
-                data_filled_conds_logical_vec= logical(true(numel(conds_names),1));                     
+                conds_nr = numel(conds_names{subject_i});
+                data_filled_conds_logical_vec= logical(true(conds_nr,1));                     
                 subjects_figs{1,5,subject_i}= 'directions_by_condition';
                 subjects_figs{2,5,subject_i}= figure('name',['directions by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
                 polar(360,100);
                 for cond_i= 1:conds_nr                
-                    directions= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
+                    directions= [analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).directions{:}];
                     if isempty(directions)
                         data_filled_conds_logical_vec(cond_i)= false;
                         continue;
@@ -172,7 +181,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     hold('on');
                 end
                 if any(data_filled_conds_logical_vec)                 
-                    legend(conds_names{data_filled_conds_logical_vec});             
+                    legend(conds_names{subject_i}{data_filled_conds_logical_vec});             
                 end
              
                 subjects_figs{1,6,subject_i}= 'directions';
@@ -181,7 +190,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 directions= [];
                 if any(data_filled_conds_logical_vec)
                     for cond_i= 1:conds_nr
-                        directions= [directions, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}]; %#ok<AGROW>
+                        directions= [directions, analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).directions{:}]; %#ok<AGROW>
                     end
 
                     rose(directions);
@@ -200,12 +209,13 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
                     continue;
                 end
-                data_filled_conds_logical_vec= logical(true(numel(conds_names),1));                        
+                conds_nr = numel(conds_names{subject_i});
+                data_filled_conds_logical_vec= logical(true(conds_nr ,1));                        
                 subjects_figs{1,7,subject_i}= 'main_sequence_by_condition';
                 subjects_figs{2,7,subject_i}= figure('name',['main sequence by condition - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');            
                 for cond_i= 1:conds_nr                
-                    amplitudes= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
-                    velocities= [analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}];
+                    amplitudes= [analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).amplitudes{:}];
+                    velocities= [analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).velocities{:}];
                     if isempty(amplitudes) || isempty(velocities)
                         data_filled_conds_logical_vec(cond_i)= false;
                         continue;
@@ -215,7 +225,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     hold('on');
                 end
                 if any(data_filled_conds_logical_vec)                 
-                    legend(conds_names{data_filled_conds_logical_vec});             
+                    legend(conds_names{subject_i}{data_filled_conds_logical_vec});             
                 end
                 
                 subjects_figs{1,8,subject_i}= 'main_sequence';
@@ -224,8 +234,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     velocities= [];
                     amplitudes = [];            
                     for cond_i= 1:conds_nr
-                        velocities= [velocities, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}]; %#ok<AGROW>
-                        amplitudes= [amplitudes, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}]; %#ok<AGROW>
+                        velocities= [velocities, analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).velocities{:}]; %#ok<AGROW>
+                        amplitudes= [amplitudes, analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).amplitudes{:}]; %#ok<AGROW>
                     end
 
                     plot(amplitudes, velocities, '.k', 'MarkerSize', 5); %loglog
@@ -243,179 +253,184 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     end
 
     %CREATE GRAND AVERAGE PLOTS
-    if analyses_flags(6)
-         statistisized_figs = cell(2,8);
-    end
-    % rate
-    if subjects_nr > 1 
-        if analyses_flags(1)        
-            smoothed_grand_microsaccadic_rate= NaN(conds_nr, max_trial_duration_per_cond(cond_i) - smoothing_window_len);
-            for cond_i= 1:conds_nr            
-                curr_cond_original_grand_microsaccadic_rate= mean(original_microsaccadic_rate{cond_i}, 1, 'omitnan');
-                smoothed_grand_microsaccadic_rate_with_tails= smoothy( curr_cond_original_grand_microsaccadic_rate, smoothing_window_len, progress_screen, 0 );
-                smoothed_grand_microsaccadic_rate_without_tails_idxs = (smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right);
-                smoothed_grand_microsaccadic_rate(cond_i,1:numel(smoothed_grand_microsaccadic_rate_without_tails_idxs))= smoothed_grand_microsaccadic_rate_with_tails(smoothed_grand_microsaccadic_rate_without_tails_idxs);
-            end
+    if ~do_subjects_differ_in_conds_names
+        if analyses_flags(6)
+             statistisized_figs = cell(2,8);
+        end
+        % rate
+        conds_nr = numel(conds_names_aggregated);
+        if subjects_nr > 1 
+            if analyses_flags(1)        
+                smoothed_grand_microsaccadic_rate= NaN(conds_nr, max_trial_duration_per_cond(cond_i) - smoothing_window_len);
+                for cond_i= 1:conds_nr            
+                    curr_cond_original_grand_microsaccadic_rate= mean(original_microsaccadic_rate{cond_i}, 1, 'omitnan');
+                    smoothed_grand_microsaccadic_rate_with_tails= smoothy( curr_cond_original_grand_microsaccadic_rate, smoothing_window_len, progress_screen, 0 );
+                    smoothed_grand_microsaccadic_rate_without_tails_idxs = (smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right);
+                    smoothed_grand_microsaccadic_rate(cond_i,1:numel(smoothed_grand_microsaccadic_rate_without_tails_idxs))= smoothed_grand_microsaccadic_rate_with_tails(smoothed_grand_microsaccadic_rate_without_tails_idxs);
+                end
 
-            if analyses_flags(6)
-                statistisized_figs{1,1}= 'grand_average-microsaccades_rate';
-                statistisized_figs{2,1}= figure('name','grand average: microsaccades rate', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
-            end
-            for cond_i= 1:conds_nr  
                 if analyses_flags(6)
-                    plot((1:size(smoothed_grand_microsaccadic_rate,2)) - baseline, smoothed_grand_microsaccadic_rate(cond_i,:), 'color', curves_colors(cond_i,:));
+                    statistisized_figs{1,1}= 'grand_average-microsaccades_rate';
+                    statistisized_figs{2,1}= figure('name','grand average: microsaccades rate', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
+                end
+                for cond_i= 1:conds_nr  
+                    if analyses_flags(6)
+                        plot((1:size(smoothed_grand_microsaccadic_rate,2)) - baseline, smoothed_grand_microsaccadic_rate(cond_i,:), 'color', curves_colors(cond_i,:));
+                        hold('on');
+                    end
+                    analysis_struct_with_results.results_grand_total.saccades_analysis.saccadic_rate.(conds_names_aggregated{cond_i})= smoothed_grand_microsaccadic_rate(cond_i,:);            
+                end
+                if analyses_flags(6)
+                    legend(conds_names_aggregated);                       
+                    xlabel('Time [ms]');
+                    ylabel('Microsaccadic Rate [hz]');
+                end
+            end
+        else
+            analysis_struct_with_results.results_grand_total = [];
+        end
+
+        % amplitude
+        if analyses_flags(6)
+            data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
+            if analyses_flags(2)            
+                grand_amplitudes= cell(1,conds_nr);
+                grand_directions= cell(1,conds_nr);
+                for cond_i=1:conds_nr
+                    grand_amplitudes{cond_i}= [];
+                    grand_directions{cond_i}= [];
+                    for subject_i= 1:subjects_nr
+                        if isempty(analysis_struct{subject_i})                    
+                            continue;
+                        end
+                        grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
+                        grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
+                    end
+                end
+
+                statistisized_figs{1,2}= 'grand_average-amplitudes_by_condition';
+                statistisized_figs{2,2}= figure('name','grand average: amplitudes by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
+                for cond_i= 1:conds_nr
+                    if isempty(grand_amplitudes{cond_i})
+                        data_filled_conds_logical_vec(cond_i)= false;
+                        continue;
+                    end
+                    polar_h= polar(grand_directions{cond_i}, grand_amplitudes{cond_i}, '.');
+                    set(polar_h, 'color', curves_colors(cond_i,:));
                     hold('on');
                 end
-                analysis_struct_with_results.results_grand_total.saccades_analysis.saccadic_rate.(conds_names{cond_i})= smoothed_grand_microsaccadic_rate(cond_i,:);            
+                if any(data_filled_conds_logical_vec)
+                    legend(conds_names{data_filled_conds_logical_vec});
+                end
+
+                statistisized_figs{1,3}= 'grand_average-amplitudes';
+                statistisized_figs{2,3}= figure('name','grand average: amplitudes', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');        
+                if any(data_filled_conds_logical_vec)                 
+                    grand_amplitudes_over_conditions= [];
+                    grand_directions_over_conditions= [];
+                    for cond_i=1:conds_nr
+                        grand_amplitudes_over_conditions= [grand_amplitudes{cond_i}, grand_amplitudes_over_conditions];	%#ok<AGROW>
+                        grand_directions_over_conditions= [grand_directions{cond_i}, grand_directions_over_conditions];	%#ok<AGROW>
+                    end
+                    polar(grand_directions_over_conditions, grand_amplitudes_over_conditions, '.');
+                end
+
+                statistisized_figs{1,4}= 'grand_average-amplitudes_hist';
+                statistisized_figs{2,4}= figure('name', 'grand average: amplitudes histogram', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');                       
+                hist(grand_amplitudes_over_conditions, 50);             
             end
-            if analyses_flags(6)
-                legend(conds_names);                       
-                xlabel('Time [ms]');
-                ylabel('Microsaccadic Rate [hz]');
+
+            % directions
+            data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
+            if analyses_flags(3)            
+                grand_directions= cell(1,conds_nr);
+                for cond_i=1:conds_nr
+                    grand_directions{cond_i}= [];
+                    for subject_i= 1:subjects_nr
+                        if isempty(analysis_struct{subject_i})                
+                            continue;
+                        end
+                        grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
+                    end
+                end
+
+                statistisized_figs{1,5}= 'grand_average-directions_by_condition';
+                statistisized_figs{2,5}= figure('name','grand average: directions by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
+                polar(360,200);
+                for cond_i= 1:conds_nr            
+                    if isempty(grand_directions{cond_i})
+                        data_filled_conds_logical_vec(cond_i)= false;
+                        continue;
+                    end
+                    rose_h= rose(grand_directions{cond_i});
+                    hold('on');
+                    set(rose_h, 'color', curves_colors(cond_i,:));
+                end
+                if any(data_filled_conds_logical_vec)                 
+                    legend(conds_names{data_filled_conds_logical_vec});             
+                end 
+
+                statistisized_figs{1,6}= 'grand_average-directions';
+                statistisized_figs{2,6}= figure('name','grand average: directions ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
+                polar(360,200);        
+                if any(data_filled_conds_logical_vec)
+                    grand_directions_over_conditions= [];
+                    for cond_i=1:conds_nr
+                        grand_directions_over_conditions= [grand_directions{cond_i}, grand_directions_over_conditions];	%#ok<AGROW>
+                    end
+                    rose(grand_directions_over_conditions);
+                end
+            end
+
+            % main sequence
+            data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
+            if analyses_flags(4)            
+                grand_velocities= cell(1,conds_nr);
+                grand_amplitudes = cell(1,conds_nr);
+                for cond_i=1:conds_nr
+                    grand_velocities{cond_i}= [];
+                    grand_amplitudes{cond_i} = [];
+                    for subject_i= 1:subjects_nr
+                        if isempty(analysis_struct{subject_i})                
+                            continue;
+                        end
+                        grand_velocities{cond_i}= [grand_velocities{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}];
+                        grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
+                    end
+                end
+
+                statistisized_figs{1,7}= 'grand_average-main_sequence_by_condition';
+                statistisized_figs{2,7}= figure('name','grand average: main sequence by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');        
+                for cond_i= 1:conds_nr            
+                    if isempty(grand_velocities{cond_i}) || isempty(grand_amplitudes{cond_i})
+                        data_filled_conds_logical_vec(cond_i)= false;
+                        continue;
+                    end
+                    plot_h= plot(grand_amplitudes{cond_i}, grand_velocities{cond_i}, '.', 'MarkerSize', 5); %loglog
+                    set(plot_h, 'color', curves_colors(cond_i,:));
+                    hold('on');           
+                end
+                if any(data_filled_conds_logical_vec)                 
+                    legend(conds_names{data_filled_conds_logical_vec});             
+                end 
+
+                statistisized_figs{1,8}= 'grand_average-main_sequence';
+                statistisized_figs{2,8}= figure('name','grand average: main sequence', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');               
+                if any(data_filled_conds_logical_vec)
+                    grand_velocities_over_conditions= [];
+                    grand_amplitudes_over_conditions= [];
+                    for cond_i=1:conds_nr
+                        grand_velocities_over_conditions= [grand_velocities_over_conditions, grand_velocities{cond_i}];	%#ok<AGROW>
+                        grand_amplitudes_over_conditions= [grand_amplitudes_over_conditions, grand_amplitudes{cond_i}];	%#ok<AGROW>
+                    end
+                    plot(grand_amplitudes_over_conditions, grand_velocities_over_conditions, '.k', 'MarkerSize', 5); %loglog
+
+                    [pearson_r, pearson_p_value] = corr(grand_velocities_over_conditions',grand_amplitudes_over_conditions');
+                    set(gca, 'title', text(0,0,['Pearson''s r = ', num2str(pearson_r), ', p-value = ', num2str(pearson_p_value)]));
+                end
             end
         end
     else
-        analysis_struct_with_results.results_grand_total = [];
-    end
-    
-    % amplitude
-    if analyses_flags(6)
-        data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
-        if analyses_flags(2)            
-            grand_amplitudes= cell(1,conds_nr);
-            grand_directions= cell(1,conds_nr);
-            for cond_i=1:conds_nr
-                grand_amplitudes{cond_i}= [];
-                grand_directions{cond_i}= [];
-                for subject_i= 1:subjects_nr
-                    if isempty(analysis_struct{subject_i})                    
-                        continue;
-                    end
-                    grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
-                    grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
-                end
-            end
-
-            statistisized_figs{1,2}= 'grand_average-amplitudes_by_condition';
-            statistisized_figs{2,2}= figure('name','grand average: amplitudes by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');        
-            for cond_i= 1:conds_nr            
-                if isempty(grand_amplitudes{cond_i})
-                   data_filled_conds_logical_vec(cond_i)= false;
-                   continue;
-                end
-                polar_h= polar(grand_directions{cond_i}, grand_amplitudes{cond_i}, '.');            
-                set(polar_h, 'color', curves_colors(cond_i,:));            
-                hold('on');
-            end        
-            if any(data_filled_conds_logical_vec)                 
-                legend(conds_names{data_filled_conds_logical_vec});             
-            end            
-
-            statistisized_figs{1,3}= 'grand_average-amplitudes';
-            statistisized_figs{2,3}= figure('name','grand average: amplitudes', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');        
-            if any(data_filled_conds_logical_vec)                 
-                grand_amplitudes_over_conditions= [];
-                grand_directions_over_conditions= [];
-                for cond_i=1:conds_nr
-                    grand_amplitudes_over_conditions= [grand_amplitudes{cond_i}, grand_amplitudes_over_conditions];	%#ok<AGROW>
-                    grand_directions_over_conditions= [grand_directions{cond_i}, grand_directions_over_conditions];	%#ok<AGROW>
-                end
-                polar(grand_directions_over_conditions, grand_amplitudes_over_conditions, '.');
-            end
-                                                
-            statistisized_figs{1,4}= 'grand_average-amplitudes_hist';
-            statistisized_figs{2,4}= figure('name', 'grand average: amplitudes histogram', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');                       
-            hist(grand_amplitudes_over_conditions, 50);             
-        end
-
-        % directions
-        data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
-        if analyses_flags(3)            
-            grand_directions= cell(1,conds_nr);
-            for cond_i=1:conds_nr
-                grand_directions{cond_i}= [];
-                for subject_i= 1:subjects_nr
-                    if isempty(analysis_struct{subject_i})                
-                        continue;
-                    end
-                    grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
-                end
-            end
-
-            statistisized_figs{1,5}= 'grand_average-directions_by_condition';
-            statistisized_figs{2,5}= figure('name','grand average: directions by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
-            polar(360,200);
-            for cond_i= 1:conds_nr            
-                if isempty(grand_directions{cond_i})
-                    data_filled_conds_logical_vec(cond_i)= false;
-                    continue;
-                end
-                rose_h= rose(grand_directions{cond_i});
-                hold('on');
-                set(rose_h, 'color', curves_colors(cond_i,:));
-            end
-            if any(data_filled_conds_logical_vec)                 
-                legend(conds_names{data_filled_conds_logical_vec});             
-            end 
-          
-            statistisized_figs{1,6}= 'grand_average-directions';
-            statistisized_figs{2,6}= figure('name','grand average: directions ', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
-            polar(360,200);        
-            if any(data_filled_conds_logical_vec)
-                grand_directions_over_conditions= [];
-                for cond_i=1:conds_nr
-                    grand_directions_over_conditions= [grand_directions{cond_i}, grand_directions_over_conditions];	%#ok<AGROW>
-                end
-                rose(grand_directions_over_conditions);
-            end
-        end
-
-        % main sequence
-        data_filled_conds_logical_vec= logical(true(numel(conds_names),1));
-        if analyses_flags(4)            
-            grand_velocities= cell(1,conds_nr);
-            grand_amplitudes = cell(1,conds_nr);
-            for cond_i=1:conds_nr
-                grand_velocities{cond_i}= [];
-                grand_amplitudes{cond_i} = [];
-                for subject_i= 1:subjects_nr
-                    if isempty(analysis_struct{subject_i})                
-                        continue;
-                    end
-                    grand_velocities{cond_i}= [grand_velocities{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}];
-                    grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
-                end
-            end
-
-            statistisized_figs{1,7}= 'grand_average-main_sequence_by_condition';
-            statistisized_figs{2,7}= figure('name','grand average: main sequence by condition', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');        
-            for cond_i= 1:conds_nr            
-                if isempty(grand_velocities{cond_i}) || isempty(grand_amplitudes{cond_i})
-                    data_filled_conds_logical_vec(cond_i)= false;
-                    continue;
-                end
-                plot_h= plot(grand_amplitudes{cond_i}, grand_velocities{cond_i}, '.', 'MarkerSize', 5); %loglog
-                set(plot_h, 'color', curves_colors(cond_i,:));
-                hold('on');           
-            end
-            if any(data_filled_conds_logical_vec)                 
-                legend(conds_names{data_filled_conds_logical_vec});             
-            end 
-         
-            statistisized_figs{1,8}= 'grand_average-main_sequence';
-            statistisized_figs{2,8}= figure('name','grand average: main sequence', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');               
-            if any(data_filled_conds_logical_vec)
-                grand_velocities_over_conditions= [];
-                grand_amplitudes_over_conditions= [];
-                for cond_i=1:conds_nr
-                    grand_velocities_over_conditions= [grand_velocities_over_conditions, grand_velocities{cond_i}];	%#ok<AGROW>
-                    grand_amplitudes_over_conditions= [grand_amplitudes_over_conditions, grand_amplitudes{cond_i}];	%#ok<AGROW>
-                end
-                plot(grand_amplitudes_over_conditions, grand_velocities_over_conditions, '.k', 'MarkerSize', 5); %loglog
-
-                [pearson_r, pearson_p_value] = corr(grand_velocities_over_conditions',grand_amplitudes_over_conditions');
-                set(gca, 'title', text(0,0,['Pearson''s r = ', num2str(pearson_r), ', p-value = ', num2str(pearson_p_value)]));
-            end
-        end
+        progress_screen.displayMessage('Not all subjects posses the same conditions => Skipping group analyses.');
     end
 end

@@ -1518,7 +1518,7 @@ set(gui, 'Visible', 'on');
             return;
         end
                                         
-        progress_screen= SingleBarProgressScreen('EDF Conversion Progress', [0.8, 0.8, 0.8], 0.4, 0.4); 
+        progress_screen= SingleBarProgressScreen('Eyes Data .mat extraction Progress', [0.8, 0.8, 0.8], 0.4, 0.4); 
                 
         if ~isempty(eta_listbox_string)
             if ~promptUserOfUnfoundFiles(convert_eta_listbox, ERROR_MSG_NO_ETAS_FOUND_FOR_CONVERSION, ERROR_MSG_NOT_ALL_ETAS_FOUND_FOR_CONVERSION)
