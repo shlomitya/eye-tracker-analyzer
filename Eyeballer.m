@@ -135,11 +135,11 @@ classdef Eyeballer < handle
                 obj.manual_saccade_search_func_input{subject_i}= manual_saccade_search_func_input_unshuffled(obj.randomization_vec{subject_i});
                 obj.eyeballing_altered_saccades_data{subject_i}= eyeballing_altered_saccades_data_unshuffled(obj.randomization_vec{subject_i});                                
                 obj.rejection_texts{subject_i} = cell(1, curr_subject_trials_nr);                
-                trial_dur_max = 0;                
+                trial_samples_nr_max = 0;                
                 for trial_i = 1:curr_subject_trials_nr
-                    trial_dur = numel(eye_data_unshuffled(trial_i).non_nan_times_logical_vec);
-                    if trial_dur > trial_dur_max
-                        trial_dur_max = trial_dur;
+                    trial_samples_nr = numel(eye_data_unshuffled(trial_i).non_nan_times_logical_vec);
+                    if trial_samples_nr > trial_samples_nr_max
+                        trial_samples_nr_max = trial_samples_nr;
                     end
                     obj.eyeballing_altered_saccades_data{subject_i}(trial_i).non_nan_times_logical_vec = double(obj.eye_data{subject_i}(trial_i).non_nan_times_logical_vec);                    
                 end  
@@ -505,26 +505,26 @@ classdef Eyeballer < handle
                 obj.rejection_texts{obj.curr_subject}{obj.curr_trial} = [text(sum(get(obj.eyes_x_coords_axes, 'XLim'))/2, sum(get(obj.eyes_x_coords_axes, 'YLim'))/2, 'REJECTED', 'parent', obj.eyes_x_coords_axes, 'Color', [1, 0, 0], 'FontSize', 20), ...
                                                                          text(sum(get(obj.eyes_y_coords_axes, 'XLim'))/2, sum(get(obj.eyes_y_coords_axes, 'YLim'))/2, 'REJECTED', 'parent', obj.eyes_y_coords_axes, 'Color', [1, 0, 0], 'FontSize', 20)];            
             end
-            trial_dur = numel(curr_subject_trial_eye_data_struct.non_nan_times_logical_vec); % * 1000 / obj.sampling_rates;
-            if trial_dur == 0
+            trial_samples_nr = numel(curr_subject_trial_eye_data_struct.non_nan_times_logical_vec); % * 1000 / obj.sampling_rates;
+            if trial_samples_nr == 0
                 set(obj.fig, 'name', obj.FIG_TITLE);   
                 disp('no recorded data. loading done.');
                 return;
             end
 
-            time_axis_len = max(obj.AXES_X_RANGE_SIZE, round(trial_dur * 1000 / obj.sampling_rates(obj.curr_subject)));
+            time_axis_len = max(obj.AXES_X_RANGE_SIZE, round(trial_samples_nr * 1000 / obj.sampling_rates(obj.curr_subject)));
             plot(obj.eyes_x_coords_axes, (0:time_axis_len) - obj.timeline_left_offset, zeros(1,time_axis_len + 1), '--', 'color', [0 0 0]);
             plot(obj.eyes_y_coords_axes, (0:time_axis_len) - obj.timeline_left_offset, zeros(1,time_axis_len + 1), '--', 'color', [0 0 0]);
             if do_axes_lims_reset
-                set(obj.eyes_x_coords_axes, 'XLim', [0, min(obj.AXES_X_RANGE_SIZE, trial_dur)] - obj.timeline_left_offset);
-                set(obj.eyes_y_coords_axes, 'XLim', [0, min(obj.AXES_X_RANGE_SIZE, trial_dur)] - obj.timeline_left_offset);
+                set(obj.eyes_x_coords_axes, 'XLim', [0, min(obj.AXES_X_RANGE_SIZE, trial_samples_nr * 1000 / obj.sampling_rates(obj.curr_subject))] - obj.timeline_left_offset);
+                set(obj.eyes_y_coords_axes, 'XLim', [0, min(obj.AXES_X_RANGE_SIZE, trial_samples_nr * 1000 / obj.sampling_rates(obj.curr_subject))] - obj.timeline_left_offset);
             end            
             
             data_times_vec= find(obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec == 1);
             manual_blink_times_vec= find(obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec == -1);
             blink_times_vec = find(obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec == 0);
             if isempty(data_times_vec) && isempty(manual_blink_times_vec)
-                [no_data_on_x_plot, no_data_on_y_plot] = plotBlinkSeg(1:trial_dur);                
+                [no_data_on_x_plot, no_data_on_y_plot] = plotBlinkSeg(1:trial_samples_nr);                
             else
                 no_data_on_x_plot = [];                                                
                 [data_segs_start_times, data_segs_end_times] = extractSegsStartAndEndTimes(data_times_vec);                
@@ -577,10 +577,10 @@ classdef Eyeballer < handle
             end
             
             function [plot_x_ax_left_eye_plot, plot_x_ax_right_eye_plot, plot_y_ax_left_eye_plot, plot_y_ax_right_eye_plot] = plotEyeDataSeg(times, left_eye_plot_color, right_eye_plot_color, line_desc, btn_down_fcn)        
-                plot_x_ax_left_eye_plot = plot(obj.eyes_x_coords_axes, (times - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), curr_subject_trial_eye_data_struct.left_x(times), line_desc, 'color', left_eye_plot_color,  'ButtonDownFcn', btn_down_fcn, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R));
-                plot_x_ax_right_eye_plot = plot(obj.eyes_x_coords_axes, (times - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), curr_subject_trial_eye_data_struct.right_x(times), line_desc, 'color', right_eye_plot_color, 'ButtonDownFcn', btn_down_fcn, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L));            
-                plot_y_ax_left_eye_plot = plot(obj.eyes_y_coords_axes, (times - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), curr_subject_trial_eye_data_struct.left_y(times), line_desc, 'color', left_eye_plot_color, 'ButtonDownFcn', btn_down_fcn, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R));                            
-                plot_y_ax_right_eye_plot = plot(obj.eyes_y_coords_axes, (times - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), curr_subject_trial_eye_data_struct.right_y(times), line_desc, 'color', right_eye_plot_color, 'ButtonDownFcn', btn_down_fcn, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L));
+                plot_x_ax_left_eye_plot = plot(obj.eyes_x_coords_axes, (times - 1)*1000/obj.sampling_rates(obj.curr_subject) - obj.timeline_left_offset, curr_subject_trial_eye_data_struct.left_x(times), line_desc, 'color', left_eye_plot_color,  'ButtonDownFcn', btn_down_fcn, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R));
+                plot_x_ax_right_eye_plot = plot(obj.eyes_x_coords_axes, (times - 1)*1000/obj.sampling_rates(obj.curr_subject) - obj.timeline_left_offset, curr_subject_trial_eye_data_struct.right_x(times), line_desc, 'color', right_eye_plot_color, 'ButtonDownFcn', btn_down_fcn, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L));            
+                plot_y_ax_left_eye_plot = plot(obj.eyes_y_coords_axes, (times - 1)*1000/obj.sampling_rates(obj.curr_subject) - obj.timeline_left_offset, curr_subject_trial_eye_data_struct.left_y(times), line_desc, 'color', left_eye_plot_color, 'ButtonDownFcn', btn_down_fcn, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R));                            
+                plot_y_ax_right_eye_plot = plot(obj.eyes_y_coords_axes, (times - 1)*1000/obj.sampling_rates(obj.curr_subject) - obj.timeline_left_offset, curr_subject_trial_eye_data_struct.right_y(times), line_desc, 'color', right_eye_plot_color, 'ButtonDownFcn', btn_down_fcn, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L));
             end
             
             function [blinks_on_x_plot, blinks_on_y_plot] = plotBlinkSeg(times)
@@ -617,10 +617,10 @@ classdef Eyeballer < handle
                     return;
                 end
                               
-                blinks_on_x_plot = plot(obj.eyes_x_coords_axes, ([times(1), times(end)] - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), [xAxisLeftEyeStartY, xAxisLeftEyeEndY], 'k:', 'markersize', 5, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R));
-                plot(obj.eyes_x_coords_axes, ([times(1), times(end)] - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), [xAxisRightEyeStartY, xAxisRightEyeEndY], 'k:', 'markersize', 5, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L));
-                blinks_on_y_plot = plot(obj.eyes_y_coords_axes, ([times(1), times(end)] - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), [yAxisLeftEyeStartY, yAxisLeftEyeEndY], 'k:', 'markersize', 5, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R));                
-                plot(obj.eyes_y_coords_axes, ([times(1), times(end)] - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), [yAxisRightEyeStartY, yAxisRightEyeEndY], 'k:', 'markersize', 5, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L));                
+                blinks_on_x_plot = plot(obj.eyes_x_coords_axes, obj.sampleIdxToTimestamp([times(1), times(end)]), [xAxisLeftEyeStartY, xAxisLeftEyeEndY], 'k:', 'markersize', 5, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R));
+                plot(obj.eyes_x_coords_axes, obj.sampleIdxToTimestamp([times(1), times(end)]), [xAxisRightEyeStartY, xAxisRightEyeEndY], 'k:', 'markersize', 5, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L));
+                blinks_on_y_plot = plot(obj.eyes_y_coords_axes, obj.sampleIdxToTimestamp([times(1), times(end)]), [yAxisLeftEyeStartY, yAxisLeftEyeEndY], 'k:', 'markersize', 5, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R));                
+                plot(obj.eyes_y_coords_axes, obj.sampleIdxToTimestamp([times(1), times(end)]), [yAxisRightEyeStartY, yAxisRightEyeEndY], 'k:', 'markersize', 5, 'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L));                
             end                        
         end                                
         
@@ -660,10 +660,10 @@ classdef Eyeballer < handle
                 set(saccade_plots_hs(saccade_plot_h_i), 'UserData', saccade_onset);
             end                                 
             
-            function p= plotEdgeMark(time, eye_data)
+            function p= plotEdgeMark(sampleIdx, eye_data)
                 p= zeros(1,4); 
                                                 
-                p(1)= plot(obj.eyes_x_coords_axes, (time - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), eye_data(1), ...
+                p(1)= plot(obj.eyes_x_coords_axes, obj.sampleIdxToTimestamp(sampleIdx), eye_data(1), ...
                     'LineStyle', 'none', ...
                     'marker', 'o', ...
                     'markerSize', obj.SACCADE_MARKERS_SIZE, ...
@@ -671,7 +671,7 @@ classdef Eyeballer < handle
                     'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R), ...
                     'ButtonDownFcn', @obj.saccadePlotBtnDownCallback);
                 
-                p(2)= plot(obj.eyes_x_coords_axes, (time - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), eye_data(2), ...
+                p(2)= plot(obj.eyes_x_coords_axes, obj.sampleIdxToTimestamp(sampleIdx), eye_data(2), ...
                     'LineStyle', 'none', ...
                     'marker', 'o', ...
                     'markerSize', obj.SACCADE_MARKERS_SIZE, ...
@@ -679,7 +679,7 @@ classdef Eyeballer < handle
                     'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L), ...
                     'ButtonDownFcn', @obj.saccadePlotBtnDownCallback);
                         
-                p(3)= plot(obj.eyes_y_coords_axes, (time - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), eye_data(3), ...
+                p(3)= plot(obj.eyes_y_coords_axes, obj.sampleIdxToTimestamp(sampleIdx), eye_data(3), ...
                     'LineStyle', 'none', ...
                     'marker', 'o', ...
                     'markerSize', obj.SACCADE_MARKERS_SIZE, ...
@@ -687,7 +687,7 @@ classdef Eyeballer < handle
                     'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R), ...
                     'ButtonDownFcn', @obj.saccadePlotBtnDownCallback);
                 
-                p(4)= plot(obj.eyes_y_coords_axes, (time - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), eye_data(4), ...
+                p(4)= plot(obj.eyes_y_coords_axes, obj.sampleIdxToTimestamp(sampleIdx), eye_data(4), ...
                     'LineStyle', 'none', ...
                     'marker', 'o', ...
                     'markerSize', obj.SACCADE_MARKERS_SIZE, ...
@@ -696,30 +696,31 @@ classdef Eyeballer < handle
                     'ButtonDownFcn', @obj.saccadePlotBtnDownCallback);
             end
             
-            function p= plotEyeDataOnSaccadeSeg(saccade_seg_times, eye_data)
+            % here !@#
+            function p= plotEyeDataOnSaccadeSeg(saccade_seg_sample_idxs, eye_data)
                 p= zeros(1,4);     
-                p(1)= plot(obj.eyes_x_coords_axes, (saccade_seg_times - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), eye_data(1,:), ...
+                p(1)= plot(obj.eyes_x_coords_axes, obj.sampleIdxToTimestamp(saccade_seg_sample_idxs), eye_data(1,:), ...
                     'LineStyle', '-', ...
                     'LineWidth', 2, ...
                     'Color', plot_color, ...
                     'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R), ...
                     'ButtonDownFcn', @obj.saccadePlotBtnDownCallback);
                 
-                p(2)= plot(obj.eyes_x_coords_axes, (saccade_seg_times - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), eye_data(2,:), ...
+                p(2)= plot(obj.eyes_x_coords_axes, obj.sampleIdxToTimestamp(saccade_seg_sample_idxs), eye_data(2,:), ...
                     'LineStyle', '-', ...
                     'LineWidth', 2, ...
                     'Color', plot_color, ...
                     'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L), ...
                     'ButtonDownFcn', @obj.saccadePlotBtnDownCallback);
                 
-                p(3)= plot(obj.eyes_y_coords_axes, (saccade_seg_times - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), eye_data(3,:), ...
+                p(3)= plot(obj.eyes_y_coords_axes, obj.sampleIdxToTimestamp(saccade_seg_sample_idxs), eye_data(3,:), ...
                     'LineStyle', '-', ...
                     'LineWidth', 2, ...
                     'Color', plot_color, ...
                     'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_R), ...
                     'ButtonDownFcn', @obj.saccadePlotBtnDownCallback);
                 
-                p(4)= plot(obj.eyes_y_coords_axes, (saccade_seg_times - obj.timeline_left_offset)*1000/obj.sampling_rates(obj.curr_subject), eye_data(4,:), ...
+                p(4)= plot(obj.eyes_y_coords_axes, obj.sampleIdxToTimestamp(saccade_seg_sample_idxs), eye_data(4,:), ...
                     'LineStyle', '-', ...
                     'LineWidth', 2, ...
                     'Color', plot_color, ...
@@ -735,7 +736,7 @@ classdef Eyeballer < handle
                 return;
             end
             point_on_axes= get(gca, 'CurrentPoint');
-            curr_mouse_pos_x= ceil(point_on_axes(1) + obj.timeline_left_offset);
+            curr_mouse_pos_x= obj.timestampToSampleIdx(point_on_axes(1));
             if curr_mouse_pos_x <= 0 || numel(obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec) < curr_mouse_pos_x 
                 return;
             end
@@ -801,9 +802,9 @@ classdef Eyeballer < handle
                     obj.is_blink_being_drawn_on_y_axes = false;
                 end                
                 obj.manual_blink_first_t = curr_mouse_pos_x;
-                obj.blink_curr_marker_h = plot(obj.eyes_x_coords_axes, [curr_mouse_pos_x, curr_mouse_pos_x] - obj.timeline_left_offset, obj.mean_range + 100000*obj.std_range*[-1,1], '-b');
+                obj.blink_curr_marker_h = plot(obj.eyes_x_coords_axes, [point_on_axes(1), point_on_axes(1)], obj.mean_range + 100000*obj.std_range*[-1,1], '-b');
                 set(obj.blink_curr_marker_h, 'ButtonDownFcn', @obj.eyeCoordsXAxesButtonDownCallback);
-                obj.blink_start_marker_h = plot(obj.eyes_x_coords_axes, [curr_mouse_pos_x, curr_mouse_pos_x] - obj.timeline_left_offset, obj.mean_range + 100000*obj.std_range*[-1,1], '-b');
+                obj.blink_start_marker_h = plot(obj.eyes_x_coords_axes, [point_on_axes(1), point_on_axes(1)], obj.mean_range + 100000*obj.std_range*[-1,1], '-b');
                 set(obj.blink_start_marker_h, 'ButtonDownFcn', @obj.eyeCoordsXAxesButtonDownCallback);
                 set(obj.fig, 'Pointer', 'cross');
                 obj.is_blink_being_drawn_on_x_axes = true;
@@ -818,7 +819,7 @@ classdef Eyeballer < handle
                 return;
             end
             point_on_axes= get(gca, 'CurrentPoint');
-            curr_mouse_pos_x= ceil(point_on_axes(1) + obj.timeline_left_offset);
+            curr_mouse_pos_x= obj.timestampToSampleIdx(point_on_axes(1));
             if curr_mouse_pos_x <= 0 || numel(obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).non_nan_times_logical_vec) < curr_mouse_pos_x 
                 return;
             end
@@ -861,9 +862,9 @@ classdef Eyeballer < handle
                     obj.is_blink_being_drawn_on_x_axes = false;
                 end                
                 obj.manual_blink_first_t = curr_mouse_pos_x;
-                obj.blink_curr_marker_h = plot(obj.eyes_y_coords_axes, [curr_mouse_pos_x, curr_mouse_pos_x] - obj.timeline_left_offset, obj.mean_range + 10000*obj.std_range*[-1,1], '-b');
+                obj.blink_curr_marker_h = plot(obj.eyes_y_coords_axes, [point_on_axes(1), point_on_axes(1)], obj.mean_range + 10000*obj.std_range*[-1,1], '-b');
                 set(obj.blink_curr_marker_h, 'ButtonDownFcn', @obj.eyeCoordsYAxesButtonDownCallback);
-                obj.blink_start_marker_h = plot(obj.eyes_y_coords_axes, [curr_mouse_pos_x, curr_mouse_pos_x] - obj.timeline_left_offset, obj.mean_range + 10000*obj.std_range*[-1,1], '-b');
+                obj.blink_start_marker_h = plot(obj.eyes_y_coords_axes, [point_on_axes(1), point_on_axes(1)], obj.mean_range + 10000*obj.std_range*[-1,1], '-b');
                 set(obj.blink_start_marker_h, 'ButtonDownFcn', @obj.eyeCoordsYAxesButtonDownCallback);
                 set(obj.fig, 'Pointer', 'cross');
                 obj.is_blink_being_drawn_on_y_axes = true;
@@ -877,7 +878,7 @@ classdef Eyeballer < handle
             end
             obj.user_redo_stack= {};
             point_on_axes= get(gca, 'CurrentPoint');
-            curr_mouse_pos_x= floor(point_on_axes(1) + obj.timeline_left_offset);            
+            curr_mouse_pos_x= obj.timestampToSampleIdx(point_on_axes(1));
             saccade_search_times= ...
                 max( 1, curr_mouse_pos_x - obj.HALF_TIME_WINDOW_FOR_MANUAL_SACCADE_SEARCH ) : ...
                 min( length(obj.eye_data{obj.curr_subject}(obj.curr_trial).left_x), curr_mouse_pos_x + obj.HALF_TIME_WINDOW_FOR_MANUAL_SACCADE_SEARCH);                             
@@ -1008,7 +1009,7 @@ classdef Eyeballer < handle
             
             curr_view_center= mean(get(obj.eyes_x_coords_axes, 'XLim'));
             curr_subject_trial_offsets= obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).offsets;     
-            earlyer_saccade_offset= max(curr_subject_trial_offsets(curr_subject_trial_offsets<curr_view_center));
+            earlyer_saccade_offset= max(curr_subject_trial_offsets(curr_subject_trial_offsets<obj.timestampToSampleIdx(curr_view_center)));
             if isempty(earlyer_saccade_offset)
                 return;
             end 
@@ -1026,7 +1027,7 @@ classdef Eyeballer < handle
             
             curr_view_center= mean(get(obj.eyes_x_coords_axes, 'XLim'));
             curr_subject_trial_onsets= obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).onsets;
-            later_saccade_onset= min(curr_subject_trial_onsets(curr_subject_trial_onsets>curr_view_center));
+            later_saccade_onset= min(curr_subject_trial_onsets(curr_subject_trial_onsets>obj.timestampToSampleIdx(curr_view_center)));
             if isempty(later_saccade_onset)
                 return;
             end
@@ -1231,12 +1232,10 @@ classdef Eyeballer < handle
             end
         end
         
-        function centerAxesViewOnTime(obj, time)            
-            trial_dur= numel(obj.eye_data{obj.curr_subject}(obj.curr_trial).left_x);  
-            if obj.AXES_X_RANGE_SIZE<trial_dur
-                set(obj.eyes_x_coords_axes, 'XLim', time + floor([-obj.AXES_X_RANGE_SIZE, obj.AXES_X_RANGE_SIZE]/2));
-                set(obj.eyes_y_coords_axes, 'XLim', time + floor([-obj.AXES_X_RANGE_SIZE, obj.AXES_X_RANGE_SIZE]/2));
-            end
+        function centerAxesViewOnTime(obj, sampleIdx)            
+            trial_dur= numel(obj.eye_data{obj.curr_subject}(obj.curr_trial).left_x) * 1000 / obj.sampling_rates(obj.curr_subject);              
+            set(obj.eyes_x_coords_axes, 'XLim', obj.sampleIdxToTimestamp(sampleIdx) + floor([-obj.AXES_X_RANGE_SIZE, obj.AXES_X_RANGE_SIZE]/2));
+            set(obj.eyes_y_coords_axes, 'XLim', obj.sampleIdxToTimestamp(sampleIdx) + floor([-obj.AXES_X_RANGE_SIZE, obj.AXES_X_RANGE_SIZE]/2));            
         end
                           
         function savePressedCallback(obj, ~, ~)
@@ -1489,19 +1488,20 @@ classdef Eyeballer < handle
             end
                                       
             curr_axes_point= get(curr_axes, 'CurrentPoint');
-            curr_axes_point_x= ceil(curr_axes_point(1,1)) + obj.timeline_left_offset;
+            curr_axes_point_x= ceil(curr_axes_point(1,1));     
+            curr_axes_sample_i = obj.timestampToSampleIdx(curr_axes_point_x);
             curr_axes_point_y= curr_axes_point(1,2);
             curr_subject_trial_eye_data_struct= obj.eye_data{obj.curr_subject}(obj.curr_trial);
             epsilon= 0.18*diff(get(curr_axes, 'YLim'));
-            if 1<=curr_axes_point_x && curr_axes_point_x<=numel(curr_subject_trial_eye_data_struct.left_x)
+            if 1<=curr_axes_sample_i && curr_axes_sample_i<=numel(curr_subject_trial_eye_data_struct.left_x)
                 if isCursorCloseToPlot()
-                    pointed_saccade_i= find( obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).onsets<=curr_axes_point_x & ...
-                        curr_axes_point_x<=obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).offsets );
+                    pointed_saccade_i= find( obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).onsets<=curr_axes_sample_i & ...
+                                             curr_axes_sample_i<=obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).offsets );
                     if ~isempty(pointed_saccade_i)
                         pointed_saccade_i= pointed_saccade_i(1);
                         pointed_saccade_amp= obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).amplitudes(pointed_saccade_i);
                         pointed_saccade_peak_vel= obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).peak_vels(pointed_saccade_i);
-                        primal_text_x_pos= curr_axes_point_x - obj.timeline_left_offset + 0.25*epsilon;
+                        primal_text_x_pos= curr_axes_point_x;
                         primal_text_y_pos= curr_axes_point_y+0.25*epsilon;
                         obj.curr_displayed_tooltip= text(primal_text_x_pos, primal_text_y_pos, ['amplitude= ', num2str(pointed_saccade_amp), ' ; ', 'peak velocity= ', num2str(pointed_saccade_peak_vel)], 'parent', curr_axes);
 
@@ -1509,7 +1509,7 @@ classdef Eyeballer < handle
                         tooltip_right_edge= tooltip_extent(1)+tooltip_extent(3);
                         eye_coords_axes_xlim= get(curr_axes, 'XLim');
                         if tooltip_right_edge>eye_coords_axes_xlim(2)
-                            updated_text_x_pos= curr_axes_point_x - obj.timeline_left_offset + 0.25*epsilon - (tooltip_right_edge-eye_coords_axes_xlim(2));
+                            updated_text_x_pos= curr_axes_point_x + 0.25*epsilon - (tooltip_right_edge-eye_coords_axes_xlim(2));
                         else
                             updated_text_x_pos= primal_text_x_pos;
                         end
@@ -1537,8 +1537,9 @@ classdef Eyeballer < handle
             end
             
             function res= isCursorCloseToPlot()
-                res= ( curr_axes==obj.eyes_x_coords_axes && (abs(curr_subject_trial_eye_data_struct.left_x(curr_axes_point_x)-curr_axes_point_y)<=epsilon || abs(curr_subject_trial_eye_data_struct.right_x(curr_axes_point_x)-curr_axes_point_y)<=epsilon) ) || ...
-                     ( curr_axes==obj.eyes_y_coords_axes && (abs(curr_subject_trial_eye_data_struct.left_y(curr_axes_point_x)-curr_axes_point_y)<=epsilon || abs(curr_subject_trial_eye_data_struct.right_y(curr_axes_point_x)-curr_axes_point_y)<=epsilon) );
+                % here
+                res= ( curr_axes==obj.eyes_x_coords_axes && (abs(curr_subject_trial_eye_data_struct.left_x(curr_axes_sample_i)-curr_axes_point_y)<=epsilon || abs(curr_subject_trial_eye_data_struct.right_x(curr_axes_sample_i)-curr_axes_point_y)<=epsilon) ) || ...
+                     ( curr_axes==obj.eyes_y_coords_axes && (abs(curr_subject_trial_eye_data_struct.left_y(curr_axes_sample_i)-curr_axes_point_y)<=epsilon || abs(curr_subject_trial_eye_data_struct.right_y(curr_axes_sample_i)-curr_axes_point_y)<=epsilon) );
             end
         end
         
@@ -1610,6 +1611,14 @@ classdef Eyeballer < handle
             end
             obj.is_session_saved = false;   
         end           
+        
+        function timestamp = sampleIdxToTimestamp(obj, sampleIdx)
+            timestamp = (sampleIdx - 1) * 1000 / obj.sampling_rates(obj.curr_subject) - obj.timeline_left_offset;
+        end
+        
+        function sampleIdx = timestampToSampleIdx(obj, timestamp)
+            sampleIdx = round((timestamp  + obj.timeline_left_offset) / 1000 * obj.sampling_rates(obj.curr_subject) + 1);            
+        end
     end        
     
     methods (Access= private, Static)
