@@ -1655,7 +1655,8 @@ set(gui, 'Visible', 'on');
             subjects_figs = [];
             statistisized_figs = [];
             analysis_struct_with_results = [];
-            progress_screen.addProgress(0.0);
+            progress_screen.displayMessage('Not any of the requested triggers was found. Quitting analysis.');
+            progress_screen.addProgress(0.01);
             return;
         end
         
@@ -2579,7 +2580,7 @@ set(gui, 'Visible', 'on');
         files_nr = numel(files_list);
         files_existence_logical_vec = false(1, files_nr);
         for file_idx = 1:files_nr
-            files_existence_logical_vec(file_idx) = isfile(files_list{file_idx});
+            files_existence_logical_vec(file_idx) = exist(files_list{file_idx}, 'file');
         end
     end
         
