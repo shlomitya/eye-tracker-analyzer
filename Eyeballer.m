@@ -695,8 +695,7 @@ classdef Eyeballer < handle
                     'Visible', Eyeballer.boolToVisibility(obj.detection ~= EyeTrackerAnalysisRecord.ENUM_DETECTION_MONOCULAR_L), ...
                     'ButtonDownFcn', @obj.saccadePlotBtnDownCallback);
             end
-            
-            % here !@#
+                        
             function p= plotEyeDataOnSaccadeSeg(saccade_seg_sample_idxs, eye_data)
                 p= zeros(1,4);     
                 p(1)= plot(obj.eyes_x_coords_axes, obj.sampleIdxToTimestamp(saccade_seg_sample_idxs), eye_data(1,:), ...
@@ -729,6 +728,7 @@ classdef Eyeballer < handle
             end
         end                
         
+        % here
         function eyeCoordsXAxesButtonDownCallback(obj, ~, ~) 
             if (~obj.eyeballing_altered_saccades_data{obj.curr_subject}(obj.curr_trial).is_trial_accepted || ...
                 isempty(obj.eye_data{obj.curr_subject}) || ... 
@@ -1090,6 +1090,7 @@ classdef Eyeballer < handle
             set(obj.zoom_obj, 'Enable', 'off');             
         end
         
+        % here
         function undoPressedCallback(obj, ~, ~)
             if isempty(obj.user_undo_stack)
                 return;
@@ -1128,12 +1129,14 @@ classdef Eyeballer < handle
                 obj.eyeballing_altered_saccades_data{last_action_subject_i}(last_action_trial_i).peak_vels(end+1)= obj.user_undo_stack{end}(11);                
                 obj.eyeballing_altered_saccades_data{last_action_subject_i}(last_action_trial_i).user_codes(end+1)= Eyeballer.ENUM_USER_GENERATED_SACCADE_CODE;                                
                 action_to_perform_on_redo= obj.ENUM_NO_SACCADE_CODE;                
-            else
+            elseif action_to_perform==obj.ENUM_NO_SACCADE_CODE 
                 saccade_i= find(obj.user_undo_stack{end}(4)==obj.eyeballing_altered_saccades_data{last_action_subject_i}(last_action_trial_i).onsets,1);
                 concerned_saccade_onset_of_the_undo= obj.eyeballing_altered_saccades_data{last_action_subject_i}(last_action_trial_i).onsets(saccade_i);
                 concerned_saccade_offset_of_the_undo= obj.eyeballing_altered_saccades_data{last_action_subject_i}(last_action_trial_i).offsets(saccade_i);
                 obj.clearSaccadeData(saccade_i);                
                 action_to_perform_on_redo= obj.ENUM_USER_GENERATED_SACCADE_CODE;
+            elseif action_to_perform==obj.ENUM_NO_MANUAL_BLINK_CODE
+                % <<<continue here>>>
             end
                                     
             %altering the graphics part
@@ -1156,6 +1159,7 @@ classdef Eyeballer < handle
             obj.is_session_saved = false;
         end
                 
+        % here
         function redoPressedCallback(obj, ~, ~)            
             if isempty(obj.user_redo_stack)
                 return;
@@ -1527,17 +1531,16 @@ classdef Eyeballer < handle
                 
                 if obj.is_blink_being_drawn_on_x_axes 
                     delete(obj.blink_curr_marker_h);
-                    obj.blink_curr_marker_h = plot(obj.eyes_x_coords_axes, [curr_axes_point_x, curr_axes_point_x] - obj.timeline_left_offset, obj.mean_range + 4*obj.std_range*[-1,1], '-b');
+                    obj.blink_curr_marker_h = plot(obj.eyes_x_coords_axes, [curr_axes_point_x, curr_axes_point_x], obj.mean_range + 4*obj.std_range*[-1,1], '-b');
                     set(obj.blink_curr_marker_h, 'ButtonDownFcn', @obj.eyeCoordsXAxesButtonDownCallback);
                 elseif obj.is_blink_being_drawn_on_y_axes
                     delete(obj.blink_curr_marker_h);
-                    obj.blink_curr_marker_h = plot(obj.eyes_y_coords_axes, [curr_axes_point_x, curr_axes_point_x] - obj.timeline_left_offset, obj.mean_range + 4*obj.std_range*[-1,1], '-b');
+                    obj.blink_curr_marker_h = plot(obj.eyes_y_coords_axes, [curr_axes_point_x, curr_axes_point_x], obj.mean_range + 4*obj.std_range*[-1,1], '-b');
                     set(obj.blink_curr_marker_h, 'ButtonDownFcn', @obj.eyeCoordsYAxesButtonDownCallback);
                 end
             end
             
-            function res= isCursorCloseToPlot()
-                % here
+            function res= isCursorCloseToPlot()                
                 res= ( curr_axes==obj.eyes_x_coords_axes && (abs(curr_subject_trial_eye_data_struct.left_x(curr_axes_sample_i)-curr_axes_point_y)<=epsilon || abs(curr_subject_trial_eye_data_struct.right_x(curr_axes_sample_i)-curr_axes_point_y)<=epsilon) ) || ...
                      ( curr_axes==obj.eyes_y_coords_axes && (abs(curr_subject_trial_eye_data_struct.left_y(curr_axes_sample_i)-curr_axes_point_y)<=epsilon || abs(curr_subject_trial_eye_data_struct.right_y(curr_axes_sample_i)-curr_axes_point_y)<=epsilon) );
             end
