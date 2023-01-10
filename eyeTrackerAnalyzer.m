@@ -1390,12 +1390,12 @@ set(gui, 'Visible', 'on');
                 for subject_i= 1:subjects_nr
                     subject_analysis_struct.eye_movements_data = analysis_struct.eye_movements_data.(analysis_struct_subjects_fields_names{subject_i});
                     subject_analysis_struct.results = analysis_struct.results_per_subject.(analysis_struct_subjects_fields_names{subject_i});
-                    subject_analysis_struct.saccades_analsysis_parameters = analysis_struct.saccades_analsysis_parameters;                    
+                    subject_analysis_struct.saccades_analysis_parameters = analysis_struct.parameters;                    
                     save(fullfile(subjects_folders{subject_i}, ['analysis_struct_', num2str(subject_i), '.mat']), 'subject_analysis_struct', '-v7.3');
                     progress_screen.addProgress(0.20/subjects_nr);
                 end
                 grand_total_analysis_struct.results_grand_total =  analysis_struct.results_grand_total;
-                grand_total_analysis_struct.saccades_analsysis_parameters = analysis_struct.saccades_analsysis_parameters; %#ok<STRNU>
+                grand_total_analysis_struct.saccades_analysis_parameters = analysis_struct.parameters; %#ok<STRNU>
                 save(fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, 'analysis_struct.mat'), 'grand_total_analysis_struct', '-v7.3');
             else
                 save(fullfile(ANALYSIS_RESULTS_FILE_DESTINATION, 'analysis_struct.mat'), 'analysis_struct', '-v7.3');
@@ -1673,8 +1673,21 @@ set(gui, 'Visible', 'on');
         % generate figures etc.
         [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(reformated_analysis_structs, [MICROSACCADES_ANALYSIS_PARAMETERS.rate, MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence, MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs, MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs], BASELINE, MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len, TRIAL_DURATION, progress_screen, 0.01);                        
         % add the analysis algorithm parameters to the output structure
-        analysis_struct_with_results.saccades_analsysis_parameters = ENGBERT_ALGORITHM_DEFAULTS;        
+        analysis_struct_with_results.parameters.saccades_analysis_parameters = ENGBERT_ALGORITHM_DEFAULTS;        
+        
+        % Adding to list
+        analysis_struct_with_results.parameters.graph_parameters.smoothing_window_len = MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len;
+        analysis_struct_with_results.parameters.blink_analysis_parameters.blink_delta = MICROSACCADES_ANALYSIS_PARAMETERS.blinks_delta;
+        if MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags(1) && MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags(2)
+            analysis_struct_with_results.parameters.blink_analysis_parameters.blink_detection = 'Eye-tracker_and_pupil-based';
+        elseif MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags(1) && ~MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags(2)
+            analysis_struct_with_results.parameters.blink_analysis_parameters.blink_detection = 'Pupil-based';
+        elseif ~MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags(1) && MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags(2)
+            analysis_struct_with_results.parameters.blink_analysis_parameters.blink_detection = 'Eye-tracker';
+        end        
                 
+        % Overriding with text
+        analysis_struct_with_results.parameters.saccades_analysis_parameters.detection = enumDetectionType.asstr(analysis_struct_with_results.parameters.saccades_analysis_parameters.detection);
         
         function fixations_analysis_struct = computeFixations(eye_data_structs, progress_contribution, progress_screen)
             % extract fixations from eye data structs
