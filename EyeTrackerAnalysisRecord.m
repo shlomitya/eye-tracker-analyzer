@@ -73,7 +73,7 @@ classdef EyeTrackerAnalysisRecord < handle
             for eye_tracker_file_i= 1:eye_tracker_files_nr                 
                 curr_eye_tracker_full_file_name= eye_tracker_files{eye_tracker_file_i};
                 [~, eye_tracker_file_name, eye_tracker_file_ext]= fileparts(curr_eye_tracker_full_file_name);                                    
-                if strcmp(eye_tracker_file_ext, '.edf')
+                if strcmpi(eye_tracker_file_ext, '.edf')
                     % file is an eyelink eye tracking data
                     copyfile(curr_eye_tracker_full_file_name, EyeTrackerAnalysisRecord.READ_EDF_PATH);
                     progress_screen.displayMessage(['converting session #', num2str(eye_tracker_file_i), ' edf file']);
