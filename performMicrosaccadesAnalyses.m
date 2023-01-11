@@ -220,6 +220,16 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                         data_filled_conds_logical_vec(cond_i)= false;
                         continue;
                     end
+
+                    % Discarding NaNs
+                    velocities(isnan(velocities)) = [];
+                    amplitudes(isnan(amplitudes)) = [];
+
+                    % Saving main sequence in data struct
+                    [pearson_r, pearson_p_value] = corr(velocities',amplitudes');
+                    analysis_struct_with_results.eye_movements_data{1}.detection.(conds_names_aggregated{cond_i}).main_sequence_r = pearson_r;
+                    analysis_struct_with_results.eye_movements_data{1}.detection.(conds_names_aggregated{cond_i}).main_sequence_p = pearson_p_value;
+
                     plot_h= plot(amplitudes, velocities, '.', 'MarkerSize', 5);  %loglog
                     set(plot_h, 'color', curves_colors(cond_i,:));
                     hold('on');
@@ -237,10 +247,18 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                         velocities= [velocities, analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).velocities{:}]; %#ok<AGROW>
                         amplitudes= [amplitudes, analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).amplitudes{:}]; %#ok<AGROW>
                     end
+                    
+                    % Discarding NaNs
+                    velocities(isnan(velocities)) = [];
+                    amplitudes(isnan(amplitudes)) = [];
 
                     plot(amplitudes, velocities, '.k', 'MarkerSize', 5); %loglog
                     [pearson_r, pearson_p_value] = corr(velocities',amplitudes');
                     set(gca, 'title', text(0,0,['Pearson''s r = ', num2str(pearson_r), ', p-value = ', num2str(pearson_p_value)]));
+                    
+                    % Saving main sequence in data struct
+                    analysis_struct_with_results.results_per_subject{subject_i}.detection.main_sequence_r = pearson_r;
+                    analysis_struct_with_results.results_per_subject{subject_i}.detection.main_sequence_p = pearson_p_value;
                 end
 
                 progress_screen.addProgress(0.034*progress_contribution/subjects_nr);
@@ -303,8 +321,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                         if isempty(analysis_struct{subject_i})                    
                             continue;
                         end
-                        grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
-                        grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
+                        grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).amplitudes{:}];
+                        grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).directions{:}];
                     end
                 end
 
@@ -320,7 +338,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     hold('on');
                 end
                 if any(data_filled_conds_logical_vec)
-                    legend(conds_names{data_filled_conds_logical_vec});
+                    legend(conds_names{1}{data_filled_conds_logical_vec});
                 end
 
                 statistisized_figs{1,3}= 'grand_average-amplitudes';
@@ -350,7 +368,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                         if isempty(analysis_struct{subject_i})                
                             continue;
                         end
-                        grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).directions{:}];
+                        grand_directions{cond_i}= [grand_directions{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).directions{:}];
                     end
                 end
 
@@ -367,7 +385,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     set(rose_h, 'color', curves_colors(cond_i,:));
                 end
                 if any(data_filled_conds_logical_vec)                 
-                    legend(conds_names{data_filled_conds_logical_vec});             
+                    legend(conds_names{1}{data_filled_conds_logical_vec});             
                 end 
 
                 statistisized_figs{1,6}= 'grand_average-directions';
@@ -394,8 +412,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                         if isempty(analysis_struct{subject_i})                
                             continue;
                         end
-                        grand_velocities{cond_i}= [grand_velocities{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).velocities{:}];
-                        grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{cond_i}).amplitudes{:}];
+                        grand_velocities{cond_i}= [grand_velocities{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).velocities{:}];
+                        grand_amplitudes{cond_i}= [grand_amplitudes{cond_i}, analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).amplitudes{:}];
                     end
                 end
 
@@ -411,7 +429,7 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     hold('on');           
                 end
                 if any(data_filled_conds_logical_vec)                 
-                    legend(conds_names{data_filled_conds_logical_vec});             
+                    legend(conds_names{1}{data_filled_conds_logical_vec});             
                 end 
 
                 statistisized_figs{1,8}= 'grand_average-main_sequence';
@@ -423,6 +441,11 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                         grand_velocities_over_conditions= [grand_velocities_over_conditions, grand_velocities{cond_i}];	%#ok<AGROW>
                         grand_amplitudes_over_conditions= [grand_amplitudes_over_conditions, grand_amplitudes{cond_i}];	%#ok<AGROW>
                     end
+
+                    % Discarding NaNs
+                    grand_velocities_over_conditions(isnan(grand_velocities_over_conditions)) = [];
+                    grand_amplitudes_over_conditions(isnan(grand_amplitudes_over_conditions)) = [];
+
                     plot(grand_amplitudes_over_conditions, grand_velocities_over_conditions, '.k', 'MarkerSize', 5); %loglog
 
                     [pearson_r, pearson_p_value] = corr(grand_velocities_over_conditions',grand_amplitudes_over_conditions');
