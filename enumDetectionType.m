@@ -1,6 +1,6 @@
 classdef enumDetectionType < double
     enumeration
-        Binocular(1), Monocular_L(2), Monocular_R(3)
+        Binocular(0), Monocular_L(1), Monocular_R(2)
     end
         
     methods (Static)
