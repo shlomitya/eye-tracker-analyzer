@@ -1287,7 +1287,8 @@ classdef EyeTrackerAnalysisRecord < handle
         
         function res = doesTriggerMatchRegexp(trigger, regex)
             [match_start_idx, match_end_idx] = regexp(trigger, regex, 'ONCE');
-            res = ~isempty(match_start_idx) && match_start_idx == 1 && match_end_idx == numel(trigger);
+%             res = ~isempty(match_start_idx) && match_start_idx == 1 && match_end_idx == numel(trigger);
+             res = ~isempty(match_start_idx);
         end
         
         function res = doesEyePosVecContainData(vec)
