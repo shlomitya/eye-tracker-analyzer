@@ -226,7 +226,12 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     amplitudes(isnan(amplitudes)) = [];
 
                     % Saving main sequence in data struct
-                    [pearson_r, pearson_p_value] = corr(velocities',amplitudes');
+                    if numel(velocities)<=2 && numel(amplitudes)<=2 % correcting for a bug that is caused when too few saccades are detected
+                        pearson_r = NaN;
+                        pearson_p_value = NaN;
+                    else
+                        [pearson_r, pearson_p_value] = corr(velocities',amplitudes');
+                    end
                     analysis_struct_with_results.eye_movements_data{1}.detection.(conds_names_aggregated{cond_i}).main_sequence_r = pearson_r;
                     analysis_struct_with_results.eye_movements_data{1}.detection.(conds_names_aggregated{cond_i}).main_sequence_p = pearson_p_value;
 
