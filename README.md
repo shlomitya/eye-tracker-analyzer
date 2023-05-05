@@ -18,6 +18,8 @@ In order to run the toolbox, you should install:
 - [Signal Processing Toolbox](https://uk.mathworks.com/products/signal.html)
 - [Statistics and Machine Learning Toolbox](https://uk.mathworks.com/products/statistics.html)
 
+Currently, the toolbox only operates on Windows OS (10 and up).
+
 In order to use the auto-update functionality (see Staying up-to-date below), you need:
 - [Git](https://github.com/git-guides/install-git)
 
