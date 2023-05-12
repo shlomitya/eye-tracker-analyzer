@@ -58,6 +58,6 @@ Tal-Perry, Solomon, Pakula, Shdeor & Yuval-Greenberg (in prep). Eye Tracker Anal
 [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 ## Credits
-Based on code written by Shlomit Yuval-Greenberg & Alon Keren. Additional contributions were made by Noam Tal-Perry, Omer Solomon, Dekel Abeles, Roy Amit, Orit Shdeor, and Bar Pakula.
+Based on code written by Shlomit Yuval-Greenberg & Alon Keren. Additional contributions were made by Noam Tal-Perry, Omer Solomon, Dekel Abeles, Roy Amit, Orit Shdeour, and Bar Pakula.
 
 This code includes code parts written by Ralf Engert and Olaf Dimigen.
