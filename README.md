@@ -28,7 +28,7 @@ In order to use the auto-update functionality (see Staying up-to-date below), yo
 Download the .zip file or clone via git or GitHub Desktop
 
 ```bash
-git clone https://github.com/coriumgit/eye-tracker-analyzer.git
+git clone https://github.com/shlomitya/eye-tracker-analyzer.git
 ```
 
 ## Usage
