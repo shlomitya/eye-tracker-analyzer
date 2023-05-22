@@ -100,9 +100,10 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 analysis_struct_with_results.results_per_subject{subject_i}.saccades_analysis.saccadic_rate.(conds_names{subject_i}{cond_i})= smoothed_microsaccadic_rate{cond_i}(subject_i,:);                 
             end
             if analyses_flags(5)  
-                legend(conds_names{subject_i});                        
+                legend(conds_names_aggregated, 'Box','off');
                 xlabel('Time [ms]');
-                ylabel('Microsaccadic Rate [hz]');
+                ylabel('Saccade Rate [Hz]');
+                set(gca, 'TickDir', 'out', 'Box', 'off')
             end 
         end
     else
@@ -152,6 +153,9 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 subjects_figs{1,4,subject_i}= 'amplitudes_hist';
                 subjects_figs{2,4,subject_i}= figure('name',['amplitudes histogram - subject #', num2str(subject_i)], 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');                   
                 hist(amplitudes, 50);
+                set(gca, 'Box', 'Off', 'TickDir', 'out')
+                ylabel('Count')
+                xlabel(['Amplitudes ('  char(176) ')'])
                 progress_screen.addProgress(0.033*progress_contribution/subjects_nr);
             end
         else
@@ -308,9 +312,10 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     analysis_struct_with_results.results_grand_total.saccades_analysis.saccadic_rate.(conds_names_aggregated{cond_i})= smoothed_grand_microsaccadic_rate(cond_i,:);            
                 end
                 if analyses_flags(6)
-                    legend(conds_names_aggregated);                       
+                    legend(conds_names_aggregated, 'Box','off');                       
                     xlabel('Time [ms]');
-                    ylabel('Microsaccadic Rate [hz]');
+                    ylabel('Saccade Rate [Hz]');
+                    set(gca, 'TickDir', 'out', 'Box', 'off')
                 end
             end
         else
@@ -347,7 +352,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     hold('on');
                 end
                 if any(data_filled_conds_logical_vec)
-                    legend(conds_names{1}{data_filled_conds_logical_vec});
+                    %                     legend(conds_names{1}{data_filled_conds_logical_vec}); %causes a bug
+                    legend(conds_names_aggregated);
                 end
 
                 statistisized_figs{1,3}= 'grand_average-amplitudes';
@@ -365,6 +371,9 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 statistisized_figs{1,4}= 'grand_average-amplitudes_hist';
                 statistisized_figs{2,4}= figure('name', 'grand average: amplitudes histogram', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');                       
                 hist(grand_amplitudes_over_conditions, 50);             
+                set(gca, 'Box', 'Off', 'TickDir', 'out')
+                ylabel('Count')
+                xlabel(['Amplitudes ('  char(176) ')'])
             end
 
             % directions
@@ -394,7 +403,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     set(rose_h, 'color', curves_colors(cond_i,:));
                 end
                 if any(data_filled_conds_logical_vec)                 
-                    legend(conds_names{1}{data_filled_conds_logical_vec});             
+%                     legend(conds_names{1}{data_filled_conds_logical_vec}); %causes a bug
+                    legend(conds_names_aggregated);
                 end 
 
                 statistisized_figs{1,6}= 'grand_average-directions';
@@ -440,7 +450,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     hold('on');           
                 end
                 if any(data_filled_conds_logical_vec)                 
-                    legend(conds_names{1}{data_filled_conds_logical_vec});             
+%                     legend(conds_names{1}{data_filled_conds_logical_vec}); %causes a bug
+                    legend(conds_names_aggregated);
                 end 
 
                 statistisized_figs{1,8}= 'grand_average-main_sequence';
