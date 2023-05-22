@@ -2,7 +2,7 @@ function eyeTrackerAnalyzerEXE()
 %     if ~exist('.git','file')
 %         %1> nul 2> nul &
 %         !git init
-%         !git remote add origin https://github.com/coriumgit/eye-tracker-analyzer &   
+%         !git remote add origin https://github.com/shlomitya/eye-tracker-analyzer &   
 %         !taskkill /F /im "cmd.exe" 1> nul 2> nul &
 %     end
     
