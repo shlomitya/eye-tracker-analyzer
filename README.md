@@ -37,6 +37,8 @@ git clone https://github.com/shlomitya/eye-tracker-analyzer.git
 2. Navigate to the folder containing Eye Tracker Analyzer
 3. Type eyeTrackerAnalyzer in MATLAB command prompt or run the script called eyeTrackerAnalyzer.m
 
+Please check the [repository's wiki](https://github.com/shlomitya/eye-tracker-analyzer/wiki) for detailed instructions.
+
 ## Staying up-to-date
 To check for updates, type eyeTrackerAnalyzerEXE in the MATLAB command prompt or run the script called eyeTrackerAnalyzerEXE.m
 
