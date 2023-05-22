@@ -167,7 +167,11 @@ classdef EyeTrackerAnalysisRecord < handle
                 triggers_nr= numel(trial_onset_triggers);                
                 for trigger_i= 1:triggers_nr                    
                     progress_screen.displayMessage(['session #', num2str(session_i), ': segmentizing data by condition ', trial_onset_triggers{trigger_i}]);                    
+
+                    % First looking for triggers within messages
                     [start_times, end_times, ~] = extractSegmentsTimesFromMessages(curr_session_eye_tracker_data_struct, trial_onset_triggers{trigger_i});
+                    
+                    % If we did not find the triggers within messages, trying instead to look for them in inputs
                     if isempty(start_times)
                         [start_times, end_times, ~] = extractSegmentsTimesFromInputs(curr_session_eye_tracker_data_struct, trial_onset_triggers{trigger_i});
                         if isempty(start_times)
@@ -185,14 +189,22 @@ classdef EyeTrackerAnalysisRecord < handle
                     obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_start_times.(curr_cond_field_name)= NaN(trials_nr, 1);
                     obj.segmentization_vecs{segmentizations_nr+1}(session_i).trials_end_times.(curr_cond_field_name)= NaN(trials_nr, 1);
                     session_samples_nr = numel(curr_session_eye_tracker_data_struct.gazeLeft.time);
+
+                    % Going over each trial (segment) found from triggers for the current condition (trigger)
                     for trial_i=1:trials_nr                          
+                        % Getting start of gaze data for segment
                         indStart= find(ismember(curr_session_eye_tracker_data_struct.gazeLeft.time, start_times(trial_i) + (0 : (1000/obj.sampling_rate - 1))), 1);
                         if isempty(indStart)
+                            % No matching sample found. This could be the case when recording started after the baseline requested. Warning user
+                            progress_screen.displayMessage(['<<WARNING (on session #', num2str(session_i), '): no corresponding starting sample found for trial ', num2str(trial_i), ',  consider checking if requested baseline is correct>>']); 
                             continue;
                         end
                         
+                        % Getting end of gaze data for segment
                         indEnd = find(ismember(curr_session_eye_tracker_data_struct.gazeLeft.time, end_times(trial_i) + (0 : (1000/obj.sampling_rate - 1))), 1);
                         if isempty(indEnd)
+                            % No matching sample found. This could be the case when recording started after the baseline requested. Warning user
+                            progress_screen.displayMessage(['<<WARNING (on session #', num2str(session_i), '): no corresponding end sample found for trial ', num2str(trial_i), ',  consider checking if requested post-trigger segment duration is correct>>']);
                             continue;
                         end
                                                 
