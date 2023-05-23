@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Tal-Perry"
+  given-names: "Noam"
+  orcid: "https://orcid.org/0000-0003-2521-9546"
+- family-names: "Solomon"
+  given-names: "Omer"
+- family-names: "Shdeour"
+  given-names: "Orit"
+- family-names: "Pakula"
+  given-names: "Bar"
+- family-names: "Yuval-Greenberg"
+  given-names: "Shlomit"
+  orcid: "https://orcid.org/0000-0001-6455-7578"
+title: "Eye Tracker Analyzer: a GUI-based tool for microsaccade extraction and analysis"
+version: 1.0.0
+url: "https://github.com/shlomitya/eye-tracker-analyzer"
