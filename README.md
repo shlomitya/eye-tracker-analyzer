@@ -52,8 +52,12 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 If forking, please cite the original work in any publication resulting from the adapted scripts.
 
-## Please cite as
-Tal-Perry, Solomon, Pakula, Shdeour & Yuval-Greenberg (in prep). Eye Tracker Analyzer: a GUI-based tool for microsaccade extraction and analysis.
+## Citation
+Please cite as:
+
+Tal-Perry, N., Solomon, O., Shdeour, O., Pakula, B., & Yuval-Greenberg, S. Eye Tracker Analyzer: a GUI-based tool for microsaccade extraction and analysis (Version 1.0.0) [Computer software]. https://github.com/shlomitya/eye-tracker-analyzer
+
+Or use the "Cite this repository" widget.
 
 ## License
 
