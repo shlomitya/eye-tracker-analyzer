@@ -249,37 +249,50 @@ classdef EyeTrackerAnalysisRecord < handle
                 curr_cond_field_name = '';
                 field_i = 1;                
                 search_phase = 1;
+
+                % Going over each message at a time
                 while field_i <= numel(eye.messages)                    
-                    msg = eye.messages(field_i).message;
-                    if isempty(msg)
+                    msg = eye.messages(field_i).message; % Getting message content
+                    if isempty(msg) % Skipping empty messages
                         field_i = field_i + 1;
                         continue;
                     end
                     
-                    msg_time = eye.messages(field_i).time;
-                    if search_phase == 1                        
+                    msg_time = eye.messages(field_i).time; % Getting message timestamp
+                    if search_phase == 1 % If looking for trial onset message
+                        % Checking if current message matches trigger list
                         if EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, trial_onset_trigger)
+                            % Recording trial start time and message content
                             potential_trial_start_time = msg_time;
                             potential_trial_start_msg = msg;
-                            search_phase = 2;
+                            search_phase = 2; % Starting to look for trial offset
                         end    
-                    elseif (are_offset_triggers_included && msg_time - potential_trial_start_time > trial_dur - baseline) || ...
-                           (any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_rejection_triggers)))
-                        search_phase = 1;                        
-                    elseif (are_offset_triggers_included && any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_offset_triggers))) || ...
-                           (~are_offset_triggers_included && (any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_onset_triggers)) || msg_time - potential_trial_start_time > trial_dur - baseline))
-                        search_phase = 1;
+                    elseif (are_offset_triggers_included && msg_time - potential_trial_start_time > trial_dur - baseline) || ... % If using trigger offsets and more time elapsed from onset trigger than permitted
+                           (any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_rejection_triggers))) % Or if found a rejection trigger before finding an offset trigger
+                        search_phase = 1; % Offseting flag to search for new trials                       
+                    elseif (are_offset_triggers_included && any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_offset_triggers))) || ... % If using offset triggers and we found one
+                           (~are_offset_triggers_included && (any(cellfun(@(str) EyeTrackerAnalysisRecord.doesTriggerMatchRegexp(msg, str), trial_onset_triggers)) || ... % Or we don't use offset trigger and we found a new onset trigger
+                           msg_time - potential_trial_start_time > trial_dur - baseline)) % Or we don't use offset trigger and enough time elapsed to create a new segment
+                        % Declaring this as a new segment
+                        search_phase = 1; % Offseting flag to search for new trials next round
+                        % Adding saved timestamp to segment start times
                         start_times= [start_times, potential_trial_start_time - baseline]; %#ok<AGROW>
+
+                        % If this is the first time we encounter this trigger, adding to list of condition names
                         if isempty(regexp(curr_cond_field_name, ['(^|_)', potential_trial_start_msg, 'X'], 'ONCE'))
                             curr_cond_field_name = [curr_cond_field_name, potential_trial_start_msg, 'X'];  %#ok<AGROW>
                         end
+                        % Finding trigger end times
                         if are_offset_triggers_included
+                            % If using trigger offset, using the msg time of the current found trigger + offset trigger segment duration
                             end_times = [end_times, msg_time + post_offset_triggers_segment]; %#ok<AGROW>
                         elseif msg_time - potential_trial_start_time < trial_dur - baseline
+                            % If not using offset triggers but found another onset trigger, setting end time as the current timestamp
                             end_times = [end_times, msg_time]; %#ok<AGROW>
                             continue;
                         else
-                            end_times = [end_times, msg_time + trial_dur]; %#ok<AGROW>
+                            % If not using offset triggers and no consecutive onset triggers were found, using the previous onset + the trial duration minus baseline as offset
+                            end_times = [end_times, potential_trial_start_time + trial_dur - baseline]; %#ok<AGROW>
                             continue;
                         end
                     end
@@ -287,6 +300,7 @@ classdef EyeTrackerAnalysisRecord < handle
                     field_i = field_i + 1;
                 end
                 
+                % Handling case for when searching for an offset trigger and message list ended
                 if search_phase == 2
                     start_times= [start_times, potential_trial_start_time - baseline];
                     if are_offset_triggers_included
