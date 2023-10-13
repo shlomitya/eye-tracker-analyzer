@@ -1630,7 +1630,7 @@ set(gui, 'Visible', 'on');
         saccades_extractor= SaccadesExtractor(subjects_etas);        
         progress_screen.displayMessage('extracting saccades');
         % extract saccades data
-        [eye_data_structs, saccades_analysis_structs, eyeballing_stats]= saccades_extractor.extractSaccadesByEngbert( ...
+        [eye_data_structs, saccades_analysis_structs, eyeballing_stats, metadata]= saccades_extractor.extractSaccadesByEngbert( ...
             ENGBERT_ALGORITHM_DEFAULTS.detection, ...
             ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type, ...
             ENGBERT_ALGORITHM_DEFAULTS.vel_threshold, ...
@@ -1669,7 +1669,7 @@ set(gui, 'Visible', 'on');
         saveUpdatedEegStructs(0.0, progress_screen);
         progress_screen.displayMessage('generating analyses plots');
         % reformat the analysis struct to the format performMicrosaccadesAnalyses expects
-        reformated_analysis_structs= reformatAnalysisStruct(eye_data_structs);    
+        reformated_analysis_structs= reformatAnalysisStruct(eye_data_structs, metadata);    
         % generate figures etc.
         [subjects_figs, statistisized_figs, analysis_struct_with_results]= performMicrosaccadesAnalyses(reformated_analysis_structs, [MICROSACCADES_ANALYSIS_PARAMETERS.rate, MICROSACCADES_ANALYSIS_PARAMETERS.amplitudes, MICROSACCADES_ANALYSIS_PARAMETERS.directions, MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence, MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs, MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs], BASELINE, MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len, TRIAL_DURATION, progress_screen, 0.01);                        
         % add the analysis algorithm parameters to the output structure
@@ -1832,7 +1832,7 @@ set(gui, 'Visible', 'on');
             end
         end
         
-        function reformated_analysis_structs= reformatAnalysisStruct(eye_data_structs)
+        function reformated_analysis_structs= reformatAnalysisStruct(eye_data_structs, metadata)
             reformated_analysis_structs= cell(1, subjects_nr);
             for subject_i= 1:subjects_nr
                 curr_subject_conds_names= fieldnames(saccades_analysis_structs{subject_i});
@@ -1843,6 +1843,7 @@ set(gui, 'Visible', 'on');
                 reformated_analysis_structs{subject_i}.eyeballing_stats = [];
                 reformated_analysis_structs{subject_i}.fixations = [];
                 reformated_analysis_structs{subject_i}.raw_data = [];
+                reformated_analysis_structs{subject_i}.metadata = metadata{subject_i};
                 for cond_i= 1:numel(curr_subject_conds_names)
                     cond = curr_subject_conds_names{cond_i};
                     curr_cond_trials_nr= numel(saccades_analysis_structs{subject_i}.(cond));

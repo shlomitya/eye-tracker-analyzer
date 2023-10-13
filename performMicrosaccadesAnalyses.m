@@ -55,29 +55,36 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
     analysis_struct_with_results.results_grand_total= [];  
     
     % saccadic rate
-    if analyses_flags(1)                          
+    if analyses_flags(1)
+        % Going over each subject
         for subject_i = 1:subjects_nr
+            % Skipping subjects with no data
             if isempty(analysis_struct{subject_i})
                 progress_screen.addProgress(0.9*progress_contribution/subjects_nr);
                 continue;
             end     
             
+            % Initializing vectors
             conds_nr = numel(conds_names{subject_i});
             max_trial_duration_per_cond = zeros(1, conds_nr);
             original_microsaccadic_rate = cell(1, conds_nr);
             smoothed_microsaccadic_rate = cell(1, conds_nr);
-            for cond_i= 1:conds_nr                        
+
+            % Going over each condition
+            for cond_i= 1:conds_nr     
+                % Checking that saccades were extracted
                 if ~isempty(analysis_struct{subject_i}.saccades) && ...
                     isfield(analysis_struct{subject_i}.saccades, conds_names{subject_i}{cond_i}) && ...
                     max_trial_duration_per_cond(cond_i) < size(analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).logical_onsets_mat, 2)
                        max_trial_duration_per_cond(cond_i) = size(analysis_struct{subject_i}.saccades.(conds_names{subject_i}{cond_i}).logical_onsets_mat, 2);                    
                 end
 
+                % Initializing saccade vectors
                 original_microsaccadic_rate{cond_i} = NaN(subjects_nr, max_trial_duration_per_cond(cond_i));
                 smoothed_microsaccadic_rate{cond_i} = NaN(subjects_nr, max_trial_duration_per_cond(cond_i) - smoothing_window_len);
             end                              
            
-            %smooth window            
+            % Smoothing
             smoothing_edge_left= floor(smoothing_window_len/2);
             smoothing_edge_right= ceil(smoothing_window_len/2);
             for cond_i= 1:conds_nr
@@ -87,19 +94,29 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                 smoothed_microsaccadic_rate{cond_i}(subject_i, :) = smoothed_microsaccadic_rate_with_tails((smoothing_edge_left + 1):(max_trial_duration - smoothing_edge_right));
             end
            
-            if analyses_flags(5)  
+            % Creating figure
+            if analyses_flags(5) % Generate rate graphs flag
                 subjects_figs{1,1,subject_i}= 'microsaccades_rate';
                 subjects_figs{2,1,subject_i}= figure('name',['microsaccades_rate - subject #', num2str(subject_i)],'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
             end
             for cond_i= 1:conds_nr  
-                if analyses_flags(5)  
-                    plot(((smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right)) - baseline, ...
-                           smoothed_microsaccadic_rate{cond_i}(subject_i,:), 'color', curves_colors(cond_i,:));
+                if analyses_flags(5) % Generate rate graphs flag
+                    % Calculating time vector
+                    time_vec = ((smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right)) - baseline;
+                    if analysis_struct{subject_i}.metadata.sampling_rate ~= 1000
+                        % Adjusting time vector to sampling rate
+                        time_vec = time_vec*(1000/analysis_struct{subject_i}.metadata.sampling_rate);
+                    end                    
+                    % Plotting figure
+                    plot(time_vec, smoothed_microsaccadic_rate{cond_i}(subject_i,:), ...
+                        'color', curves_colors(cond_i,:));
                    hold('on');
                 end
-                analysis_struct_with_results.results_per_subject{subject_i}.saccades_analysis.saccadic_rate.(conds_names{subject_i}{cond_i})= smoothed_microsaccadic_rate{cond_i}(subject_i,:);                 
+                % Saving smoothed vector into output data
+                analysis_struct_with_results.results_per_subject{subject_i}.saccades_analysis.saccadic_rate.(conds_names{subject_i}{cond_i})= smoothed_microsaccadic_rate{cond_i}(subject_i,:);
             end
-            if analyses_flags(5)  
+            if analyses_flags(5) % Generate rate graphs flag
+                % Setting figure properties
                 legend(conds_names_aggregated, 'Box','off');
                 xlabel('Time [ms]');
                 ylabel('Saccade Rate [Hz]');

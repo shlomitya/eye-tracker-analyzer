@@ -46,7 +46,7 @@ classdef SaccadesExtractor < handle
             obj.eyeballer_main_gui_pos= round([0.2*screen_size(3), -0.2*screen_size(4), 0.6*screen_size(3), 0.8*screen_size(4)]);
         end
         
-        function [eye_data_struct, saccades_struct, eyeballing_stats]= extractSaccadesByEngbert(obj, detection_requested, vel_calc_type, vel_threshold, amp_lim, amp_low_lim, saccade_dur_min, frequency_max, filter_bandpass, perform_eyeballing, eyeballer_display_range_multiplier, eyeballer_timeline_left_offset, etas_full_paths, progress_contribution, progress_screen, logger)                           
+        function [eye_data_struct, saccades_struct, eyeballing_stats, metadata]= extractSaccadesByEngbert(obj, detection_requested, vel_calc_type, vel_threshold, amp_lim, amp_low_lim, saccade_dur_min, frequency_max, filter_bandpass, perform_eyeballing, eyeballer_display_range_multiplier, eyeballer_timeline_left_offset, etas_full_paths, progress_contribution, progress_screen, logger)                           
             % perform the saccades extraction
             % input:
             %   * detection_requested -> monocular or binocular detection.
@@ -101,6 +101,8 @@ classdef SaccadesExtractor < handle
             eye_data_struct = cell(1, obj.subjects_nr);
             % output variable
             eyeballing_stats= [];
+            % output variable
+            metadata = cell(1, obj.subjects_nr);
             % initializing the parameters for the saccades extraction.
             % if the user requests a re-extraction in the eyeballer, these
             % variables will be assigned with the re-extraction parameters
@@ -153,7 +155,13 @@ classdef SaccadesExtractor < handle
                         progress_screen.addProgress(0.2*progress_contribution/obj.subjects_nr);
                         continue;
                     end
-                                        
+
+                    % Extracting metadata 
+                    metadata{subject_i}.sampling_rate = obj.sampling_rates(subject_i);
+                    [~, filename, file_ext] = fileparts(etas_full_paths{subject_i});
+                    metadata{subject_i}.original_filename = strcat(filename, file_ext);
+                    
+                    % Extracting condition names and going through each
                     conds_names= fieldnames(curr_subject_data_struct);                    
                     for cond_i= 1:numel(conds_names)                  
                         curr_cond_name= conds_names{cond_i};
@@ -165,6 +173,7 @@ classdef SaccadesExtractor < handle
                             raw_eye_data_for_eyeballer{subject_i}.(curr_cond_name) = [];
                             manual_saccades_search_func_params_for_eyeballer{subject_i}.(curr_cond_name) = [];
                         end
+                        % Going over each trial
                         for trial_i= 1:numel(curr_cond_struct)                                                               
                             blink= squeeze(curr_cond_struct(trial_i).blinks);                            
                             if isempty(blink) || all(blink)
