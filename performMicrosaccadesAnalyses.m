@@ -105,8 +105,8 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
                     time_vec = ((smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right)) - baseline;
                     if analysis_struct{subject_i}.metadata.sampling_rate ~= 1000
                         % Adjusting time vector to sampling rate
-                        time_vec = time_vec*(1000/analysis_struct{subject_i}.metadata.sampling_rate);
-                    end                    
+                        time_vec = (((smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right)))*(1000/analysis_struct{subject_i}.metadata.sampling_rate) - baseline;
+                    end                
                     % Plotting figure
                     plot(time_vec, smoothed_microsaccadic_rate{cond_i}(subject_i,:), ...
                         'color', curves_colors(cond_i,:));
@@ -302,33 +302,68 @@ function [subjects_figs, statistisized_figs, analysis_struct_with_results]= perf
 
     %CREATE GRAND AVERAGE PLOTS
     if ~do_subjects_differ_in_conds_names
-        if analyses_flags(6)
+        if analyses_flags(6) % Generate Group Graphs flag
              statistisized_figs = cell(2,8);
         end
         % rate
         conds_nr = numel(conds_names_aggregated);
+        % Checking if we have more than a single participant
         if subjects_nr > 1 
-            if analyses_flags(1)        
+            if analyses_flags(1) % Generate rate graphs flag
+                % Initializing microsaccade vector
                 smoothed_grand_microsaccadic_rate= NaN(conds_nr, max_trial_duration_per_cond(cond_i) - smoothing_window_len);
-                for cond_i= 1:conds_nr            
+                % Going over each condition
+                for cond_i= 1:conds_nr  
+                    % Averaging across saccade participants, excluding NaN intervals
                     curr_cond_original_grand_microsaccadic_rate= mean(original_microsaccadic_rate{cond_i}, 1, 'omitnan');
+                    % Smoothing results
                     smoothed_grand_microsaccadic_rate_with_tails= smoothy( curr_cond_original_grand_microsaccadic_rate, smoothing_window_len, progress_screen, 0 );
+                    % Trimming edges
                     smoothed_grand_microsaccadic_rate_without_tails_idxs = (smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right);
                     smoothed_grand_microsaccadic_rate(cond_i,1:numel(smoothed_grand_microsaccadic_rate_without_tails_idxs))= smoothed_grand_microsaccadic_rate_with_tails(smoothed_grand_microsaccadic_rate_without_tails_idxs);
                 end
 
-                if analyses_flags(6)
+                if analyses_flags(6) % Generate group graphs flag
+                    % Creating figure
                     statistisized_figs{1,1}= 'grand_average-microsaccades_rate';
                     statistisized_figs{2,1}= figure('name','grand average: microsaccades rate', 'NumberTitle', 'off', 'position', figure_positions, 'visible', 'off');
                 end
-                for cond_i= 1:conds_nr  
-                    if analyses_flags(6)
-                        plot((1:size(smoothed_grand_microsaccadic_rate,2)) - baseline, smoothed_grand_microsaccadic_rate(cond_i,:), 'color', curves_colors(cond_i,:));
-                        hold('on');
+                % Going over each condition
+                for cond_i= 1:conds_nr
+                    if analyses_flags(6) % Generate group graphs flag
+                        % Calculating time vector
+                        time_vec = ((smoothing_edge_left + 1):(max_trial_duration_per_cond(cond_i) - smoothing_edge_right)) - baseline;
+                        
+                        % Extracting sampling rates
+                        sr_vec = nan(1, subjects_nr);
+                        for subject_i = 1:subjects_nr
+                            sr_vec(subject_i) = analysis_struct{subject_i}.metadata.sampling_rate;
+                        end
+
+                        % Checking if sampling rates are below 1000
+                        draw_figure = 1;
+                        if any(sr_vec ~= 1000)
+                            % Checking if all sampling rates are consistent
+                            if numel(unique(sr_vec)) == 1
+                                % Adjusting time vector to sampling rate
+                                time_vec = time_vec*(1000/sr_vec(1));
+                            else
+                                % Displaying warning to user
+                                progress_screen.displayMessage('<<WARNING: Differences in sampling rates among analyzed files identified, cannot compute group level saccade rate >>'); 
+                                draw_figure = 0;
+                                statistisized_figs{1, 1} = [];
+                                statistisized_figs{2, 1} = [];
+                            end
+                        end
+                        
+                        if draw_figure
+                            plot(time_vec, smoothed_grand_microsaccadic_rate(cond_i,:), 'color', curves_colors(cond_i,:));
+                            hold('on');
+                        end
                     end
                     analysis_struct_with_results.results_grand_total.saccades_analysis.saccadic_rate.(conds_names_aggregated{cond_i})= smoothed_grand_microsaccadic_rate(cond_i,:);            
                 end
-                if analyses_flags(6)
+                if analyses_flags(6) && draw_figure
                     legend(conds_names_aggregated, 'Box','off');                       
                     xlabel('Time [ms]');
                     ylabel('Saccade Rate [Hz]');
