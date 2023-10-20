@@ -36,6 +36,7 @@ MICROSACCADES_ANALYSIS_VEL_THRESHOLD_XML_NODE_NAME = 'VEL_THRESHOLD';
 MICROSACCADES_ANALYSIS_SACCADE_DUR_MIN_XML_NODE_NAME = 'SACCADE_DUR_MIN';
 MICROSACCADES_ANALYSIS_FREQ_MAX_XML_NODE_NAME = 'FREQ_MAX';
 MICROSACCADES_ANALYSIS_FILTER_BANDPASS_XML_NODE_NAME = 'FILTER_BANDPASS';
+MICROSACCADES_ANALYSIS_PUPIL_SIZE_XML_NODE_NAME = 'PUPIL_SIZE';
 
 % the delimiter that seperates the triggers in the triggers lists stored in
 % the xml
@@ -68,6 +69,7 @@ EYE_EEG_DATA_SYNC_SAVE_FOLDER= [];
 CURR_FILE_LOAD_FOLDER= pwd; 
 MICROSACCADES_PARAMETERS_FIG= [];
 BLINKS_PARAMETERS_FIG= [];
+EXTRACT_PUPIL_SIZE = 1;
 
 % error messages
 ERROR_MSG_NO_TRIGGERS= 'Please specify trial start triggers';
@@ -396,22 +398,10 @@ split_analysis_results_checkbox = uicontrol(analyze_microsaccades_panel, 'Style'
 
 %RUN ANALYSES UICONTROLS
 uicontrol(analyze_microsaccades_panel, 'Style', 'pushbutton', 'tag', 'msb', 'units', 'normalized', ...
-    'String', 'Analyze Movements', ...
-    'Position', [0.2597    0.0212    0.3066    0.0519], ...
+    'String', 'Extract and analyze data', ...
+    'Position', [0.3597    0.0212    0.3066    0.0519], ...
     'FontSize', 12.0, ...
     'callback', {@runAnalysisBtnCallback, @analyzeMicrosaccades, @microsaccadesParametersFigCreator, 'analyzing saccades'});
-
-uicontrol(analyze_microsaccades_panel, 'Style', 'pushbutton', 'tag', 'fb', 'units', 'normalized', ...
-    'String', 'Analyze Pupils Diameters', ...
-    'Position', [0.6017    0.0212    0.3066    0.0519], ...
-    'FontSize', 12.0, ...
-    'callback', {@runAnalysisBtnCallback, @analyzePupilsSz, [], 'Analyzing Pupils Size'});
-
-uicontrol(analyze_microsaccades_panel, 'Style', 'pushbutton', 'tag', 'bb', 'units', 'normalized', ...
-    'String', 'Analyze Blinks', ...
-    'Position', [0.4417    0.0212    0.2066    0.0519], ...
-    'FontSize', 12.0, 'visible', 'off', ...
-    'callback', {@runAnalysisBtnCallback, @analyzeBlinks, @blinksParametersFigCreator, 'analyzing blinks'});
 
 %CREATE ETAS MULTI SESSIONED PRIMAL UICONTROLS
 img = imread('resources/save_file.png','png');
@@ -1185,7 +1175,8 @@ set(gui, 'Visible', 'on');
             createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_VEL_THRESHOLD_XML_NODE_NAME);
             createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_SACCADE_DUR_MIN_XML_NODE_NAME);
             createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_FREQ_MAX_XML_NODE_NAME);
-            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_FILTER_BANDPASS_XML_NODE_NAME);            
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_FILTER_BANDPASS_XML_NODE_NAME);
+            createXmlNode(xml_dom, saccades_analysis_params_xml_node, MICROSACCADES_ANALYSIS_PUPIL_SIZE_XML_NODE_NAME);
         %end        
         
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PLOT_RATE_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.rate));
@@ -1197,6 +1188,7 @@ set(gui, 'Visible', 'on');
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SMOOTHING_WINDOW_LEN_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len));
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_BLINKS_DELTA_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.blinks_delta));
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_BDAF_XML_NODE_NAME, num2str(MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags));
+        setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PUPIL_SIZE_XML_NODE_NAME, num2str(EXTRACT_PUPIL_SIZE));
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LIM_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.amp_lim));
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LOW_LIM_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.amp_low_lim));
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_VEC_TYPE_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type));
@@ -1205,6 +1197,9 @@ set(gui, 'Visible', 'on');
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SACCADE_DUR_MIN_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.saccade_dur_min));
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FREQ_MAX_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.frequency_max));
         setXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_FILTER_BANDPASS_XML_NODE_NAME, num2str(ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass));
+        
+
+        
                 
         myXMLwrite(analysis_params_pathed_file_name, xml_dom);
     end
@@ -1258,6 +1253,7 @@ set(gui, 'Visible', 'on');
         MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len = valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_SMOOTHING_WINDOW_LEN_XML_NODE_NAME)), MICROSACCADES_ANALYSIS_PARAMETERS.smoothing_window_len);
         MICROSACCADES_ANALYSIS_PARAMETERS.blinks_delta = valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_BLINKS_DELTA_XML_NODE_NAME)), MICROSACCADES_ANALYSIS_PARAMETERS.blinks_delta);
         MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags = valIfValidDefaultIfNaN(str2num(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_BDAF_XML_NODE_NAME)), MICROSACCADES_ANALYSIS_PARAMETERS.blinks_detection_algos_flags);
+        EXTRACT_PUPIL_SIZE = valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_PUPIL_SIZE_XML_NODE_NAME)), EXTRACT_PUPIL_SIZE);
         ENGBERT_ALGORITHM_DEFAULTS.amp_lim= valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LIM_XML_NODE_NAME)), ENGBERT_ALGORITHM_DEFAULTS.amp_lim);
         ENGBERT_ALGORITHM_DEFAULTS.amp_low_lim = valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_AMP_LOW_LIM_XML_NODE_NAME)), ENGBERT_ALGORITHM_DEFAULTS.amp_low_lim);        
         ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type= valIfValidDefaultIfNaN(str2double(getXmlNodeValue(xml_dom, MICROSACCADES_ANALYSIS_VEL_VEC_TYPE_XML_NODE_NAME)), ENGBERT_ALGORITHM_DEFAULTS.vel_vec_type);
@@ -1287,6 +1283,7 @@ set(gui, 'Visible', 'on');
             set(findobj('tag', 'c400'), 'Value', MICROSACCADES_ANALYSIS_PARAMETERS.main_sequence);
             set(findobj('tag', 'c230'), 'Value', MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs);
             set(findobj('tag', 'c231'), 'Value', MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs);
+            set(findobj('tag', 'c311'), 'Value', EXTRACT_PUPIL_SIZE);
             set(findobj('tag', 'c209'), 'Value', PERFORM_EYEBALLING);
             set(findobj('tag', 'c211'), 'string', num2str(ENGBERT_ALGORITHM_DEFAULTS.saccade_dur_min));
             set(findobj('tag', 'c213'), 'string', num2str(ENGBERT_ALGORITHM_DEFAULTS.frequency_max));
@@ -1639,6 +1636,7 @@ set(gui, 'Visible', 'on');
             ENGBERT_ALGORITHM_DEFAULTS.saccade_dur_min, ...
             ENGBERT_ALGORITHM_DEFAULTS.frequency_max, ...
             ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass, ...
+            EXTRACT_PUPIL_SIZE, ...
             PERFORM_EYEBALLING, EYEBALLER_DISPLAY_RANGE, BASELINE, ...
             get(load_etas_for_analysis_display_pane, 'string'), 0.99, progress_screen, logger);                   
         
@@ -1876,8 +1874,12 @@ set(gui, 'Visible', 'on');
                     reformated_analysis_structs{subject_i}.raw_data.(cond).right_eye.x= NaN(curr_cond_trials_nr, max_trial_dur);
                     reformated_analysis_structs{subject_i}.raw_data.(cond).right_eye.y= NaN(curr_cond_trials_nr, max_trial_dur);
                     reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.x= NaN(curr_cond_trials_nr, max_trial_dur);
-                    reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.y= NaN(curr_cond_trials_nr, max_trial_dur);                    
-                                                                                                                          
+                    reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.y= NaN(curr_cond_trials_nr, max_trial_dur);
+                    if EXTRACT_PUPIL_SIZE
+                        reformated_analysis_structs{subject_i}.pupil_size.(cond).left_eye= NaN(curr_cond_trials_nr, max_trial_dur);
+                        reformated_analysis_structs{subject_i}.pupil_size.(cond).right_eye= NaN(curr_cond_trials_nr, max_trial_dur);
+                    end
+
                     for trial_i= 1:curr_cond_trials_nr
                         curr_trial_saccades_struct= saccades_analysis_structs{subject_i}.(cond)(trial_i);       
                         curr_trial_fixations_struct= fixations_analysis_struct{subject_i}.(cond)(trial_i);       
@@ -1894,7 +1896,12 @@ set(gui, 'Visible', 'on');
                                 reformated_analysis_structs{subject_i}.raw_data.(cond).right_eye.x(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.right_eye(:,1)';
                                 reformated_analysis_structs{subject_i}.raw_data.(cond).right_eye.y(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.right_eye(:,2)';                                
                                 reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.x(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.left_eye(:,1)';
-                                reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.y(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.left_eye(:,2)';                                
+                                reformated_analysis_structs{subject_i}.raw_data.(cond).left_eye.y(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.raw_eye_data.left_eye(:,2)';
+
+                                if EXTRACT_PUPIL_SIZE
+                                    reformated_analysis_structs{subject_i}.pupil_size.(cond).left_eye(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.pupil_size.left_eye;
+                                    reformated_analysis_structs{subject_i}.pupil_size.(cond).right_eye(trial_i, 1:curr_trial_dur) = curr_trial_eye_data_struct.pupil_size.right_eye;
+                                end
                             end
 
                             if ~isempty(curr_trial_saccades_struct.onsets) && any(~isnan(curr_trial_saccades_struct.onsets))
@@ -2010,7 +2017,7 @@ set(gui, 'Visible', 'on');
             'FontSize', 10.0, 'String', 'Generate Group Graphs', 'Position', [0.0322,0.1476,0.2477,0.0923], ...
             'BackgroundColor', GUI_BACKGROUND_COLOR, ...
             'value', MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs, ... 
-            'Enable', is_gen_group_graphs_enabled_str, ... 
+            'Enable', is_gen_group_graphs_enabled_str, ...
             'callback', {@genGroupToggledCallback});     
         
         if MICROSACCADES_ANALYSIS_PARAMETERS.gen_single_graphs || MICROSACCADES_ANALYSIS_PARAMETERS.gen_group_graphs
@@ -2018,6 +2025,12 @@ set(gui, 'Visible', 'on');
         else
             are_save_graphs_enabled_str = 'off';
         end
+
+        uicontrol(microsaccades_analysis_params_panel, 'Style', 'checkbox', 'tag', 'c311', 'units', 'normalized', ...
+            'FontSize', 10.0, 'String', 'Extract pupil size', 'Position', [0.0322,0.0496,0.2477,0.0923], ...
+            'BackgroundColor', GUI_BACKGROUND_COLOR, ...
+            'value', EXTRACT_PUPIL_SIZE, ...
+            'callback', {@extractPupilSizeToggledCallback});
       
         save_rate_graphs_checkbox = uicontrol(microsaccades_analysis_params_panel, 'Style', 'checkbox', 'tag', 'c206', 'units', 'normalized', ...
             'FontSize', 10.0, 'String', 'Generate Rate Graphs', 'Position', [0.0322,0.8659,0.2353,0.0925], ...
@@ -2384,6 +2397,10 @@ set(gui, 'Visible', 'on');
                 set(eyeballer_display_range_edit, 'enable', 'off');                
             end
         end
+
+        function extractPupilSizeToggledCallback(hObject, ~)
+            EXTRACT_PUPIL_SIZE= get(hObject,'value');
+        end
         
         function samplesNumberMinEditedCallback(hObject, ~)
             ENGBERT_ALGORITHM_DEFAULTS.saccade_dur_min= str2double(get(hObject,'string'));
@@ -2471,57 +2488,6 @@ set(gui, 'Visible', 'on');
             BLINKS_PARAMETERS_FIG= [];
         end
     end       
-
-    function [subjects_figs, statistisized_figs, analysis_struct]= analyzePupilsSz(subjects_etas, progress_screen, logger)  
-        %===============%
-        %=== analyze ===%
-        %===============%         
-        subjects_figs = [];
-        statistisized_figs = [];
-        
-        were_triggers_ever_found_on_any_subject = false;
-        for subject_i = 1:subjects_nr
-            curr_subject_data_struct= subjects_etas{subject_i}.getSegmentizedData(ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass);
-            if ~isempty(curr_subject_data_struct)                
-                conds_names = fieldnames(curr_subject_data_struct);                
-                conds_nr = numel(conds_names);
-                were_triggers_ever_found_on_any_subject = true;
-                break;
-            end           
-        end
-        
-        if were_triggers_ever_found_on_any_subject
-            for subject_i= 1:subjects_nr
-                curr_subject_data_struct= subjects_etas{subject_i}.getSegmentizedData(ENGBERT_ALGORITHM_DEFAULTS.filter_bandpass);
-                if isempty(curr_subject_data_struct)
-                    progress_screen.addProgress(0.8/subjects_nr);
-                    continue;
-                end                
-                
-                for cond_i= 1:conds_nr
-                    curr_cond= conds_names{cond_i};                                                                
-                    curr_cond_trials_nr= numel(curr_subject_data_struct.(curr_cond));                            
-                    analysis_struct.single_subject_analyses{subject_i}.(curr_cond).right_eye = NaN(curr_cond_trials_nr, TRIAL_DURATION);
-                    analysis_struct.single_subject_analyses{subject_i}.(curr_cond).left_eye = NaN(curr_cond_trials_nr, TRIAL_DURATION);
-                    for trial_i= 1:curr_cond_trials_nr
-                        if isempty(curr_subject_data_struct.(curr_cond)(trial_i).gazeRight)                
-                            continue;
-                        end
-                        analysis_struct.single_subject_analyses{subject_i}.(curr_cond).right_eye(trial_i, 1:curr_subject_data_struct.(curr_cond)(trial_i).samples_nr) = ...
-                            curr_subject_data_struct.(curr_cond)(trial_i).gazeRight.pupil;
-                        analysis_struct.single_subject_analyses{subject_i}.(curr_cond).left_eye(trial_i, 1:curr_subject_data_struct.(curr_cond)(trial_i).samples_nr) = ...
-                            curr_subject_data_struct.(curr_cond)(trial_i).gazeLeft.pupil;                        
-                    end
-
-                    progress_screen.addProgress(0.8/(subjects_nr*conds_nr));
-                end                        
-            end
-            
-            progress_screen.addProgress(0.2);    
-        else
-            progress_screen.addProgress(1.0);
-        end
-    end
 
     function [subjects_figs, statistisized_figs, analysis_struct]= analyzeBlinks(subjects_etas, progress_screen)
         subjects_figs= [];

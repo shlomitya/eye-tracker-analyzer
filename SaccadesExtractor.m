@@ -46,7 +46,7 @@ classdef SaccadesExtractor < handle
             obj.eyeballer_main_gui_pos= round([0.2*screen_size(3), -0.2*screen_size(4), 0.6*screen_size(3), 0.8*screen_size(4)]);
         end
         
-        function [eye_data_struct, saccades_struct, eyeballing_stats, metadata]= extractSaccadesByEngbert(obj, detection_requested, vel_calc_type, vel_threshold, amp_lim, amp_low_lim, saccade_dur_min, frequency_max, filter_bandpass, perform_eyeballing, eyeballer_display_range_multiplier, eyeballer_timeline_left_offset, etas_full_paths, progress_contribution, progress_screen, logger)                           
+        function [eye_data_struct, saccades_struct, eyeballing_stats, metadata]= extractSaccadesByEngbert(obj, detection_requested, vel_calc_type, vel_threshold, amp_lim, amp_low_lim, saccade_dur_min, frequency_max, filter_bandpass, extract_pupil_size, perform_eyeballing, eyeballer_display_range_multiplier, eyeballer_timeline_left_offset, etas_full_paths, progress_contribution, progress_screen, logger)                           
             % perform the saccades extraction
             % input:
             %   * detection_requested -> monocular or binocular detection.
@@ -65,6 +65,8 @@ classdef SaccadesExtractor < handle
             %   within which to discard later found saccades.
             %   * filter_bandpass -> filter lowpass frequency to apply on
             %   the eyes tracking data
+            %   * extract_pupil_size -> whether pupil size should be
+            %   extracted
             %   * perform_eyeballing -> whether or not to perform a manual
             %   analysis inspection
             %   * eyeballer_display_range_multiplier [perform_eyeballing == true] -> 
@@ -195,6 +197,11 @@ classdef SaccadesExtractor < handle
                                 fillSaccadesStructWithVal([]);
                                 eye_data_struct{subject_i}.(curr_cond_name)(trial_i).non_nan_times_logical_vec = [];
                                 eye_data_struct{subject_i}.(curr_cond_name)(trial_i).vergence = [];
+
+                                if extract_pupil_size
+                                    eye_data_struct{subject_i}.(curr_cond_name)(trial_i).pupil_size = [];
+                                end
+
                                 continue;
                             end
                             
@@ -223,12 +230,20 @@ classdef SaccadesExtractor < handle
                             xl(:,1) = xl(:,1) - mean(xl(:,1));
                             xl(:,2) = xl(:,2) - mean(xl(:,2));
                             obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).left_eye.baseline_corrected_eye_data= xl;
+
+                            % Extracting raw eye position and vergence
                             eye_data_struct{subject_i}.(curr_cond_name)(trial_i).vergence =  NaN(curr_cond_struct(trial_i).samples_nr,2);                           
                             eye_data_struct{subject_i}.(curr_cond_name)(trial_i).vergence(non_nan_times_logical_vec, :) = [xr(:,1) - xl(:,1), xr(:,2) - xl(:,2)];
                             eye_data_struct{subject_i}.(curr_cond_name)(trial_i).raw_eye_data.right_eye = [curr_cond_struct(trial_i).gazeRight.x; curr_cond_struct(trial_i).gazeRight.y]';                                
-                            eye_data_struct{subject_i}.(curr_cond_name)(trial_i).raw_eye_data.left_eye = [curr_cond_struct(trial_i).gazeLeft.x; curr_cond_struct(trial_i).gazeLeft.y]';                            
-                            
-                            
+                            eye_data_struct{subject_i}.(curr_cond_name)(trial_i).raw_eye_data.left_eye = [curr_cond_struct(trial_i).gazeLeft.x; curr_cond_struct(trial_i).gazeLeft.y]';
+                                           
+                            % Extracting pupil size
+                            if extract_pupil_size
+                                % Extracting pupil size data for each eye
+                                eye_data_struct{subject_i}.(curr_cond_name)(trial_i).pupil_size.left_eye = curr_subject_data_struct.(curr_cond_name)(trial_i).gazeLeft.pupil;
+                                eye_data_struct{subject_i}.(curr_cond_name)(trial_i).pupil_size.right_eye = curr_subject_data_struct.(curr_cond_name)(trial_i).gazeRight.pupil;
+                            end
+
                             % Compute 2D velocity vectors
                             obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).left_eye.eye_vels = ...
                                 SaccadesExtractor.vecvel(obj.engbert_algorithm_interm_vars{subject_i}.(curr_cond_name)(trial_i).left_eye.baseline_corrected_eye_data, ...
