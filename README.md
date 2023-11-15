@@ -55,7 +55,7 @@ If forking, please cite the original work in any publication resulting from the 
 ## Citation
 Please cite as:
 
-Tal-Perry, N., Solomon, O., Shdeour, O., Pakula, B., & Yuval-Greenberg, S. Eye Tracker Analyzer: a GUI-based tool for microsaccade extraction and analysis (Version 1.0.0) [Computer software]. https://github.com/shlomitya/eye-tracker-analyzer
+Tal-Perry, N., Solomon, O., Shdeour, O., & Yuval-Greenberg, S. Eye Tracker Analyzer: a GUI-based tool for microsaccade extraction and analysis (Version 1.0.0) [Computer software]. https://github.com/shlomitya/eye-tracker-analyzer
 
 Or use the "Cite this repository" widget.
 
@@ -64,6 +64,6 @@ Or use the "Cite this repository" widget.
 [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 ## Credits
-Based on code written by Shlomit Yuval-Greenberg & Alon Keren. Additional contributions were made by Noam Tal-Perry, Omer Solomon, Dekel Abeles, Roy Amit, Orit Shdeour, and Bar Pakula.
+Based on code written by Shlomit Yuval-Greenberg & Alon Keren. Additional contributions were made by Noam Tal-Perry, Omer Solomon, Dekel Abeles, Roy Amit, and Orit Shdeour.
 
 This code includes code parts written by Ralf Engert and Olaf Dimigen.
